@@ -1,0 +1,9 @@
+[gd_resource type="LabelSettings" load_steps=2 format=3 uid="uid://dc5upt1wmxeg2"]
+
+[sub_resource type="SystemFont" id="SystemFont_hdcip"]
+font_names = PackedStringArray("Forte")
+
+[resource]
+font = SubResource("SystemFont_hdcip")
+font_size = 120
+font_color = Color(0, 0, 0, 1)

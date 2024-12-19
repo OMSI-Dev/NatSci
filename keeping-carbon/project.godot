@@ -12,14 +12,24 @@ config_version=5
 
 config/name="Keeping Carbon"
 run/main_scene="res://Scenes/splash.tscn"
-config/features=PackedStringArray("4.3", "Forward Plus")
+config/features=PackedStringArray("4.3", "C#", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+SerialCom="*res://Scripts/SerialCom.cs"
+score="*res://Scripts/results.gd"
 
 [display]
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/resizable=false
+
+[dotnet]
+
+project/assembly_name="Keeping Carbon"
+project/solution_directory="C:\\Users\\adelanty\\OneDrive - Oregon Museum of Science and Industry (OMSI)\\Documents\\GitHub\\NatSci\\keeping-carbon"
 
 [input]
 

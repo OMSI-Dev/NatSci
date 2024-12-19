@@ -1,3 +1,22 @@
-[gd_scene format=3 uid="uid://b1523r6lfu6l"]
+[gd_scene load_steps=3 format=3 uid="uid://b1523r6lfu6l"]
+
+[ext_resource type="Script" path="res://Scripts/score.gd" id="1_5ffkh"]
+[ext_resource type="LabelSettings" uid="uid://c075wxe3kijnb" path="res://Themes/tempHeader.tres" id="2_pnr3a"]
 
 [node name="results" type="Node2D"]
+script = ExtResource("1_5ffkh")
+
+[node name="BQ" type="ColorRect" parent="."]
+offset_right = 1920.0
+offset_bottom = 1080.0
+metadata/_edit_lock_ = true
+
+[node name="titleCard" type="Label" parent="."]
+offset_left = 186.0
+offset_top = 238.0
+offset_right = 1415.0
+offset_bottom = 559.0
+text = "You managed to keep  carbon "
+label_settings = ExtResource("2_pnr3a")
+horizontal_alignment = 1
+autowrap_mode = 3
