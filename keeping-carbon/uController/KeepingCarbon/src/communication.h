@@ -12,24 +12,75 @@ void heartBeat()
 }
 void connectCom()
 {
+    //Connect to the PC
     Serial.begin(115200);
     Serial.setTimeout(5);
-    
-    // digitalWrite(13,HIGH);
+    //Connect to each section & set timeout
+    section1.begin(115200);
+    section1.setTimeout(5);
 
-    // digitalWrite(13,LOW);
+    section2.begin(115200);
+    section2.setTimeout(5);
+
+    section3.begin(115200);
+    section3.setTimeout(5);
+
 }
 
-byte comRead()
+byte readSection1()
 {
-    const int BUFFER_SIZE = 1; //1 equals the 1 byte of information before '\n' 
-    byte buf[BUFFER_SIZE];
-    Serial.readBytesUntil('\n', buf, BUFFER_SIZE);
+    byte buf[sectionBufferSize];
+    section1.readBytesUntil('\n', buf, sectionBufferSize);
 
     return buf[0];
 }
 
-void comSend(byte dataOut)
+std::array<byte, sectionBufferSize> readSection2()
+{
+    std::array<byte, sectionBufferSize> buffer;
+    buffer.fill(0);
+    section2.readBytesUntil('\n', buffer.data(), sectionBufferSize);
+
+    return buffer;
+}
+
+byte readSection3()
+{
+    const int sectionBufferSize = 13; //1 equals the 1 byte of information before '\n' 
+    byte buf[sectionBufferSize];
+    section2.readBytesUntil('\n', buf, sectionBufferSize);
+
+    return buf[0];
+}
+
+
+void sendToSection1(byte dataOut)
 {   
-    Serial.println(dataOut);
+    section1.println(dataOut);
+}
+
+
+/**
+ * @brief Send data to the connected PC
+ * @param dataOut 1 = gain point 0 = remove point 3 = start Game
+ */
+void sendToPC(byte dataOut)
+{   
+    //Send add point to the PC
+    if(dataOut == 1)
+    {
+        PC.println("+");
+    }
+    //Send remove point to the PC
+    if(dataOut == 0)
+    {
+        PC.println("-");
+    }
+
+    //Send start to PC
+    if(dataOut == 2)
+    {
+        PC.println("S")
+    }
+    
 }
