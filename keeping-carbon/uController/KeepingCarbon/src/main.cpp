@@ -17,12 +17,7 @@ uint8_t setMole() {
 uint8_t currentMole = setMole();
 
 void setup() {
-    //Connect to the PC
-    Serial.begin(115200);
-    //Connect to each section
-    section1.begin(115200);
-    section2.begin(115200);
-    section3.begin(115200);
+    connectCom();
 
     // not used in main only for boards with attached buttons
     // Need to move to a section file
@@ -44,6 +39,7 @@ void setup() {
 
 void loop()
 {
+  gameOn = true;
   if(!gameOn)
   {
     //check for button presses.
@@ -61,81 +57,6 @@ void loop()
   }
 }
 
-/*
-void loop() 
-{
-
-  startBtn.update();
-
-  if(!gameOn && startBtn.isPressed())
-  {
-    gameOn = !gameOn;
-    Serial.println("Game On");
-    gameTimer.setTime(60000);
-    removeMole.setTime(removeTick);
-  }
-
-  if(points >= 20){Serial.println("Resetting");}
-
-  if(!gameTimer.running() && gameOn)
-  {
-    Serial.println("Game Over");
-    gameOn = false;    
-    reset();
-  }
-
-  if(gameOn)
-  {
-    
-    u_int64_t tempTime = gameTimer.getRemain();
-
-
-    if((tempTime/10000) != lastUpdate )
-    {
-      if(b>=20)
-      {
-        b = b-50;
-      }
-      lastUpdate = tempTime/10000;
-    }
-
-    for (int i = 0; i < 5; i++) 
-    {
-        ledButtons[i].update();
-    }
-
-    if (!moleTimer.running()) 
-    {
-        //Serial.println("Set mole");
-        currentMole = setMole();
-        if(!ledButtons[currentMole].isLedOn())
-        {
-          ledButtons[currentMole].setColor();
-          lastMole = currentMole;
-        }
-        moleTimer.setTime(moleTicks);
-        removeMole.setTime(removeTick);
-    }
-
-    if(!removeMole.running())
-    {
-      ledButtons[lastMole].off(); 
-      Serial.print("Remove Mole:");
-      Serial.println(lastMole);    
-    }
-
-    if(!moleTicker.running() && moleTicks != 100)
-    {      
-      moleTicker.setTime(2000);
-      moleTicks = moleTicks-150;
-      removeTick = removeTick - 125;
-    }
-    
-
-  } 
-
-}
-*/
 
 void reset()
 {

@@ -27,12 +27,14 @@ void connectCom()
 
 }
 
-byte readSection1()
+std::array<byte, sectionBufferSize> readSection1()
 {
-    byte buf[sectionBufferSize];
-    section1.readBytesUntil('\n', buf, sectionBufferSize);
+    //create array to hold incoming data
+    std::array<byte, sectionBufferSize> buffer;
+    buffer.fill(0);
+    section1.readBytesUntil('\n', buffer.data(), sectionBufferSize);
 
-    return buf[0];
+    return buffer;
 }
 
 std::array<byte, sectionBufferSize> readSection2()
@@ -80,7 +82,7 @@ void sendToPC(byte dataOut)
     //Send start to PC
     if(dataOut == 2)
     {
-        PC.println("S")
+        PC.println("S");
     }
     
 }

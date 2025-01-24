@@ -25,8 +25,15 @@ Bounce2::Button Btn7 = Bounce2::Button();
 uint16_t moleTicks = 700, removeTick = 650;
 uint8_t points, lastMole;
 uint32_t lastUpdate;
+
 //game vars
-bool gameOn;
+bool gameOn,easy,med,hard;
+uint16_t moleTime;
+
+//These hold the mole time for each difficulty
+uint16_t easyTime = 20 * 1000;
+uint16_t medTime = 15 * 1000;
+uint16_t hardTime = 10 * 1000;
 
 //decalre functions
 void reset();
@@ -35,7 +42,11 @@ void printButtonStatus();
 //light vars
 uint8_t b = 255;
 
-//Serial Names
+std::array<byte, 6> section1Buttons,section2Buttons,section3Buttons;
+
+//Serial Names & vars
+const int sectionBufferSize = 13; //1 equals the 1 byte of information before '\n' 
+#define PC Serial
 #define section1 Serial1 
 #define section2 Serial2 
 #define section3 Serial3 

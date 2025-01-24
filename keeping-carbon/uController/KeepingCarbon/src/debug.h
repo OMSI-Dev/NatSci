@@ -1,49 +1,39 @@
 
-void printButtonStatus() {
-    Serial.print("button press: ");
-    Serial.print("1:");
-    Serial.print(Btn1.isPressed());
-    Serial.print("|2:");
-    Serial.print(Btn2.isPressed());
-    Serial.print("|3:");
-    Serial.print(Btn3.isPressed());
-    Serial.print("|4:");
-    Serial.print(Btn4.isPressed());
-    Serial.print("|5:");
-    Serial.print(Btn5.isPressed());
-    Serial.print("|6:");
-    Serial.print(Btn6.isPressed());
-    Serial.print("|7:");
-    Serial.print(Btn7.isPressed());
-    Serial.print("|Start:");
-    Serial.println(startBtn.isPressed());
+void printButtonStatus() 
+{   
+    PC.println("__________________________");
+    PC.print("Start: ");
+    PC.println(startBtn.isPressed());
+    PC.print("Easy: ");
+    PC.println(easyBtn.isPressed());
+    PC.print("Medium: ");
+    PC.println(medBtn.isPressed());
+    PC.print("Hard: ");
+    PC.println(hardBtn.isPressed());
+    PC.println("__________________________"); 
 }
 
 void printResetStatus()
 {
-  Serial.println("**********************");
-  Serial.print("Game Status: ");
-  Serial.println(gameOn);
+  PC.println("__________________________");
+  PC.print("Game Status: ");
+  PC.println(gameOn);
 
-  Serial.print("points: ");
-  Serial.println(points);
+  PC.print("points: ");
+  PC.println(points);
 
-  Serial.print("Mole Tick: ");
-  Serial.println(moleTicks);
+  PC.print("Mole Tick: ");
+  PC.println(moleTicks);
 
-  Serial.print("Remove Tick: ");
-  Serial.println(removeTick);
+  PC.print("Remove Tick: ");
+  PC.println(removeTick);
 
-
-  Serial.print("R value: ");
-  Serial.println(b);
-
-  Serial.print("All timer status: ");
-  Serial.print(moleTimer.running());
-  Serial.print("|");
-  Serial.print(moleTicker.running());
-  Serial.print("|");
-  Serial.print(gameTimer.running());
-  Serial.println("**********************");
+  PC.print("All timer status: ");
+  PC.print(moleTimer.running());
+  PC.print("|");
+  PC.print(moleTicker.running());
+  PC.print("|");
+  PC.print(gameTimer.running());
+  PC.println("__________________________");
 
 }
