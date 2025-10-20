@@ -1,35 +1,35 @@
-## pinout layout of previous build
+# pinout layout of previous build
 
 Pololu 5V Step-Up Voltage regulator:
- 	V IN to power rail
- 	GND to GND rail
- 	V OUT to PIR sensor red wire
+ 	V IN > power rail
+ 	GND > GND rail
+ 	V OUT > PIR sensor red wire
 
 PIR sensor pinout:
  	red wire to VOUT of Pololu
- 	white wire to GND rail
- 	black wire to GPIO, 4.7k pull up resistor !!!!
+ 	white wire > GND rail
+ 	black wire > GPIO, 4.7k pull up resistor !!!!
 
 Adafruit tinker pinout:
  	(right side)
- 	BAT+ to power rail
- 	G to ground rail
- 	GPIO 6~ to white wire of external lamp
+ 	BAT+ > power rail
+ 	G > ground rail
+ 	GPIO 6~ > white wire of external lamp
  	(left side)
  	BLK to BLK on adafruit "6"
  	A4 to A4 on adafruit "6"
 
 External lamp pinout:
  	(from top view)
- 	black wire to GND
- 	white wire to GPIO 6~ (ylw)
- 	red wire to power rail (blue)
+ 	black wire > GND
+ 	white wire > GPIO 9~ (ylw)
+ 	red wire > power rail (blue)
  
 Xbee wireless adapter pinout:
- 	black wire to GND
+ 	black wire > GND
  	blue wire (...)
- 	green wire to power rail
- 	yellow wire to TX
+ 	green wire > power rail
+ 	yellow wire > TX
  	orange wire to GPIO 4
  	red wire (...)
  

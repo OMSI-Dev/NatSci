@@ -1,7 +1,7 @@
 #include <FastLED.h>
 #include <Arduino.h>
-#include <Pulse.h>
-#include <Timer.h>
+#include <Pulse.h> // not used
+#include <Timer.h> // not used
 
 const int MOTION_PIN = 10; 
 

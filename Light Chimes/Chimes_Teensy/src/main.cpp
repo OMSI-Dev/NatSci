@@ -8,6 +8,7 @@ const int MOTION_PIN = 10;
 #define NUM_LEDS 6
 #define DATA_PIN 11
 #define CLOCK_PIN 8
+#define LAMP_PIN 9
 
 // fading and delays
 MoToTimerRop delayTimer;
@@ -29,6 +30,8 @@ void setup() {
   FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);
   pinMode(MOTION_PIN, INPUT_PULLUP); 
   FastLED.setBrightness(50);
+  pinMode(9, OUTPUT);
+  digitalWrite(9,LOW);
 }
 
 void loop() {
@@ -42,6 +45,7 @@ void loop() {
       brightness += increment;
     } else {
       brightness = maxVal;
+      digitalWrite(9,HIGH);
     }
 
     // Reset timers
@@ -72,6 +76,8 @@ void loop() {
         } else if (brightness != minVal) {
           Serial.println("setting brightness to minVal");
           brightness = minVal;
+          digitalWrite(9,HIGH);
+
         }
       }
     }
