@@ -1,36 +1,17 @@
 /*
-  Pixie reads data in at 115.2k serial, 8N1.
-  Byte order is R1, G1, B1, R2, G2, B2, ... where the first triplet is the
-  color of the LED that's closest to the controller. 1ms of silence triggers
-  latch. 2 seconds silence (or overheating) triggers LED off (for safety).
-
-  Do not look into Pixie with remaining eye!
+  Pixie requires 5V logic, will not work with Teensy without logic converter
+  This example executes an animation cycle of rgb rainbow 
 */
 
 #include "Adafruit_Pixie.h"
 
-#if (defined(__AVR__) || defined(ESP8266)) && !defined(__AVR_ATmega2560__)
-// For UNO and others without hardware serial, we must use software serial...
-// Set up the serial port to use softwareserial..
-
 #include "SoftwareSerial.h"
-#define PIXIEPIN  6 // Pin number for SoftwareSerial output
+#define PIXIEPIN  6 // GPIO
 SoftwareSerial pixieSerial(-1, PIXIEPIN);
 
-#else
-// On Leonardo/M0/etc, others with hardware serial, use hardware serial!
-// #0 is green wire, #1 is white
-#define pixieSerial Serial1
-
-#endif
-
-#define NUMPIXELS 3 // Number of Pixies in the strip
+#define NUMPIXELS 1 
 Adafruit_Pixie strip = Adafruit_Pixie(NUMPIXELS, &pixieSerial);
-// Alternately, can use a hardware serial port for output, e.g.:
-// Adafruit_Pixie strip = Adafruit_Pixie(NUMPIXELS, &Serial1);
 
-// Input a value 0 to 255 to get a color value.
-// The colours are a transition r - g - b - back to r.
 uint32_t Wheel(byte WheelPos) {
   if(WheelPos < 85) {
    return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
@@ -62,7 +43,6 @@ void setup() {
   Serial.println("Ready to Pixie!");
 
   pixieSerial.begin(115200); // Pixie REQUIRES this baud rate
-  // Serial1.begin(115200);  // <- Alt. if using hardware serial port
 
   strip.setBrightness(200);  // Adjust as necessary to avoid blinding
 

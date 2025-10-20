@@ -1,30 +1,29 @@
-# pinout layout of previous build
-
-Pololu 5V Step-Up Voltage regulator:
- 	V IN > power rail
- 	GND > GND rail
- 	V OUT > PIR sensor red wire
+# component wiring layout of breadboard build
 
 PIR sensor pinout:
- 	red wire to VOUT of Pololu
- 	white wire > GND rail
- 	black wire > GPIO, 4.7k pull up resistor !!!!
+ 	5V red wire > VOUT of Pololu
+ 	GND white wire > GND rail
+ 	DATA black wire > GPIO, 4.7k pull up resistor !!!!
 
-Adafruit tinker pinout:
- 	(right side)
+Adafruit Pro tinker pinout:
  	BAT+ > power rail
- 	G > ground rail
- 	GPIO 6~ > white wire of external lamp
- 	(left side)
- 	BLK to BLK on adafruit "6"
- 	A4 to A4 on adafruit "6"
+ 	G > GND rail
+ 	GPIO 6~ > Adafruit Pixie
+ 	BLK > Adafruit "6" BLK (ground connection)
+ 	A4 > Adafruit "6" A4
 
-External lamp pinout:
- 	(from top view)
+Adafruit Pixie LED pinout:
  	black wire > GND
- 	white wire > GPIO 9~ (ylw)
+ 	white wire > GPIO 8~ (ylw)
  	red wire > power rail (blue)
  
+Ground/power rail sequence:
+[adafruit pro trinket]
+[bulk capacitor]
+[adafruit pixie]
+[Pololu]
+
+#(Removed from new system) 
 Xbee wireless adapter pinout:
  	black wire > GND
  	blue wire (...)
@@ -32,11 +31,10 @@ Xbee wireless adapter pinout:
  	yellow wire > TX
  	orange wire to GPIO 4
  	red wire (...)
- 
-Ground/power rails
-[adafruit]
-[bulk capacitor]
-[external lamp]
-[Pololu]
 
-Note: there also was an Adafruit sound board for audio output
+Pololu 5V Step-Up Voltage regulator:
+ 	V IN > power rail
+ 	GND > GND rail
+ 	V OUT > PIR sensor red wire
+
+Adafruit sound board for audio output
