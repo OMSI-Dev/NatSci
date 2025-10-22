@@ -9,7 +9,7 @@ from ppAccess import PowerPointShowController
 from engine import sosppEngine
 
 
-DEFAULT_CONFIG = "C:\\Users\\agreen\\Documents\\Github\\SOS_Now-Playing\\Archive\\SOS\\v1.1\\config.txt"
+DEFAULT_CONFIG = "C:\\Users\\agreen\\Documents\\Github\\NatSci\\SOS\config.txt"
 
 def usage():
     """prints help"""
@@ -55,7 +55,7 @@ def main():
         usage()
         sys.exit(2)
     output = None
-    verbose = False
+    verbose = True
     ip_cmd = None
     port_cmd = None
     config = None
@@ -94,13 +94,13 @@ def main():
             port = config_dict["port"]
         if name:
             slideshow = config_dict["default_path"] + name + ".ppt"
-            database = config_dict["default_path"] + name + ".txt"
+            database = config_dict["default_path"] + name + ".csv" #.txt to .csv change here
             print ("Using:")
             print (slideshow)
             print (database)
         else:
             slideshow = config_dict["default_path"] + config_dict["default_name"] + ".ppt"
-            database = config_dict["default_path"] + config_dict["default_name"] + ".txt"
+            database = config_dict["default_path"] + config_dict["default_name"] + ".csv" #same change here
     else:
         print ("Error in config file")
         sys.exit(2)

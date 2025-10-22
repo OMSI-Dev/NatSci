@@ -14,7 +14,7 @@ port=2468
 # The location of the PP and database file to use
 # including backslash at end
 # Example: default_path = C:\sos\
-default_path = C:\Users\agreen\Documents\GitHub\SOS_Now-Playing\Archive\SOS\v1.1\
+default_path = C:\Users\agreen\Documents\GitHub\NatSci\SOS\
 
 
 # The name of the PP and database file

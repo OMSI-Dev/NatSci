@@ -1,16 +1,17 @@
 import string
+import csv
 DELIMITER = ";"
 
 
 def parseConfig(ConfigFile,debug = False):
     """
     parseConfig(ConfigFile,debug = False)
-    This function parses the database data in SlideFile to be used.
+    This function parses config.txt, and isolates the database file to be used as 'SlideFile'.
     Input: ConfigFile is a string of the full path to the file to be parsed.	
-            all text after "#" is ignored on a line
+            all comment text following "#" is ignored 
             keywords are sos_ip, port, slideshow, database
             values follow a keyword and an equals sign
-            slidewhow, database are complete paths
+            slideshow, database are complete paths
     Output: (success,config_dict)
             success - True/False for success of parse
             config_dict - a dictionary of the keys being the options in the
@@ -69,7 +70,7 @@ def parseConfig(ConfigFile,debug = False):
         return (True,config_dict)
 
 
-
+# I am working here !!!!!!!!!!!!!!!!!!!!!!!!!!!!----------------------------------------
 def parseSlideNames(SlideFile,debug = False):
     """ 
     parseSlideNames(SlideFile,debug = False)
@@ -84,40 +85,80 @@ def parseSlideNames(SlideFile,debug = False):
            column of the file and the value being the second column in the file.
     ***if file doesn't exist, or error, returns imcomplete dictionary
     """
-    dictionary = {}
-    
+    """Simple, robust parser for slide files.
+
+    Behavior:
+    - Opens file with utf-8-sig to tolerate BOM.
+    - Strips inline comments beginning with '#'.
+    - Auto-detects delimiter: uses ';' if present in a sample, otherwise ','.
+    - Uses csv.reader to recognize collections of slides through quoted fields
+    - Converts numeric tokens permissively (int(float(token))).
+    Returns: (True, mapping) or (False, {}) on file error.
+    """
+    import csv
+    mapping = {}
     try:
-        f = open(SlideFile,'r')
-    except:
-        print ("Database File:" + str(SlideFile) + "Could not be opened")
-        return (False,dictionary)
-    lnum = 0
-    for line in f:
-        lnum += 1
-        line = str.split(line,'#',1)
-        splits = str.split(line[0],DELIMITER,1)
-        if len(splits)>1:
-            numbers = str.split(splits[1].strip(),DELIMITER)
-            dc_numbers = []
-            for i in numbers:
-                success = True
-                i = i.strip()
-                if i.isdigit():
-                    dc_numbers.append(int(i))
-                else:
-                    print ("Ignoring invalid line: " + str(lnum))
-                    success = False
-            if success:
-                name = splits[0].strip()
-                if debug:
-                    print ("adding "+str(name)+" to slide #"+ str(dc_numbers))
-                if name != '':
-                    dictionary[name] = dc_numbers
+        with open(SlideFile, 'r', encoding='utf-8-sig', newline='') as f:
+            sample = f.read()
+            f.seek(0)
+            delim = ';' if ';' in sample else ','
+            if debug:
+                print(f"Auto-detected delimiter: '{delim}'")
+            for lnum, raw_line in enumerate(f, start=1):
+                # remove inline comment
+                line = raw_line.split('#', 1)[0].strip()
+                if not line:
+                    continue
+                try:
+                    fields = next(csv.reader([line], delimiter=delim))
+                except Exception as e:
+                    if debug:
+                        print(f"Line {lnum}: CSV parse error: {e}")
+                    continue
+                if len(fields) < 2:
+                    if debug:
+                        print(f"Line {lnum}: not enough fields")
+                    continue
+                name = fields[0].strip()
+                # flatten numeric tokens: support numbers across multiple CSV columns
+                # and also numbers embedded together like '614, 615, 616' or '614 ; 615'
+                import re
+                tokens = []
+                for fld in fields[1:]:
+                    for part in re.split(r'[;,]', fld):
+                        part = part.strip()
+                        if part:
+                            tokens.append(part)
+                if not tokens:
+                    if debug:
+                        print(f"Line {lnum}: no slide numbers")
+                    continue
+                nums = []
+                bad = False
+                for tok in tokens:
+                    try:
+                        if tok.isdigit():
+                            nums.append(int(tok))
+                        else:
+                            nums.append(int(float(tok)))
+                    except Exception:
+                        bad = True
+                        if debug:
+                            print(f"Line {lnum}: invalid token '{tok}'")
+                        break
+                if bad:
+                    continue
+                if name:
+                    mapping[name] = nums
+    except FileNotFoundError:
+        if debug:
+            print("Database File:" + str(SlideFile) + " Could not be opened")
+        return (False, {})
 
-    f.close()
-    return (True,dictionary)
+    return (True, mapping)
 
 
+# you can stop here for a checkpoint!!!!-----------------------
 def add_name_file(SFile,totalslides,name):
     Success = False
     try:
@@ -133,10 +174,3 @@ def add_name_file(SFile,totalslides,name):
     return Success
 
 nameDict = {}
-
-# def main():
-#     slides = "C:/Users/Landtree/Documents/GitHub/SOS_Now-Playing/Archive/SOS/v1.1/noaa_042013.txt"
-#     nameDict = parseSlideNames(slides)    
-#     #print(nameDict)
-    
-# main()
