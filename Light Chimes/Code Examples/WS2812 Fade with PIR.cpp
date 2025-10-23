@@ -1,11 +1,10 @@
 #include <FastLED.h>
 #include <Arduino.h>
-#include <Pulse.h> // not used
 #include <Timer.h> 
 
 const int MOTION_PIN = 10; 
 
-#define NUM_LEDS 6
+#define NUM_LEDS 108
 #define DATA_PIN 11
 #define CLOCK_PIN 8
 

@@ -131,6 +131,10 @@ class sosppEngine:
         return total
 
     def run(self):
+        """
+        main loop of engine
+        opens powerpoint and connects to SOS, maps names to slide numbers, creates slides
+        """
         total_slides = self.total_slides()
         print( "Connecting to SOS . . . ",)
         success, soc = self.__init_socket__(self.ip,self.port,None,self.verbose)

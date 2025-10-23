@@ -8,8 +8,9 @@ bgImageDir = "Now_Playing/bg.jpg"
 SOSPort = 2468
 SOSHost = "10.1.1.107"
 
-
 class ImageApp:
+    """ImageApp creates a GUI app to display the current playing title and playlist from SOS."""
+
     def __init__(self, root, image_path):
         self.root = root
         self.root.title("SOS Now Playing")
@@ -74,19 +75,30 @@ def socket_thread(app):
                 #sock.sendall(b'enable\n')
                 
                 """
-                Start with identify the number of videos in the playlist.
-                Then get all the names of clips in the list.
+                Identify the number of videos in the playlist.
+                """
+                sock.sendall("get_clip_count".encode())
+                clipCount = sock.recv(1024).decode()
+                print("current clip count:" + str(clipCount.strip())) 
+
+                #This part is still incomplete, need to identify video files specifically by accessing playlist.sos files of clips in playlist
+                playlistClips = ""
+                if int(clipCount.strip()) > 0:
+                    sock.sendall("get_clip_info *".encode())
+                    playlistClips = sock.recv(1024).decode()
+                    print("Titles in current playlist: " + str(playlistClips.strip()))
+                    #send call to display CC on ring computer display here
+
+                """
+                Get all the names of clips in the list.
                 Create a playlist to be displayed.
                 
                 """
-                sock.sendall("get_clip_count").encode()
-                clipCount = sock.recv(1024).decode()
-                print("current clip count:" + str(clipCount.strip()))
-                sock.sendall("get_clip_info *").encode()
-                playlistClips = sock.recv(1024).decode()
-                print("Titles in current playlist: " + str(playlistClips.strip()))
+                sock.sendall("get_clip_number".encode())
+                currentClip = sock.recv(1024).decode()
+                print("Currently Playing Clip Number:" + str(currentClip.strip()))
                 app.create_playlist(clipCount,playlistClips)
-                # app.update_playing(f"Now Playing: {data.strip()}")
+                # app.update_playing(f"Now Playing: {data.strip()}  ")
         except Exception as e:
             print(f"Socket Error: {e}")
         finally:

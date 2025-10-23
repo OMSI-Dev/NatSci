@@ -1,22 +1,19 @@
 #include <FastLED.h>
 #include <Arduino.h>
 #include <Timer.h> 
-#include "Adafruit_Pixie.h"
-#include "SoftwareSerial.h"
 
 const int MOTION_PIN = 10; 
 
-#define NUM_LEDS 6
-#define NEOPIXEL_PIN 11 
-
-#define PIXIEPIN  6 
-#define NUMPIXELS 1 
+#define NUM_LEDS 108
+#define DATA_PIN 11
+#define CLOCK_PIN 8
 
 // fading and delays
 MoToTimerRop delayTimer;
 MoToTimerRop fadeTimer;
 bool waiting = false;
 bool delayExpired = false;
+
 
 CRGB leds[NUM_LEDS];
 
@@ -25,17 +22,10 @@ uint8_t increment = 1;
 uint8_t maxVal = 155;
 uint8_t minVal = 0;
 
-SoftwareSerial pixieSerial(-1, PIXIEPIN);
-Adafruit_Pixie strip = Adafruit_Pixie(NUMPIXELS, &pixieSerial);
-
-
 void setup() { 
-  Serial.println("Ready to Pixie!");
-  pixieSerial.begin(115200); // pixie baud rate requirement, leave here 
-  strip.setBrightness(100);  //adjust to avoid blinding
-
   Serial.begin(57600);
-  FastLED.addLeds<WS2812, NEOPIXEL_PIN, RGB>(leds, NUM_LEDS);
+  Serial.println("resetting");
+  FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);
   pinMode(MOTION_PIN, INPUT_PULLUP); 
   FastLED.setBrightness(50);
 }
@@ -68,7 +58,7 @@ void loop() {
 
     if (!delayExpired && delayTimer.expired()) {
       delayExpired = true;
-      fadeTimer.setTime(100); //first init
+      fadeTimer.setTime(100);  //initalize
       Serial.println("delay expired: starting fade...");
     }
 
@@ -86,17 +76,10 @@ void loop() {
     }
   }
 
-  // Update ws812 LEDs
+  // Update LEDs
   for (int i = 0; i < NUM_LEDS; i++) {
     leds[i] = CHSV(0, 0, brightness);
   }
-
-  // Update pixie LEDs
- for (int i = 0; i < NUMPIXELS; i++) {
-  strip.setPixelColor(0, 0, 0, brightness);
-  }
-
   FastLED.show();
-  strip.show();
 }
 
