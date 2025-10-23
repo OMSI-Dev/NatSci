@@ -2,7 +2,7 @@
 
 ## ## Theory of Operation
 
-Science On a Sphere (SOS) is a globe-based visualization system that synchronizes spherical content with surrounding monitors for supporting slides and closed captioning. A central server coordinates two computers: one displays the daily dataset ‘playlist’ while the other drives the perimeter displays. 
+Science On a Sphere (SOS) is a globe-based visualization system. These scripts synchronizes displayed content on the SOS with surrounding monitors and a nowPlaying kiosk.
 
 ## ## Updating software
 
