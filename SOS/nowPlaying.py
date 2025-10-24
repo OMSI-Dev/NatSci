@@ -81,22 +81,33 @@ def socket_thread(app):
                 clipCount = sock.recv(1024).decode()
                 print("current clip count:" + str(clipCount.strip())) 
 
-                #This part is still incomplete, need to identify video files specifically by accessing playlist.sos files of clips in playlist
                 playlistClips = ""
                 if int(clipCount.strip()) > 0:
-                    sock.sendall("get_clip_info *".encode())
+                    sock.sendall("get_clip_info *".encode()) #get info for all clips in a playlist
                     playlistClips = sock.recv(1024).decode()
-                    print("Titles in current playlist: " + str(playlistClips.strip()))
-                    #send call to display CC on ring computer display here
 
-                """
-                Get all the names of clips in the list.
-                Create a playlist to be displayed.
-                
-                """
-                sock.sendall("get_clip_number".encode())
+                    #Add some parsing here to get only the movies in the playlist
+                    print("Movies in Playlist: " + "")
+
+                    #Add navigational logic here to find filepath of movie clip find if .srt file exists
+                    print("Movies with closed-captioning: " + "")
+
+                    #Add some type of parsing here to get only the titles of the clips in the playlist
+                    print("Titles in current playlist: " + "")
+
+                    #Add identification for majorcategory and subcategory here
+                    print(("Categories of clip 1 name: " + ""))
+                    print(("Categories of clip 2 name: " + ""))
+
+                   #send call to display CC on ring computer display here
+
+                sock.sendall("get_clip_number".encode()) #returns number of currently playing clip 
                 currentClip = sock.recv(1024).decode()
                 print("Currently Playing Clip Number:" + str(currentClip.strip()))
+
+                #Add some type of parsing here to get only the name of the currently playing clip
+                print("Current clip name: " + "")
+
                 app.create_playlist(clipCount,playlistClips)
                 # app.update_playing(f"Now Playing: {data.strip()}  ")
         except Exception as e:
