@@ -55,7 +55,7 @@ class sosppEngine:
                 if attempts < i:
                     return (False,None)
         print ("Send Enable")
-       # s.send('enable\n')
+        s.send('enable\n') #previously commented out
         try:
             r = s.recv(1024)
         except:

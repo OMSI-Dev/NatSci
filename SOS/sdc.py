@@ -7,11 +7,11 @@ import time
 from parsers import parseConfig, parseSlideNames
 from ppAccess import PowerPointShowController
 from engine import sosppEngine
-from nowPlaying import begin
-from nowPlaying import close as nowclose
+# from nowPlaying import begin
+# from nowPlaying import close as nowclose
 
 
-DEFAULT_CONFIG = "C:\\Users\\agreen\\Documents\\Github\\NatSci\\SOS\config.txt"
+DEFAULT_CONFIG = r"C:\Users\agreen\Documents\Github\NatSci\SOS\config.txt"
 
 def usage():
     """prints help"""
@@ -116,8 +116,8 @@ def main():
         sys.exit(1)
 
     pp = PowerPointShowController(slideshow)
-    nowPlaying = threading.Thread(target=begin, daemon=True)
-    nowPlaying.start()
+    # nowPlaying = threading.Thread(target=begin, daemon=True)
+    # nowPlaying.start()
 
 
     #init Engine

@@ -83,10 +83,14 @@ def socket_thread(app):
 
                 playlistClips = ""
                 if int(clipCount.strip()) > 0:
+                    sock.sendall("get_clip_number".encode()) #returns number of currently playing clip
+                    currentClip = sock.recv(1024).decode()
+
                     sock.sendall("get_clip_info *".encode()) #get info for all clips in a playlist
                     playlistClips = sock.recv(1024).decode()
 
                     #Add some parsing here to get only the movies in the playlist
+
                     print("Movies in Playlist: " + "")
 
                     #Add navigational logic here to find filepath of movie clip find if .srt file exists
@@ -96,19 +100,17 @@ def socket_thread(app):
                     print("Titles in current playlist: " + "")
 
                     #Add identification for majorcategory and subcategory here
-                    print(("Categories of clip 1 name: " + ""))
-                    print(("Categories of clip 2 name: " + ""))
-
+                    print(("Category f clip 1 #nme: " + ""))
+                    print(("Category f clip 2 #name: "))
                    #send call to display CC on ring computer display here
 
-                sock.sendall("get_clip_number".encode()) #returns number of currently playing clip 
-                currentClip = sock.recv(1024).decode()
                 print("Currently Playing Clip Number:" + str(currentClip.strip()))
 
                 #Add some type of parsing here to get only the name of the currently playing clip
                 print("Current clip name: " + "")
 
-                app.create_playlist(clipCount,playlistClips)
+                #re-add items below once parsing is added
+                # app.create_playlist(clipCount,playlistClips)
                 # app.update_playing(f"Now Playing: {data.strip()}  ")
         except Exception as e:
             print(f"Socket Error: {e}")

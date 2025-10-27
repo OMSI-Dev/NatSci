@@ -3,7 +3,7 @@
 
 # The IP address of the sos host computer
 # Example: sos_ip=10.1.1.31
-sos_ip=10.1.1.107
+sos_ip=10.10.51.87
 
 
 # The port to connect to on the host sos computer
