@@ -1,41 +1,76 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 import socket
-import time 
+import time
+import threading  # for background network thread
 
-bgImageDir = "Now_Playing/bg.jpg"
+# bgImageDir = "Now_Playing/bg.jpg"
 SOSPort = 2468
-SOSHost = "10.1.1.107"
+SOSHost = "10.10.51.87"
+
+
+# ---------------------------
+# GUI CLASS
+# ---------------------------
+
+import os
+import tkinter as tk
+from PIL import Image, ImageTk
 
 class ImageApp:
-    """ImageApp creates a GUI app to display the current playing title and playlist from SOS."""
+    """GUI app to display the currently playing title and playlist from SOS."""
 
-    def __init__(self, root, image_path):
+    def __init__(self, root, image_path=None):
         self.root = root
         self.root.title("SOS Now Playing")
+        self.root.geometry("800x600")
 
-        # Load and display the image (what image???)
-        image = Image.open(image_path)
-        self.image_tk = ImageTk.PhotoImage(image)
-        self.image = tk.Label(root, image=self.image_tk)
-        self.image.pack()
+        # Try to load background image, if available
+        if image_path and os.path.exists(image_path):
+            image = Image.open(image_path).resize((800, 600))
+            self.image_tk = ImageTk.PhotoImage(image)
+            self.bg_label = tk.Label(root, image=self.image_tk)
+            self.bg_label.place(relwidth=1, relheight=1)
+            bg_color = "#00000000"  # transparent background for labels
+        else:
+            # fallback solid color background
+            self.bg_label = tk.Label(root, bg="black")
+            self.bg_label.place(relwidth=1, relheight=1)
+            bg_color = "black"
 
-        # Create a label for currently playing
-        self.text_label = tk.Label(root, text="Current Title", font=("Times New Roman", 18))
+        # Title label (Now Playing)
+        self.text_label = tk.Label(
+            root,
+            text="Current Title",
+            font=("Times New Roman", 22, "bold"),
+            fg="white",
+            bg=bg_color,
+        )
         self.text_label.place(relx=0.5, rely=0.1, anchor="center")
 
-        # Create a label for playlist
-        self.playlist = tk.Label(root,text="BIG OL' Playlist ", font=("Comic Sans",16))
-        self.playlist.place(relx=0.1, rely=0.3, anchor="center")
+        # Playlist label
+        self.playlist_label = tk.Label(
+            root,
+            text="Playlist will appear here",
+            font=("Courier", 14),
+            fg="yellow",
+            bg=bg_color,
+            justify="left",
+            anchor="nw",
+        )
+        self.playlist_label.place(relx=0.05, rely=0.3, anchor="nw")
 
-    def update_playing(self, current):
-        """Updates the text on the label."""
-        self.text_label.config(text=current)
+    def update_playing(self, current_title: str):
+        """Updates the current playing label."""
+        self.text_label.config(text=f"Now Playing: {current_title}")
 
-    def create_playlist(self,clipCount,playlistClips):
-        #create a playlist based on recording the list of items in sos playlist
-        self.playlist.config(text=playlistClips)
+    def update_playlist(self, playlist: str):
+        """Updates the playlist display."""
+        self.playlist_label.config(text=playlist)
 
+# ---------------------------
+# NETWORK / SOS COMMUNICATION
+# ---------------------------
 
 def try_connect(host: str, port: int, timeout: float = 4.0):
     """Connect to the SOS TCP control socket."""
@@ -44,10 +79,10 @@ def try_connect(host: str, port: int, timeout: float = 4.0):
     try:
         print(f"Connecting to SOS server {host}:{port} (timeout={timeout}s)...")
         sock.connect((host, port))
-        print(":D Yay! TCP connection established")
+        print("✅ TCP connection established.")
         return sock
     except OSError as e:
-        print(f">:[ Grr. Connection failed: {e}. Are you connected to the SOS network?")
+        print(f"❌ Connection failed: {e}")
         sock.close()
         return None
 
@@ -82,112 +117,100 @@ def do_handshake(sock: socket.socket, timeout: float = 4.0):
         print("Sending handshake: 'enable\\n'")
         sock.sendall(b'enable\n')
     except OSError as e:
-        print(f"Failed to send handshake: {e}")
+        print(f"❌ Failed to send handshake: {e}")
         return None
 
     data = recv_all(sock, timeout_idle=1.0)
     if not data:
-        print("No reply after handshake.")
+        print("❌ No reply after handshake.")
         return None
 
     reply = data.decode("utf-8", "ignore").strip()
-    print(f"Handshake reply: {repr(reply)}")
+    print(f"↩ Handshake reply: {repr(reply)}")
     return reply
 
-def probe_commands(sock: socket.socket, commands, timeout_idle: float = 1.0):
-    """
-    Sends a list of commands to the SOS server.
-    Returns a list of replies in the same order as commands.
-    """
-    replies = []
 
-    # print("\nProbing SOS server for information...\n")
+def probe_commands(sock: socket.socket, commands, timeout_idle: float = 1.0):
+    """Sends a list of commands to the SOS server and returns their replies."""
+    replies = []
 
     for cmd in commands:
         full = (cmd + "\n").encode("utf-8")
-        # print(f"--> {cmd}")
         try:
             sock.sendall(full)
         except OSError as e:
-            print(f"Failed to send: {e}")
+            print(f"❌ Failed to send {cmd}: {e}")
             replies.append(None)
             continue
 
         data = recv_all(sock, timeout_idle=timeout_idle)
         if not data:
-            print("BEEP! Error: No reply.\n")
+            print(f"⚠️ No reply for {cmd}")
             replies.append(None)
             continue
 
         text = data.decode("utf-8", "ignore").strip()
-        # print(f"<-- Reply ({len(text)} bytes):\n{text}\n")
         replies.append(text)
 
     return replies
 
-def main():
-    host = "10.10.51.87"
-    port = 2468
 
-    # Step 1: Connect to SOS
-    sock = try_connect(host, port)
+# ---------------------------
+# APP LOGIC
+# ---------------------------
+
+def fetch_now_playing():
+    """Fetches SOS playlist and now playing info."""
+    sock = try_connect(SOSHost, SOSPort)
     if not sock:
-        print("Result: connection_failed")
-        return
+        return None, None, None
 
-    # Step 2: Perform handshake
-    reply = do_handshake(sock)
-    if reply is None:
-        print("Result: handshake_failed")
+    if not do_handshake(sock):
         sock.close()
-        return
+        return None, None, None
 
-    # Step 3: Get clip count and playlist first
-    commands = [
-        "get_clip_count",
-        "get_clip_info *"
-    ]
-    replies = probe_commands(sock, commands)
-    clip_count, clip_list = replies
+    # Get playlist and current clip
+    commands = ["get_clip_count", "get_clip_info *"]
+    clip_count, clip_list = probe_commands(sock, commands)
 
-    # Step 4: Get current clip number
-    print("Getting current clip number...")
     current_clip_number = probe_commands(sock, ["get_clip_number"])[0]
-    print(f"Current clip number: {current_clip_number}")
-
-    # Step 5: Use that number in get_clip_info <number>
     if current_clip_number:
         current_clip_number = current_clip_number.strip()
-        get_info_cmd = f"get_clip_info {current_clip_number}"
-        current_clip_title = probe_commands(sock, [get_info_cmd])[0]
+        title_cmd = f"get_clip_info {current_clip_number}"
+        current_clip_title = probe_commands(sock, [title_cmd])[0]
     else:
-        print("No clip number returned; cannot query current title.")
-        current_clip_title = None
+        current_clip_title = "Unknown"
 
-    # Step 6: Display results
-    print("\n--- Parsed Replies ---")
-    print(f"Clip Count: {clip_count}")
-    print(f"Clip List: \n{clip_list}")
-    print(f"Now Playing Clip Number: {current_clip_number}")
-    print(f"Current Clip Title: {current_clip_title}")
-
-    # Step 7: Send data to GUI generator
-
-
-    # Step 8: Clean up
     sock.close()
-    print("\nConnection closed.")
+    return clip_count, clip_list, current_clip_title
+
+
+def update_gui_periodically(app: ImageApp, interval=5):
+    """Background thread to periodically refresh SOS info."""
+    while True:
+        clip_count, clip_list, current_title = fetch_now_playing()
+        if clip_list:
+            app.root.after(0, lambda: app.update_playlist(clip_list))
+        if current_title:
+            app.root.after(0, lambda: app.update_playing(current_title))
+        time.sleep(interval)
+
+
+# ---------------------------
+# MAIN
+# ---------------------------
+
+def main():
+    root = tk.Tk()
+    app = ImageApp(root)
+
+    # Run the socket update in a background thread
+    thread = threading.Thread(target=update_gui_periodically, args=(app, 10))
+    thread.daemon = True
+    thread.start()
+
+    root.mainloop()
+
 
 if __name__ == "__main__":
     main()
-
-# def main():
-#     root = tk.Tk()
-#     app = ImageApp(root, bgImageDir)
-
-#     # Start the socket communication thread
-#     thread = threading.Thread(target=socket_thread, args=(app,))
-#     thread.daemon = True
-#     thread.start()
-
-#     root.mainloop()
