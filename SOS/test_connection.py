@@ -1,58 +1,141 @@
-import os
-import configparser
+"""
+Science On a Sphere (SOS) TCP connection tester + media info probe.
 
-def find_sos_playlist(clip_name, sos_media_root="/shared/sos/media/"):
-    """
-    Finds the full path to a playlist.sos file given a clip name.
+This script:
+1. Connects to the SOS server (default port 2468).
+2. Performs a handshake ("enable").
+3. Sends a series of metadata commands to list or discover
+   media and playlist paths available to SOS.
+"""
 
-    Args:
-        clip_name (str): The name of the SOS clip to search for.
-        sos_media_root (str): The root directory where SOS media is stored.
+import socket
+import time
 
-    Returns:
-        str: The full path to the playlist.sos file, or None if not found.
-    """
-    # Standard NOAA-provided directories to search
-    subdirectories = ["atmosphere", "astronomy", "land", "oceans", "site-custom"]
-    
-    # Construct the full paths to the directories
-    search_paths = [os.path.join(sos_media_root, sub) for sub in subdirectories]
-    
-    for search_path in search_paths:
-        if not os.path.isdir(search_path):
+
+# --- Socket connection utilities ---
+
+def try_connect(host: str, port: int, timeout: float = 4.0):
+    """Attempt to connect to the SOS TCP control socket."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    try:
+        print(f"Connecting to SOS server {host}:{port} (timeout={timeout}s)...")
+        sock.connect((host, port))
+        print("✅ TCP connection established")
+        return sock
+    except OSError as e:
+        print(f"❌ Connection failed: {e}")
+        sock.close()
+        return None
+
+
+def recv_all(sock: socket.socket, timeout_idle: float = 1.0, chunk: int = 4096) -> bytes:
+    """Receive data until the socket is idle for `timeout_idle` seconds."""
+    buffer = bytearray()
+    orig_timeout = sock.gettimeout()
+    sock.settimeout(0.2)
+    start = time.time()
+    try:
+        while True:
+            try:
+                data = sock.recv(chunk)
+                if data:
+                    buffer.extend(data)
+                    start = time.time()
+                else:
+                    break
+            except socket.timeout:
+                if time.time() - start >= timeout_idle:
+                    break
+    finally:
+        sock.settimeout(orig_timeout)
+    return bytes(buffer)
+
+
+def do_handshake(sock: socket.socket, timeout: float = 4.0):
+    """Perform the standard SOS handshake (send 'enable')."""
+    sock.settimeout(timeout)
+    try:
+        print("Sending handshake: 'enable\\n'")
+        sock.sendall(b'enable\n')
+    except OSError as e:
+        print(f"❌ Failed to send handshake: {e}")
+        return None
+
+    data = recv_all(sock, timeout_idle=1.0)
+    if not data:
+        print("❌ No reply after handshake.")
+        return None
+
+    reply = data.decode("utf-8", "ignore").strip()
+    print(f"↩ Handshake reply: {repr(reply)}")
+    return reply
+
+
+# --- SOS probing logic ---
+
+def probe_commands(sock: socket.socket, commands, timeout_idle: float = 1.0):
+    """Send a list of commands to the SOS server and print replies."""
+    print("\n🔍 Probing SOS server for media information...\n")
+    for cmd in commands:
+        full = (cmd + "\n").encode("utf-8")
+        print(f"--> {cmd}")
+        try:
+            sock.sendall(full)
+        except OSError as e:
+            print(f"   ❌ Failed to send: {e}")
             continue
 
-        # os.walk() generates the file names in a directory tree
-        for root, dirs, files in os.walk(search_path):
-            # Check for any playlist.sos files in the current directory
-            for file_name in files:
-                if file_name.endswith(".sos"):
-                    playlist_path = os.path.join(root, file_name)
-                    
-                    # Read the playlist.sos file to find the clip name
-                    # Note: .sos files are in a simple key-value INI-style format
-                    config = configparser.ConfigParser()
-                    try:
-                        config.read(playlist_path)
-                        # The clip name is in the default section, under the 'name' key
-                        if 'name' in config['DEFAULT'] and config['DEFAULT']['name'] == clip_name:
-                            print(f"Found match: {playlist_path}")
-                            return playlist_path
-                    except configparser.Error:
-                        # Skip files that are not correctly formatted
-                        continue
+        data = recv_all(sock, timeout_idle=timeout_idle)
+        if not data:
+            print("   ⚠️ No reply\n")
+            continue
 
-    print(f"Could not find playlist.sos file for clip: {clip_name}")
-    return None
+        text = data.decode("utf-8", "ignore").strip()
+        print(f"<-- Reply ({len(text)} bytes):\n{text}\n")
 
-# --- How to use the function ---
+
+# --- Main logic ---
+
+def main():
+    host = "10.10.51.87"
+    port = 2468
+
+    # Step 1: Connect to SOS
+    sock = try_connect(host, port)
+    if not sock:
+        print("Result: connection_failed")
+        return
+
+    # Step 2: Perform handshake
+    reply = do_handshake(sock)
+    if reply is None:
+        print("Result: handshake_failed")
+        sock.close()
+        return
+
+    # Step 3: Probe for available commands / media data
+    # Try common metadata-related commands
+    probe_list = [
+        "get_clip_count",
+        "get_clip_number",
+        "get_clip_info *",
+        "get_clip_list",
+        "get_clip_filename",
+        "get_clip_path",
+        "get_clip_filepath",
+        "get_dataset_file",
+        "get_media_path",
+        "get_file_path",
+        "get_file_name",
+    ]
+
+    probe_commands(sock, probe_list, timeout_idle=1.0)
+
+    # Step 4: Clean up
+    sock.close()
+    print("\n🔌 Connection closed.")
+
+
 if __name__ == "__main__":
-    # Example 1: Find the "Blue Marble" clip
-    blue_marble_path = find_sos_playlist("Blue Marble")
-    if blue_marble_path:
-        print(f"Blue Marble playlist path: {blue_marble_path}")
-    
-    # Example 2: Find a known clip that isn't custom
-    hurricane_path = find_sos_playlist("Hurricane Florence (Aug - Sep 2018)")
-    if hurricane_path:
-        print(f"Hurricane Florence playlist path: {hurricane_path}")
+    main()

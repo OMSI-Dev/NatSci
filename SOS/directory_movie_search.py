@@ -4,6 +4,13 @@ SOS_MEDIA_ROOT = "/shared/sos/media"
 PROJECT_FOLDER = "acidifying-oceans"
 
 def find_playlist_for_project(project_folder):
+    """
+    Written for Python 2.7.17 to run on the SOS server via ssh connection.     
+    File is currently located in /home/sosdemo
+        First run: ssh sosdemo@10.10.51.87
+        Then run: python directory_movie_search.py
+    
+    """
     project_path = os.path.join(SOS_MEDIA_ROOT, "extras", project_folder)
     
     if not os.path.isdir(project_path):
