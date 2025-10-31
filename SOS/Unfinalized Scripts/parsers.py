@@ -8,20 +8,20 @@ def parseConfig(ConfigFile,debug = False):
     parseConfig(ConfigFile,debug = False)
     This function parses config.txt, and isolates the database file to be used as 'SlideFile'.
     Input: ConfigFile is a string of the full path to the file to be parsed.	
-            all comment text following "#" is ignored 
-            keywords are sos_ip, port, slideshow, database
-            values follow a keyword and an equals sign
-            slideshow, database are complete paths
+        all comment text following "#" is ignored 
+        keywords are sos_ip, port, slideshow, database
+        values follow a keyword and an equals sign
+        slideshow, database are complete paths
     Output: (success,config_dict)
-            success - True/False for success of parse
-            config_dict - a dictionary of the keys being the options in the
-            config and the values being the option values
-            options:
-                sos_ip
-                port
-                slideshow
-                database
-                slide_timer
+        success - True/False for success of parse
+        config_dict - a dictionary of the keys being the options in the
+        config and the values being the option values
+        options:
+            sos_ip
+            port
+            slideshow
+            database
+            slide_timer
     """
     config_dict = {'sos_ip':None,
                    'port':None,
@@ -76,13 +76,13 @@ def parseSlideNames(SlideFile,debug = False):
     parseSlideNames(SlideFile,debug = False)
     This function parses the database data in SlideFile to be used.
     Input: SlideFile is a string of the full path to the file to be parsed
-           The file is to be a comma seperated file with the slide number on
-           left column followed by a "," and the clip name
+        The file is to be a comma seperated file with the slide number on
+        left column followed by a "," and the clip name
     
     Output: (success,dictionry)
-           success - True/False for success
-           dictionary - a python dictionary with keys being the first
-           column of the file and the value being the second column in the file.
+        success - True/False for success
+        dictionary - a python dictionary with keys being the first
+        column of the file and the value being the second column in the file.
     ***if file doesn't exist, or error, returns imcomplete dictionary
     """
     """Simple, robust parser for slide files.

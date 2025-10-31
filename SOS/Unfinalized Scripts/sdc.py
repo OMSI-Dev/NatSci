@@ -57,12 +57,11 @@ def main():
         usage()
         sys.exit(2)
     output = None
-    verbose = True
+    verbose = True #not needed
     ip_cmd = None
     port_cmd = None
-    config = None
+    config = None 
     name = None
-    mode = 0
     for o, a in opts:
         if o == "-v":
             verbose = True
@@ -121,7 +120,7 @@ def main():
 
 
     #init Engine
-    eng = sosppEngine(ip,port,pp,pp_dictionary,database,mode,config_dict,verbose)
+    eng = sosppEngine(ip,port,pp,pp_dictionary)
     #Start Engine
     ioc = io_control(eng)
     ioc.start()

@@ -19,9 +19,9 @@ class PowerPointShowController:
                 success - bool of success
                 runslide - pointer to an instance of a running show
         """
-        self.app = Dispatch('Powerpoint.Application')
-        self.app.Visible = 1
-        self.show = self.app.Presentations.Open(FileName=self.slideshow)
+        self.app = Dispatch('Powerpoint.Application') # Create PowerPoint Application object
+        self.app.Visible = 1 #makes powerpoint visible 
+        self.show = self.app.Presentations.Open(FileName=self.slideshow) # Open the presentation
         if RunShow:
             self.presentation = self.show.SlideShowSettings.Run()
             self.launched = True
@@ -30,7 +30,7 @@ class PowerPointShowController:
         self.count = self.get_slide_total()
         return (True,None)
 
-    def create_slide(self,title,totalslides):
+    def create_slide(self,title,totalslides): #not needed 
         if self.launched:
             return (False,None)
         slide = self.show.Slides.Add(totalslides,1)
@@ -39,7 +39,7 @@ class PowerPointShowController:
         slide.Shapes.Item(1).TextFrame.TextRange.Text=title
         self.show.Save()
 
-    def goto(self,number):
+    def goto(self,number): #go to specified slide number
         if self.launched:
             if number <= self.count:
                 try:
