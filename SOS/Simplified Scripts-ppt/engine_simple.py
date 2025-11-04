@@ -108,7 +108,7 @@ class SimplePPEngine:
             print("PowerPoint slideshow started")
         except Exception as e:
             print(f"Failed to launch PowerPoint: {e}")
-            sock.close()
+            # sock.close() #re-comment once ppt access is verfied 
             return
         
         # Main loop
