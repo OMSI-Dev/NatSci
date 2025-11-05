@@ -10,6 +10,13 @@ def find_playlist_for_project(project_folder):
         First run: ssh sosdemo@10.10.51.87
         Then run: python directory_movie_search.py
     
+    This script looks for a specified dataset folder and accesses its playlist.sos config file.
+    It reads through the playlist to determine if it contains movie files (.mp4)
+
+    Currently is hardcoded to look for the "acidifying-oceans"
+    Should be modified to find a list of project folders and process each in turn.
+    2025-11-04 AG
+    
     """
     project_path = os.path.join(SOS_MEDIA_ROOT, "extras", project_folder)
     
