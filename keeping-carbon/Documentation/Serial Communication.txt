@@ -1,0 +1,14 @@
+Colon Separator (:)
+
+To Controller:
+
+Rows = A-F
+Buttons = 1-5
+Colors:
+	R = Red
+	G = Green
+	X = Off
+ 
+Ex. A1:R
+
+Light Sequence:
