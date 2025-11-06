@@ -1,0 +1,820 @@
+name,category,majorcategory,is_movie,caption,pretty_name,path
+Exploring the Depths,extras,Water,Yes,/shared/sos/media/extras/exploring_the_depths/exploring_the_depths.en_US.srt,,/shared/sos/media/extras/exploring_the_depths/playlist.sos
+Aquaculture,extras,Water,Yes,/shared/sos/media/extras/aquaculture/aquaculture.en_US.srt,,/shared/sos/media/extras/aquaculture/playlist.sos
+Hot Air: Atmosphere and Climate Change,extras,Air,Yes,/shared/sos/media/extras/hot-air/hot-air.en_US.srt,,/shared/sos/media/extras/hot-air/playlist.sos
+Dengue Fever - 2010,extras,People,No,,,/shared/sos/media/extras/dengue/playlist.sos
+Globe Schools,extras,,No,,,/shared/sos/media/extras/globe_schools/playlist.sos
+Fireworks,extras,Extras,Yes,,,/shared/sos/media/extras/fireworks/playlist.sos
+Fractals: Mandelbrot,extras,Extras,Yes,,,/shared/sos/media/extras/fractals/mandelbrot/playlist.sos
+Fractals: Morphing (Archived 5/23/2023),extras,Extras,Yes,,,/shared/sos/media/extras/fractals/morphing/playlist.sos
+Fractals: Circular Julia (Archived 5/23/2023),extras,Extras,Yes,,,/shared/sos/media/extras/fractals/circular/playlist.sos
+Fractals: Random (No longer supported by SOS - Retired 4/25/2023),extras,Extras,Yes,,,/shared/sos/media/extras/fractals/random/playlist.sos
+Space Geodesy: Charting the Size and Shape of the Earth,extras,"Space, People",Yes,/shared/sos/media/extras/geodesy/geodesy.en_US.srt,,/shared/sos/media/extras/geodesy/playlist.sos
+The Story of El Nino,extras,Water,Yes,/shared/sos/media/extras/elnino_aop/elnino_aop.en_US.srt,,/shared/sos/media/extras/elnino_aop/playlist.sos
+Our Instrumented Earth,extras,"Water, Air, Space",Yes,/shared/sos/media/extras/instrumented_earth/instrumented_earth.en_US.srt,,/shared/sos/media/extras/instrumented_earth/playlist.sos
+Accessibility to Cities,,,No,,,/shared/sos/media/extras/access-to-cities/playlist.sos
+SOON It Would Be Too Hot,extras,Air,Yes,,,/shared/sos/media/extras/soon_too_hot/playlist.sos
+Enceladus (Saturn moon) with extremophiles,extras,,No,,,/shared/sos/media/extras/earth_evolution/extremophiles/playlist.sos
+Marine debris: Introduction to Marine Debris in the Global Ocean,extras,Water,Yes,/shared/sos/media/extras/marine_debris_program/intro/marine_debris_intro.en_US.srt,,/shared/sos/media/extras/marine_debris_program/intro/playlist.sos
+Marine Debris: Global Marine Debris Model,extras,Water,Yes,/shared/sos/media/extras/marine_debris_program/model/marine_debris-model.en_US.srt,,/shared/sos/media/extras/marine_debris_program/model/playlist.sos
+Deep-Sea Vents: Smoke and Fire Underwater,extras,Water,Yes,/shared/sos/media/extras/vent_SFU/vent_SFU.en_US.srt,,/shared/sos/media/extras/vent_SFU/playlist.sos
+Marine Debris,extras,Water,Yes,/shared/sos/media/extras/marine_debris/marine_debris.en_US.srt,,/shared/sos/media/extras/marine_debris/playlist.sos
+CREATE Resilience: Building a Resilient Community,extras,People,Yes,/shared/sos/media/extras/resilient_community_movie/resilient_community.en_US.srt,,/shared/sos/media/extras/resilient_community_movie/playlist.sos
+The World's Water,extras,Water,Yes,/shared/sos/media/extras/worlds_water/worlds_water.en_US.srt,,/shared/sos/media/extras/worlds_water/playlist.sos
+COP15 Intro,extras,"Water, Extras, Air, People",Yes,,,/shared/sos/media/extras/cop15_greeting/playlist.sos
+Hula - from Imiloa,extras,,Yes,,,/shared/sos/media/extras/imiloa/hula/playlist.sos
+Hokulea - from Imiloa,extras,,Yes,,,/shared/sos/media/extras/imiloa/hokulea/playlist.sos
+Mars - Landscape of Extremes,extras,Space,Yes,/shared/sos/media/extras/imiloa/mars/mars.en_US.srt,,/shared/sos/media/extras/imiloa/mars/playlist.sos
+Evolution of the Moon,extras,Space,Yes,/shared/sos/media/extras/lro_evolution_moon/lro_evolution_moon.en_US.srt,,/shared/sos/media/extras/lro_evolution_moon/playlist.sos
+Forecast: Tropical Cyclones,extras,Air,Yes,/shared/sos/media/extras/forecast_amnh/forecast_amnh.en_US.srt,,/shared/sos/media/extras/forecast_amnh/playlist.sos
+Frozen,extras,Snow and Ice,Yes,/shared/sos/media/extras/frozen/frozen.en_US.srt,,/shared/sos/media/extras/frozen/playlist.sos
+HOLOSCENES / Little Boxes,extras,"Air, Water",Yes,/shared/sos/media/extras/little_boxes/little_boxes.en_US.srt,,/shared/sos/media/extras/little_boxes/playlist.sos
+The Next Step,extras,Space,Yes,/shared/sos/media/extras/next_step/next_step.en_US.srt,,/shared/sos/media/extras/next_step/playlist.sos
+SOS Coordinate System over Earth Background,extras,Extras,No,,,/shared/sos/media/extras/alignment/sos_coordinates/playlist.sos
+A Global Tour of Precipitation,extras,"Air, Water, Snow and Ice",Yes,/shared/sos/media/extras/precip_tour/precip_tour.en_US.srt,,/shared/sos/media/extras/precip_tour/playlist.sos
+Water Falls,extras,"Water, Air",Yes,/shared/sos/media/extras/waterfalls/waterfall.en_US.srt,,/shared/sos/media/extras/waterfalls/playlist.sos
+Deep-Sea Vents: Life Without Sunlight,extras,Water,Yes,/shared/sos/media/extras/vent_LWS/vent_LWS.en_US.srt,,/shared/sos/media/extras/vent_LWS/playlist.sos
+Rising Sea,extras,Water,Yes,/shared/sos/media/extras/aop_sea_level_rise/aop_sea_level_rise.en_US.srt,,/shared/sos/media/extras/aop_sea_level_rise/playlist.sos
+Meander,extras,Land,Yes,/shared/sos/media/extras/meander_rivers/meander_rivers.en_US.srt,,/shared/sos/media/extras/meander_rivers/playlist.sos
+Flu Virus Model: H1N1 - 2009,extras,People,Yes,,,/shared/sos/media/extras/epidemic/playlist.sos
+A Working Waterfront: Seaports of San Pedro Bay,extras,"Water, People",Yes,/shared/sos/media/extras/aop_ports/aop_ports.en_US.srt,,/shared/sos/media/extras/aop_ports/playlist.sos
+SOS Locations,extras,Extras,No,,,/shared/sos/media/extras/sos_locations/playlist.sos
+2 Billion More Coming to Dinner,extras,Land,Yes,/shared/sos/media/extras/smm_ag/smm_ag.en_US.srt,,/shared/sos/media/extras/smm_ag/playlist.sos
+Olympics: Summer Medal Winners - 1896 - 2012,Extras,People,No,,,/shared/sos/media/extras/olympics/summer_olympics/playlist.sos
+Winter Olympics: Medal Winners - 1924 - 2014,extras,People,No,,,/shared/sos/media/extras/olympics/medal_winners/playlist.sos
+Mapping the Winter Olympics 1924 - 2014,extras,,No,,,/shared/sos/media/extras/olympics/playlist.sos
+Mapping the Winter Olympics - 2014 Overview,extras,,Yes,,,/shared/sos/media/extras/olympics/overview/playlist.sos
+Urban Ocean,extras,Water,Yes,/shared/sos/media/extras/urban_ocean/urban_ocean.en_US.srt,,/shared/sos/media/extras/urban_ocean/playlist.sos
+"Earth, our Goldilocks Planet",extras,Space,Yes,/shared/sos/media/extras/goldilocks/goldilocks.en_US.srt,,/shared/sos/media/extras/goldilocks/playlist.sos
+Energy Planet,extras,People,Yes,/shared/sos/media/extras/energy_planet/energy_planet.en_US.srt,,/shared/sos/media/extras/energy_planet/playlist.sos
+The Next Generation of NOAA,extras,,Yes,,,/shared/sos/media/extras/ngsp/playlist.sos
+NOAA Logo,extras,Extras,No,,,/shared/sos/media/extras/noaa_logo/playlist.sos
+Our Pale Blue Dot,extras,"Space, People",Yes,/shared/sos/media/extras/pale_blue_dot/pale_blue_dot.en_US.srt,,/shared/sos/media/extras/pale_blue_dot/playlist.sos
+Mount Everest Panorama (Archived 5/23/2023),extras,Land,No,,,/shared/sos/media/extras/everest/playlist.sos
+Population Density - 2016,extras,People,No,,,/shared/sos/media/extras/population_density/playlist.sos
+The Wanderers Title banner,extras,,No,,,/shared/sos/media/extras/wanderers/Title/playlist.sos
+The Wanderers,extras,Space,Yes,/shared/sos/media/extras/wanderers/wanderers.en_US.srt,,/shared/sos/media/extras/wanderers/playlist.sos
+Return to the Moon,extras,Space,Yes,/shared/sos/media/extras/rttm/rttm.en_US.srt,,/shared/sos/media/extras/rttm/playlist.sos
+Orphan Orca - Saving Springer (Archived 5/23/2023),extras,Water,No,,,/shared/sos/media/extras/noaa_springer/playlist.sos
+Fukushima and Our Radioactive Ocean,,Water,Yes,/shared/sos/media/extras/fukushima_aop/fukushima_aop.en_US.srt,,/shared/sos/media/extras/fukushima_aop/playlist.sos
+Titan Tours,extras,Space,Yes,/shared/sos/media/extras/titan_tours/titan_tours.en_US.srt,,/shared/sos/media/extras/titan_tours/playlist.sos
+"Changing Climate, Changing Ocean",extras,"Water, Air",Yes,/shared/sos/media/extras/changing_climate/changing_climate.en_US.srt,,/shared/sos/media/extras/changing_climate/playlist.sos
+EarthNow: What does fracking mean to you?,extras,"Land, People",Yes,/shared/sos/media/extras/earthnow/fracking/fracking.en_US.srt,,/shared/sos/media/extras/earthnow/fracking/playlist.sos
+EarthNow: Effects of El Nino and La Nina on Phytoplankton and Fish,extras,Water,Yes,/shared/sos/media/extras/earthnow/elnino_fish/elnino_fish.en_US.srt,,/shared/sos/media/extras/earthnow/elnino_fish/playlist.sos
+EarthNow: Extreme Weather and Climate Change,extras,Air,Yes,/shared/sos/media/extras/earthnow/weather_climate/weather_climate.en_US.srt,,/shared/sos/media/extras/earthnow/weather_climate/playlist.sos
+EarthNow: Tropical Widening,extras,Air,Yes,/shared/sos/media/extras/earthnow/tropical_widening/tropical_widening.en_US.srt,,/shared/sos/media/extras/earthnow/tropical_widening/playlist.sos
+EarthNow: The State of our Lakes,earthnow,,Yes,/shared/sos/media/extras/earthnow/lakes/lakes.en_US.srt,,/shared/sos/media/extras/earthnow/lakes/playlist.sos
+NCA5: The State of Climate Science and Inspiring Solutions,extras,"People, Air, Water",Yes,/shared/sos/media/extras/nca5/nca5.en_US.srt,,/shared/sos/media/extras/nca5/playlist.sos
+Cities Through Time,extras,"Land, People",Yes,/shared/sos/media/extras/cities/cities.en_US.srt,,/shared/sos/media/extras/cities/playlist.sos
+The Only Thing that is Constant is Change,extras,People,Yes,/shared/sos/media/extras/aop_change/aop_change.en_US.srt,,/shared/sos/media/extras/aop_change/playlist.sos
+"Weather Satellites: Past, Present, and Future",astronomy,Space,Yes,/shared/sos/media/extras/ssec_satellites/ssec_satellites.en_US.srt,,/shared/sos/media/extras/ssec_satellites/playlist.sos
+Flow: Currents and Climate,extras,Water,Yes,/shared/sos/media/extras/flow_smm/flow_smm.en_US.srt,,/shared/sos/media/extras/flow_smm/playlist.sos
+ClimateBits: Ozone Hole,extras,Air,Yes,/shared/sos/media/extras/climatebits/ozone_hole/ozone_hole.en_US.srt,,/shared/sos/media/extras/climatebits/ozone_hole/playlist.sos
+ClimateBits: UV Index,extras,Air,Yes,/shared/sos/media/extras/climatebits/uv_index/uv_index.en_US.srt,,/shared/sos/media/extras/climatebits/uv_index/playlist.sos
+ClimateBits: Phytoplankton,extras,Water,Yes,/shared/sos/media/extras/climatebits/phytoplankton/phytoplankton.en_US.srt,,/shared/sos/media/extras/climatebits/phytoplankton/playlist.sos
+"ClimateBits: Fast Carbon, Slow Carbon",extras,"Air, People",Yes,/shared/sos/media/extras/climatebits/carbon/carbon.en_US.srt,,/shared/sos/media/extras/climatebits/carbon/playlist.sos
+ClimateBits: Carbon Dioxide,extras,Air,Yes,/shared/sos/media/extras/climatebits/carbon_dioxide/carbon_dioxide.en_US.srt,,/shared/sos/media/extras/climatebits/carbon_dioxide/playlist.sos
+ClimateBits: Monsoons,extras,Water,Yes,/shared/sos/media/extras/climatebits/monsoon/monsoon.en_US.srt,,/shared/sos/media/extras/climatebits/monsoon/playlist.sos
+ClimateBits: Urban Heat Islands (Spanish),extras,"Land, People",Yes,,,/shared/sos/media/extras/climatebits/urban_heat_islands/spanish/playlist.sos
+ClimateBits: Urban Heat Islands,extras,"Land, People",Yes,/shared/sos/media/extras/climatebits/urban_heat_islands/urban_heat_islands.en_US.srt,,/shared/sos/media/extras/climatebits/urban_heat_islands/playlist.sos
+ClimateBits: Solar Radiation,extras,"Air, Space",Yes,/shared/sos/media/extras/climatebits/solar_radiation/solar_radiation.en_US.srt,,/shared/sos/media/extras/climatebits/solar_radiation/playlist.sos
+ClimateBits: Albedo,extras,"Air, Land, Snow and Ice",Yes,/shared/sos/media/extras/climatebits/albedo/albedo.en_US.srt,,/shared/sos/media/extras/climatebits/albedo/playlist.sos
+ClimateBits: El Nino,extras,Water,Yes,/shared/sos/media/extras/climatebits/el_nino/el_nino.en_US.srt,,/shared/sos/media/extras/climatebits/el_nino/playlist.sos
+ClimateBits: Air Quality,extras,Air,Yes,/shared/sos/media/extras/climatebits/air_quality/air_quality.en_US.srt,,/shared/sos/media/extras/climatebits/air_quality/playlist.sos
+ClimateBits: Ozone Layer,extras,Air,Yes,/shared/sos/media/extras/climatebits/ozone_layer/ozone_layer.en_US.srt,,/shared/sos/media/extras/climatebits/ozone_layer/playlist.sos
+GOES-16 Tracks the Big Three,extras,Air,Yes,/shared/sos/media/extras/goes16-hurricanes/goes16-hurricanes.en_US.srt,,/shared/sos/media/extras/goes16-hurricanes/playlist.sos
+Loop,extras,"Water, Air",Yes,/shared/sos/media/extras/loop/loop.en_US.srt,,/shared/sos/media/extras/loop/playlist.sos
+Largest,extras,Space,Yes,/shared/sos/media/extras/largest/largest.en_US.srt,,/shared/sos/media/extras/largest/playlist.sos
+NOAA in Five Minutes,extras,,No,,,/shared/sos/media/extras/noaa_five_min/playlist.sos
+SOS Promo Video,extras,,No,,,/shared/sos/media/extras/sos_video/playlist.sos
+Acidifying Oceans: Oceans and Climate Change,extras,Water,Yes,/shared/sos/media/extras/acidifying-oceans/acidifying-oceans.en_US.srt,,/shared/sos/media/extras/acidifying-oceans/playlist.sos
+Tsunami - 5-year Anniversary,extras,Water,Yes,/shared/sos/media/extras/tsunami/tsunami.en_US.srt,,/shared/sos/media/extras/tsunami/playlist.sos
+Seeking Common Ground on Climate: Beijing Air Pollution,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/common_ground/tragedy_commons/playlist.sos
+Seeking Common Ground on Climate: Top 10 CO2 Emitting Nations (2010),live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/common_ground/2010_emissions_rankings/playlist.sos
+"Solar Eclipse Simulation (NASA) - April 8, 2024",live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/celestial_dance/nasa_2024/playlist.sos
+Oxygen Minimum Zones: Oxidation States 1 - Aerobic,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/Oxygen_Min_Zone_Nloss/aerobic1/playlist.sos
+Oxygen Minimum Zones: Research Question,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/Oxygen_Min_Zone_Nloss/research_question/playlist.sos
+Oxygen Minimum Zones: Research Locations,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/Oxygen_Min_Zone_Nloss/locations/playlist.sos
+Oxygen Minimum Zones: Oxidation States 2 - Aerobic,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/Oxygen_Min_Zone_Nloss/aerobic2/playlist.sos
+Oxygen Minimum Zones: Credits,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/Oxygen_Min_Zone_Nloss/credits/playlist.sos
+Oxygen Minimum Zones: World Ocean Atlas Nitrate Station Locations (2013),live_programs,,No,,,/shared/sos/media/extras/live_programs/Oxygen_Min_Zone_Nloss/WOA13/playlist.sos
+Oxygen Minimum Zones: Oxidation States 5 - Energy FLow,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/Oxygen_Min_Zone_Nloss/energy_flow/playlist.sos
+Oxygen Minimum Zones: Oxidation States 4 - ANaerobic Redox,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/Oxygen_Min_Zone_Nloss/aerobic_anaerobic/playlist.sos
+3P: Planetary Comparisons - Earth Mars Venus,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/three_planets/EarthMarsVenus/playlist.sos
+3P: Venus,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/three_planets/Venus/WithClouds/playlist.sos
+3P: Mars Base Map,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/three_planets/Mars/BaseMap/playlist.sos
+Maven: Wet Mars with Magnetic Fields,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/wet_mars_magnetic_fields/playlist.sos
+MAVEN: Curiosity Panorama PIP,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/panorama/playlist.sos
+Maven: Mars Landing Sites,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/mars_landingsites_2016/playlist.sos
+MAVEN: Curiosity Panorama PIP,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/pano_pip/playlist.sos
+Maven: Mars Earth split,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/mars_earth/playlist.sos
+Maven: MAVEN over Red Mars Atmosphere captured by MRO,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/maven/maven_orbit/playlist.sos
+Maven: Wet Mars Landing Sites,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/wet_mars_landingsites_2016/playlist.sos
+Maven: Wet Mars,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/wet_mars/playlist.sos
+Maven: Early Mars Aurora,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/early_mars_aurora/playlist.sos
+MAVEN: Curiosity PIP,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/curiosity_pip/playlist.sos
+MAVEN: Mariner PIP,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/mariner_pip/playlist.sos
+Mars: MAVEN Sputtering video,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/mars_sputtering/playlist.sos
+Mars: Channels,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/waterfeatures/channels/playlist.sos
+Mars: Deltas,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/waterfeatures/deltas/playlist.sos
+Maven: Water Features Comparison,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/waterfeatures/playlist.sos
+Maven: Mars Diffuse Aurora,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/mars_diffuse_aurora/playlist.sos
+Maven: MAVEN over Red Mars Atmosphere captured by MRO,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/maven/atmosphere/playlist.sos
+Maven: Mars Solar Wind,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/mars_solar_wind/playlist.sos
+MAVEN: Yellow Sun,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/yellow_sun/playlist.sos
+MAVEN: Spirit/Opportunity PIP,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/spirit_pip/playlist.sos
+Maven: Dry Mars,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/maven/dry_mars/playlist.sos
+Feats and Footprints: Population Movie,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/feats_footprints/population/playlist.sos
+Water Falls: Aquarius Sea Surface Salinity 2012,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/waterfalls/sea_surface_salinity/playlist.sos
+"Water Falls: Pulsing Global Rivers, the Run-off Component of the Water Cycle",live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/waterfalls/pulsing_river/playlist.sos
+Water Falls: Human Impacts: Droughts,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/waterfalls/pips/droughts/playlist.sos
+Water Falls: Human impact: Floods,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/waterfalls/pips/floods/playlist.sos
+Water Falls: Human impact: Landslides,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/waterfalls/pips/landslides/playlist.sos
+Water Falls: filling water bottles over GRACE,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/waterfalls/waterbottles/playlist.sos
+Water Falls: OSCAR Ocean Current,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/waterfalls/oscar_3958/playlist.sos
+Water Falls: GEOS Hurricane Sandy Wind Speed over Water Vapor,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/waterfalls/GEOS_wip/playlist.sos
+Water Falls: Umbrellas,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/waterfalls/umbrellas/playlist.sos
+"Water Falls: Global TRMM Rainfall, Aug - Sep 2003",live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/waterfalls/trmm_rainfall_2003/playlist.sos
+Water Falls: Water Cycle Components,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/waterfalls/water_cycle_post/playlist.sos
+Water Falls: GEOS-5 Modeled Evaporation,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/waterfalls/evaporation/playlist.sos
+Deep-Sea Vents: Vent Site Mata Volcanoes,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/vents/vent_site_Mata/playlist.sos
+Deep-Sea Vents: Black,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/vents/black_sphere/playlist.sos
+Deep-Sea Vents: Vent Site Mid-Cayman Rise,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/vents/vent_site_Mid-Cayman/playlist.sos
+Deep-Sea Vents: Vent Site Mariana Back-Arc,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/vents/vent_site_Mariana/playlist.sos
+Deep-Sea Vents: Vent Cross Section,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/vents/vent_cross_section/playlist.sos
+Deep-Sea Vents: Vent Site Galapagos Rift,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/vents/vent_site_Galapagos/playlist.sos
+Deep-Sea Vents: Vent Discoveries Animation,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/vents/vent_discoveries_animation/playlist.sos
+Deep-Sea Vents: Vent Site Axial Seamount,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/vents/vent_site_Axial/playlist.sos
+Deep-Sea Vents: Vent Site Loihi,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/vents/vent_site_Loihi/playlist.sos
+"Goldilocks: Venus Transit, June 5 - 6, 2012, STEREO/SDO 304",live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/goldilocks/venus_transit/304/playlist.sos
+Hurricane Sandy - GLAPS Radar Reflectivity (dBZ),live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/sandy/glaps_sandy/ptt/playlist.sos
+Hurricane Sandy - GLAPS SFC Pressure + Wind + Windspeed (kt),live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/sandy/glaps_sandy/wd0/playlist.sos
+Hurricane Sandy - GLAPS SFC Temperature (F) + Wind (kt),live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/sandy/glaps_sandy/tt/playlist.sos
+Hurricane Sandy - GLAPS 500mb Height + Wind + Windspeed (kt),live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/sandy/glaps_sandy/p01/playlist.sos
+Hurricane Sandy - Enhanced IR Sat,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/sandy/enhanced/playlist.sos
+Hurricane Sandy (Real-Time Linear IR),live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/sandy/linear/playlist.sos
+Hurricane Sandy - SST Anomaly,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/sandy/sst_anom/playlist.sos
+Seal and Seabird Tracks: Pacific Ocean,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/animals_on_the_move/dataset_004/playlist.sos
+Bird Migration Patterns - Western Hemisphere,,Site-Custom,Yes,,,/shared/sos/media/extras/live_programs/animals_on_the_move/dataset_003/playlist.sos
+Surface Winds: CCMP Winds only June-October2011 model,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/animals_on_the_move/dataset_005/playlist.sos
+Deep-Sea Vents: Vent Site Galapagos Rift,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/animals_on_the_move/dataset_010/playlist.sos
+Warm Forecast for Coral Reefs,,Site-Custom,Yes,,,/shared/sos/media/extras/live_programs/animals_on_the_move/dataset_014/playlist.sos
+Oceans flows at surface and 2000m depth,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/animals_on_the_move/dataset_013/playlist.sos
+Mitigation or Adaptation: You Decide - Blue Marble with Scenario PIPs,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/mitigation_adaptation/scenarios/playlist.sos
+Black Hole,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/g_is_for_galaxy/black_hole/playlist.sos
+Hubble Revelations,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/g_is_for_galaxy/hubble_revelations/playlist.sos
+Wind Speeds Offshore at 10m to 90m above the Earth's Surface,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/energy_story/offshore_wind/playlist.sos
+"Renewable Energy Resources Combined: Solar, Wind, and Geothermal Heat",live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/energy_story/combo/playlist.sos
+Solar Irradiance,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/energy_story/solar/playlist.sos
+Heat Conductivity,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/energy_story/heat/playlist.sos
+Wind Speeds at 50m above the Earth's Surface - Monthly and Annual Average 1983 - 1993,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/energy_story/wind/playlist.sos
+Space Weather - Total Electron Content (TEC),,,No,,,/shared/sos/media/extras/live_programs/space_weather/tec/playlist.sos
+Climate Change and Health: Dengue Fever with Mosquito Layer,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/climate_change_health/dengue/playlist.sos
+Climate Change and Health: Blue Marble with Maslow Pyramid Layer,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/climate_change_health/maslow/playlist.sos
+Global Average Temperature Anomaly 2012,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/climate_change_health/2012_temp_anom/playlist.sos
+Climate Change and Health: Duffy Negative,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/climate_change_health/duffy_negative/playlist.sos
+Sea Surface Salinity from GFDL 2.6 (simple),oceans,,No,,,/shared/sos/media/extras/live_programs/one_ocean/Salinity/SSS/playlist.sos
+Coral Reefs in Hot Water (Archived 5/23/2023),extras,Water,Yes,,,/shared/sos/media/extras/live_programs/amnh/coral_reefs/playlist.sos
+Ozone's Slow Recovery - 2013  (Archived 5/23/2023),extras,Air,Yes,,,/shared/sos/media/extras/live_programs/amnh/ozone/playlist.sos
+Protecting Wildlife in a Changing Climate,extras,Land,Yes,,,/shared/sos/media/extras/live_programs/amnh/wildlife/playlist.sos
+Arctic Sea Ice: The New Normal (Archived 5/23/2023),extras,"Water, Snow and Ice",Yes,,,/shared/sos/media/extras/live_programs/amnh/sea_ice/playlist.sos
+Earth's Green Carbon Machine (Archived 5/23/2023),extras,"Water, Land",Yes,,,/shared/sos/media/extras/live_programs/amnh/green_machine/playlist.sos
+El Nino and La Nina Impacts (Archived 5/23/2023),extras,Water,Yes,,,/shared/sos/media/extras/live_programs/amnh/enso/playlist.sos
+Warm Forecast for Coral Reefs (Archived 5/23/2023),extras,Water,Yes,,,/shared/sos/media/extras/live_programs/amnh/coral_reefs_forecast/playlist.sos
+Greening of the Arctic (Archived 5/23/2023),extras,Land,Yes,,,/shared/sos/media/extras/live_programs/amnh/green_arctic/playlist.sos
+Water Underground (Archived 5/23/2023),extras,Water,Yes,,,/shared/sos/media/extras/live_programs/amnh/water_underground/playlist.sos
+Deciphering Uncertainty in a Changing Climate: Model versus Satellite,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/uncertainty/model_v_sat/playlist.sos
+Deciphering Uncertainty in a Changing Climate: Scale of Percentages,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/uncertainty/percentage/playlist.sos
+Deciphering Uncertainty in a Changing Climate: What is a Model?,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/uncertainty/what_is_a_model/playlist.sos
+"Wind, Water: GLAPS day/night temp comparison",live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/wind_water/day_night_comp/playlist.sos
+"Wind, Water: Topo w Black Ocean Mask",live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/wind_water/topo_mask/playlist.sos
+"Wind, Water: Annual Precip",live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/wind_water/annual_precip/playlist.sos
+Rising Waters Autorun: Ocean Pics,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/rising_waters_nnc/autorun/ocean_pics/playlist.sos
+Rising Waters Autorun: River Life Pics,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/rising_waters_nnc/autorun/river_life/playlist.sos
+Rising Waters: Solutions Pics,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/rising_waters_nnc/docent/solution_pics/playlist.sos
+Rising Waters with Audio,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/rising_waters_nnc/docent/intro/playlist.sos
+Rising Waters: Ocean Pics,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/rising_waters_nnc/docent/ocean_pics/playlist.sos
+Rising Waters: Zoom Sea Level Rise,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/rising_waters_nnc/docent/zoom_sea_level_rise/playlist.sos
+Rising Waters: River Life Pics,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/rising_waters_nnc/docent/river_life/playlist.sos
+Hansa Carrier Shoe Spill - Shoe Spill Results,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/lhs/go_with_the_flow/shoespill/06_1990_shoe_spill/playlist.sos
+Hansa Carrier Shoe Spill - Introduction PIP,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/lhs/go_with_the_flow/shoespill/01_intro/playlist.sos
+Penguin Feather - Feathers and Both Currents,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/lhs/go_with_the_flow/penguin/05_feather_allcurrents/playlist.sos
+Penguin Feather - Surface Currents,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/lhs/go_with_the_flow/penguin/02_surfcurrents/playlist.sos
+Penguin Feather - Convection Currents,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/lhs/go_with_the_flow/penguin/01_convcurrents/playlist.sos
+Penguin Feather - Surface and Convection Currents,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/lhs/go_with_the_flow/penguin/03_allcurrents/playlist.sos
+Penguin Feather - Introduction PIP,live_programs,Live_Programs,No,,,/shared/sos/media/extras/live_programs/lhs/go_with_the_flow/penguin/00_intro/playlist.sos
+Real Time Color Enhanced IR Satellite with Blue Marble,,,No,,,/shared/sos/media/extras/live_programs/lhs/fronts_forecasts/sat/playlist.sos
+Ocean Circulation (still),AOP,,No,,,/shared/sos/media/extras/live_programs/aop_vis_change/climate_heart/sst/playlist.sos
+Global Solar Resources,AOP,,No,,,/shared/sos/media/extras/live_programs/aop_vis_change/climate_heart/solar/playlist.sos
+Global Wind Resources,AOP,,No,,,/shared/sos/media/extras/live_programs/aop_vis_change/climate_heart/wind/playlist.sos
+OA Closing,AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide14/playlist.sos
+OA Species Impacted by Ocean Acidification,AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide7/playlist.sos
+OA Pteropod Shell,AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide9/playlist.sos
+OA Seattle Aquarium Solar Array,AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide12/playlist.sos
+OA CO2 Data,AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide6/playlist.sos
+"OA ""Home"" Building",AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide8/playlist.sos
+OA Renewable Energy Solutions,AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide13/playlist.sos
+OA Ocean Acidification,AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide5/playlist.sos
+OA Introduction,AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide1/playlist.sos
+OA CO2 Accumulation Visualization,AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide4/playlist.sos
+OA Seattle Aquarium Solar,AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide2/playlist.sos
+OA Ocean Food Web,AOP,,Yes,,,/shared/sos/media/extras/live_programs/aop_vis_change/ocean_acidification/oa_datasets/OA_Slide11/playlist.sos
+Population Density (new),,,No,,,/shared/sos/media/extras/live_programs/energy_poverty/population/playlist.sos
+Infant Mortality,,,No,,,/shared/sos/media/extras/live_programs/energy_poverty/infants/playlist.sos
+Total GHG Emissions,,,No,,,/shared/sos/media/extras/live_programs/energy_poverty/ghg/playlist.sos
+Iron Concentration - 2015,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/dust/darwin_iron/playlist.sos
+Chlorophyll Concentration - 2015,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/dust/darwin_chlorophyll/playlist.sos
+Aerosol Optical Thickness: Dust - 2018,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/dust/nullschool_dust/playlist.sos
+Nitrate Concentration - 2015,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/live_programs/dust/darwin_nitrate/playlist.sos
+"Earth at Night: 1992, 2002, 2012",land,Live_Programs,No,,,/shared/sos/media/extras/live_programs/air_quality/earth_night/playlist.sos
+Blue Planet,extras,Water,Yes,/shared/sos/media/extras/blue_planet/blue_planet.en_US.srt,,/shared/sos/media/extras/blue_planet/playlist.sos
+NOAA Promo 2,extras,,Yes,,,/shared/sos/media/extras/noaa_promo2/playlist.sos
+Eating Water: Agriculture and Climate Change,extras,"Water, Land",Yes,/shared/sos/media/extras/eating-water/eating-water.en_US.srt,,/shared/sos/media/extras/eating-water/playlist.sos
+Marine Debris: Garbage Patch Experiment Movie,extras,Water,Yes,,,/shared/sos/media/extras/garbage_patch/playlist.sos
+New Horizons (Archived 5/23/2023),extras,Space,Yes,/shared/sos/media/extras/new_horizons/new_horizons.en_US.srt,,/shared/sos/media/extras/new_horizons/playlist.sos
+EarthNow: Climate Digest - Real-time,earthnow,Snow and Ice,Yes,,,/shared/sos/media/extras/climate_digest/playlist.sos
+Hansa Carrier Shoe Spill - Shoe Spill Results,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/lhs/go_with_the_flow/shoespill/06_1990_shoe_spill/playlist.sos
+Hansa Carrier Shoe Spill - Introduction PIP,live_programs,Live_Programs,No,,,/shared/sos/media/extras/lhs/go_with_the_flow/shoespill/01_intro/playlist.sos
+Penguin Feather - Feathers and Both Currents,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/lhs/go_with_the_flow/penguin/05_feather_allcurrents/playlist.sos
+Penguin Feather - Surface Currents,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/lhs/go_with_the_flow/penguin/02_surfcurrents/playlist.sos
+Penguin Feather - Convection Currents,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/lhs/go_with_the_flow/penguin/01_convcurrents/playlist.sos
+Penguin Feather - Surface and Convection Currents,live_programs,Live_Programs,Yes,,,/shared/sos/media/extras/lhs/go_with_the_flow/penguin/03_allcurrents/playlist.sos
+Penguin Feather - Introduction PIP,live_programs,Live_Programs,No,,,/shared/sos/media/extras/lhs/go_with_the_flow/penguin/00_intro/playlist.sos
+GOES-R: Today's Satellite for Tomorrow's Forecast,extras,"Space, People",Yes,/shared/sos/media/extras/goesr/goesr.en_US.srt,,/shared/sos/media/extras/goesr/playlist.sos
+Snow Globe with No Clouds,extras,,Yes,,,/shared/sos/media/extras/snowglobe/noclouds/playlist.sos
+Snow Globe with Clouds,extras,,Yes,,,/shared/sos/media/extras/snowglobe/clouds/playlist.sos
+Ocean in Motion,extras,Water,Yes,/shared/sos/media/extras/aop_om/aop_om.en_US.srt,,/shared/sos/media/extras/aop_om/playlist.sos
+World Cup Match Balls,extras,,No,,,/shared/sos/media/extras/worldcup/soccer_balls/playlist.sos
+Facebook with Status Layer,extras,,No,,,/shared/sos/media/extras/facebook/with_statuses/playlist.sos
+Facebook Friendships,extras,People,No,,,/shared/sos/media/extras/facebook/playlist.sos
+Coral Science from Outer Space to Inner Space (Archived 5/23/2023),extras,Water,Yes,/shared/sos/media/extras/coral/coral.en_US.srt,,/shared/sos/media/extras/coral/playlist.sos
+GLOBE: Students of the Earth Movie,extras,"Water, Air",Yes,/shared/sos/media/extras/globe/autorun/globe.en_US.srt,,/shared/sos/media/extras/globe/autorun/playlist.sos
+Footprints,extras,People,Yes,/shared/sos/media/extras/footprints/footprints.en_US.srt,,/shared/sos/media/extras/footprints/playlist.sos
+Human Migration - 2010 - 2015,exras,People,No,,,/shared/sos/media/extras/migration_2015/playlist.sos
+Extreme Weather,extras,Air,Yes,/shared/sos/media/extras/extreme_weather/extreme_weather.en_US.srt,,/shared/sos/media/extras/extreme_weather/playlist.sos
+This is NOAA Fisheries (Archived 5/23/2023),extras,"Water, Extras",No,,,/shared/sos/media/extras/fisheries/playlist.sos
+OAR Promo,extras,,No,,,/shared/sos/media/extras/oar_promo/playlist.sos
+Malaria Plasmodium Falciparium,extras,People,No,,,/shared/sos/media/extras/malaria/falciparum/playlist.sos
+Malaria Plasmodium Vivax with Duffy-negative layer,extras,People,No,,,/shared/sos/media/extras/malaria/vivax/playlist.sos
+Exploring the Unknown Ocean,extras,Water,Yes,/shared/sos/media/extras/exploring_unknown_ocean/exploring_unknown_ocean.en_US.srt,,/shared/sos/media/extras/exploring_unknown_ocean/playlist.sos
+Population Density from NEO,extras,,No,,,/shared/sos/media/extras/pop_density/playlist.sos
+Cooking Up A Storm,extras,Air,Yes,/shared/sos/media/extras/nssl_storm/nssl_storm.en_US.srt,,/shared/sos/media/extras/nssl_storm/playlist.sos
+Energy Revolution,extras,People,Yes,/shared/sos/media/extras/energy_revolution/energy_revolution.en_US.srt,,/shared/sos/media/extras/energy_revolution/playlist.sos
+The Human Era: A World of Changes,extras,"Air, People",Yes,/shared/sos/media/extras/human-era/human-era.en_US.srt,,/shared/sos/media/extras/human-era/playlist.sos
+Solar Eclipses and Space Weather Explained,extras,Space,Yes,/shared/sos/media/extras/eclipse_sw_movie/solar_eclipse.en_US.srt,,/shared/sos/media/extras/eclipse_sw_movie/playlist.sos
+Climate Model: Sea Ice Change (GFDL a1b) 1861 - 2100 (Archived 5/16/23),models and simulations,Snow and Ice,Yes,,,/shared/sos/media/models/gfdl_seaice/playlist.sos
+Climate Model: Temperature Change (Hadley a1b) - 1860 - 2099 (Archived 5/16/23),models and simulations,Air,No,,,/shared/sos/media/models/ukmet/a1b/playlist.sos
+Climate Model: Temperature Change (Hadley e1) - 1860 - 2099 (Archived 5/16/23),models and simulations,Air,No,,,/shared/sos/media/models/ukmet/e1/playlist.sos
+Climate Model: Temperature Change (CCSM a1b) - 1870 - 2100 (Archived 5/16/23),models and simulations,Air,Yes,,,/shared/sos/media/models/ipcc_temp/ccsm/a1b/playlist.sos
+Climate Model: Temperature Change (CCSM b1) - 1870 - 2100 (Archived 5/16/23),models and simulations,Air,Yes,,,/shared/sos/media/models/ipcc_temp/ccsm/b1/playlist.sos
+Climate Model: Temperature Change (GFDL a1b) - 1870 - 2100 (Archived 5/16/23),models and simulations,Air,Yes,,,/shared/sos/media/models/ipcc_temp/gfdl/a1b/playlist.sos
+Climate Model: Temperature Change (GFDL b1) - 1870 - 2100 (Archived 5/16/23),models and simulations,Air,Yes,,,/shared/sos/media/models/ipcc_temp/gfdl/b1/playlist.sos
+Climate Model: Temperature Change Comparison (GFDL a1b and b1),models and simulations,Air,No,,,/shared/sos/media/models/ipcc_temp/compare/playlist.sos
+Climate Model: Temperature Change (Hadley a1b) - 1870 - 2100 (Archived 5/16/23),models and simulations,Air,Yes,,,/shared/sos/media/models/ipcc_temp/had/a1b/playlist.sos
+Climate Model: Temperature Change (Hadley b1) - 1870 - 2100 (Archived 5/16/23),models and simulations,Air,Yes,,,/shared/sos/media/models/ipcc_temp/had/b1/playlist.sos
+Climate Model: Temperature Change (RCP 2.6) - 2006 - 2100,models and simulations,Air,Yes,,,/shared/sos/media/models/rcp/ga26/playlist.sos
+Climate Model: Temperature Change (RCP 6.0) - 2006 - 2100,models and simulations,Air,Yes,,,/shared/sos/media/models/rcp/ga60/playlist.sos
+Climate Model: Temperature Change (RCP 8.5) - 2006 - 2100,models and simulations,Air,Yes,,,/shared/sos/media/models/rcp/ga85/playlist.sos
+Climate Model: Temperature Change (RCP 4.5) - 2006 - 2100,models and simulations,Air,Yes,,,/shared/sos/media/models/rcp/ga45/playlist.sos
+IPCC GFDL Precip Anomaly,models and simulations,,Yes,,,/shared/sos/media/models/gfdl_precip_anomaly/playlist.sos
+Climate Model: Precipitation Change: SSP2 (Middle of the Road) - 2015 - 2100,models and simulations,Air,No,,,/shared/sos/media/models/ssp/precip/45/playlist.sos
+Climate Model: Precipitation Change: SSP1 (Sustainability) - 2015 - 2100,models and simulations,Air,No,,,/shared/sos/media/models/ssp/precip/19/playlist.sos
+Climate Model: Precipitation Change: SSP5 (Fossil-fueled Development) - 2015 - 2100,models and simulations,Air,No,,,/shared/sos/media/models/ssp/precip/85/playlist.sos
+Climate Model: Sea Surface Temperature Change: SSP2 (Middle of the Road) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/models/ssp/sst/45/playlist.sos
+Climate Model: Sea Surface Temperature Change: SSP1 (Sustainability) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/models/ssp/sst/19/playlist.sos
+Climate Model: Sea Surface Temperature Change: SSP5 (Fossil-fueled Development) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/models/ssp/sst/85/playlist.sos
+Climate Model: Sea Ice Concentration: SSP2 (Middle of the Road) - 2015 - 2100,models and simulations,Snow and Ice,No,,,/shared/sos/media/models/ssp/sea_ice/45/playlist.sos
+Climate Model: Sea Ice Concentration: SSP1 (Sustainability) - 2015 - 2100,models and simulations,Snow and Ice,No,,,/shared/sos/media/models/ssp/sea_ice/19/playlist.sos
+Climate Model: Sea Ice Concentration: SSP5 (Fossil-fueled Development) - 2015 - 2100,models and simulations,Snow and Ice,No,,,/shared/sos/media/models/ssp/sea_ice/85/playlist.sos
+Climate Model: Surface Temperature Change: SSP2 (Middle of the Road) - 2015 - 2100,models and simulations,Air,No,,,/shared/sos/media/models/ssp/air_temp/45/playlist.sos
+Climate Model: Surface Temperature Change: SSP1 (Sustainability) - 2015 - 2100,models and simulations,Air,No,,,/shared/sos/media/models/ssp/air_temp/19/playlist.sos
+Climate Model: Surface Temperature Change: SSP5 (Fossil-fueled Development) - 2015 - 2100,models and simulations,Air,No,,,/shared/sos/media/models/ssp/air_temp/85/playlist.sos
+Sea Surface Temperature NOAA Model (with vegetation),oceans,Water,Yes,,,/shared/sos/media/oceans/gfdl_sst/land_background/playlist.sos
+Sea Surface Temperature NOAA Model (black land),oceans,Water,Yes,,,/shared/sos/media/oceans/gfdl_sst/black_background/playlist.sos
+Ocean Circulation (labeled currents),oceans,Water,No,,,/shared/sos/media/oceans/currents/playlist.sos
+Sea Surface Salinity,oceans,Water,Yes,,,/shared/sos/media/oceans/sss/playlist.sos
+Tsunami Historical Series - Aleutians 1957,oceans,Water,Yes,,,/shared/sos/media/oceans/tsunami_historical_series/aleutians_1957/playlist.sos
+Tsunami Historical Series: Aleutian Islands 1946,oceans,Water,Yes,,,/shared/sos/media/oceans/tsunami_historical_series/aleutians/playlist.sos
+Tsunami Historical Series: Chile - 1960,oceans,Water,Yes,,,/shared/sos/media/oceans/tsunami_historical_series/chile_1960/playlist.sos
+Tsunami Historical Series: Chile - 2010,oceans,Water,Yes,,,/shared/sos/media/oceans/tsunami_historical_series/chile/playlist.sos
+Tsunami Historical Series: Sumatra - 2004,oceans,Water,Yes,,,/shared/sos/media/oceans/tsunami_historical_series/sumatra/playlist.sos
+Tsunami Historical Series: Cascadia - 1700,oceans,Water,Yes,,,/shared/sos/media/oceans/tsunami_historical_series/cascadia/playlist.sos
+Tsunami Historical Series: Japan - 2011,oceans,Water,Yes,,,/shared/sos/media/oceans/tsunami_historical_series/japan/playlist.sos
+Tsunami Historical Series: Samoa - 2009,oceans,Water,Yes,,,/shared/sos/media/oceans/tsunami_historical_series/samoa/playlist.sos
+Tsunami Historical Series: Lisbon - 1755,oceans,Water,Yes,,,/shared/sos/media/oceans/tsunami_historical_series/lisbon/playlist.sos
+Tsunami Historical Series: Alaska - 1964,oceans,Water,Yes,,,/shared/sos/media/oceans/tsunami_historical_series/alaska/playlist.sos
+"Tsunami Historical Series: Kamchatka, Russia - 2025",oceans,Water,Yes,,,/shared/sos/media/oceans/tsunami_historical_series/kamchatka/playlist.sos
+Madden Julien Oscillation - Winter Impacts,oceans,"Air, Water",Yes,,,/shared/sos/media/oceans/mjo/playlist.sos
+Ocean Acidification,oceans,,Yes,,,/shared/sos/media/oceans/OceanAcidification/playlist.sos
+Weekly Sea Ice July 2005 - August 2007 (over EV),oceans,,Yes,,,/shared/sos/media/oceans/WeeklySeaIce/6day_seaice/playlist.sos
+Sea Ice Concentrations - 1978 - Present,oceans,Snow and Ice,Yes,,,/shared/sos/media/oceans/WeeklySeaIce/10day_seaice/playlist.sos
+Sea Ice Extent: September Only,oceans,Snow and Ice,Yes,,,/shared/sos/media/oceans/WeeklySeaIce/sept_seaice/playlist.sos
+Indian Tsunami V3,oceans,,Yes,,,/shared/sos/media/oceans/indian_tsunami/playlist.sos
+Sea Surface Temp Monthly Sept 1981 - Dec 2006 from NEO,oceans,,Yes,,,/shared/sos/media/oceans/neo_sst/playlist.sos
+Coral Reef Risk Outlook,oceans,Water,No,,,/shared/sos/media/oceans/reefs_risk/playlist.sos
+Sea Ice and Snow Cover Sept. 2005 - Sept. 2006,oceans,,Yes,,,/shared/sos/media/oceans/2005-2006_seaice/playlist.sos
+Impact of 1 meter Sea Level Rise Flashing,oceans,,No,,,/shared/sos/media/oceans/6m_sea_level_rise/flashing/playlist.sos
+Sea Turtle Track: Gulf of Mexico (94-7293) (Archived 5/16/23),oceans,Water,Yes,,,/shared/sos/media/oceans/mexico_turtles/947293/playlist.sos
+Sea Turtle Track: Gulf of Mexico (94-8002) (Archived 5/16/23),oceans,Water,Yes,,,/shared/sos/media/oceans/mexico_turtles/958002/playlist.sos
+Gulf of Mexico Turtle 94-7295,oceans,,Yes,,,/shared/sos/media/oceans/mexico_turtles/947295/playlist.sos
+Ocean Circulation (conveyor belts),oceans,Water,Yes,,,/shared/sos/media/oceans/ocean_conveyor_belt/playlist.sos
+"Fleet Numerical SST (April 13, 2005 - October 31, 2006)",oceans,,Yes,,,/shared/sos/media/oceans/fleet_sst/playlist.sos
+Marine Debris: Garbage Patch Experiment,oceans,Water,Yes,,,/shared/sos/media/oceans/drifters_and_model/playlist.sos
+Shipping Routes (with labels) - One Year,oceans,Water,No,,,/shared/sos/media/oceans/shipping/playlist.sos
+Loggerhead Sea Turtle Tracks,oceans,Water,Yes,,,/shared/sos/media/oceans/LoggerheadSeaTurtleTracks/playlist.sos
+"Japan Tsunami Wave Heights - March 11, 2011",oceans,Water,No,,,/shared/sos/media/oceans/japan_tsunami/playlist.sos
+120 Years of Earthquakes and Their Tsunamis: 1901-2020,land,"Land, Water",Yes,,,/shared/sos/media/oceans/tsunami_history/playlist.sos
+La Nina - 1988 - 1989,oceans,Water,Yes,,,/shared/sos/media/oceans/SST_1980-1999/lanina_sample/playlist.sos
+El Nino - 1997 - 1998,oceans,Water,Yes,,,/shared/sos/media/oceans/SST_1980-1999/elnino_sample/playlist.sos
+Sea Surface Temperature Anomalies - 1980 - 1999,oceans,Water,Yes,,,/shared/sos/media/oceans/SST_1980-1999/playlist.sos
+Greenland Melting Trends (Archived 5/16/23),oceans,Snow and Ice,Yes,,,/shared/sos/media/oceans/greenland_melt/playlist.sos
+Sea Level Trends - 1993 - 2012,oceans,Water,No,,,/shared/sos/media/oceans/sea_level_trends/playlist.sos
+Tsunami Animation: Cascadia 1700,oceans,Water,Yes,,,/shared/sos/media/oceans/cascadia_tsunami/playlist.sos
+Sea Surface Temperature Model,oceans,Water,Yes,,,/shared/sos/media/oceans/nasa_sst/playlist.sos
+Ocean Acidification: Surface pH - SSP2 (Middle of the Road) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/oceans/oa_ssp/oa_ph/45/playlist.sos
+Ocean Acidification: Surface pH - SSP1 (Sustainability) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/oceans/oa_ssp/oa_ph/19/playlist.sos
+Ocean Acidification: Surface pH - SSP5 (Fossil-fueled Development) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/oceans/oa_ssp/oa_ph/85/playlist.sos
+Ocean Acidification: Saturation State - SSP2 (Middle of the Road) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/oceans/oa_ssp/oa_arag/45/playlist.sos
+Ocean Acidification: Saturation State - SSP1 (Sustainability) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/oceans/oa_ssp/oa_arag/19/playlist.sos
+Ocean Acidification: Saturation State - SSP5 (Fossil-fueled Development) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/oceans/oa_ssp/oa_arag/85/playlist.sos
+Ocean Acidification: Ocean-Atmosphere CO2 Exchange - SSP2 (Middle of the Road) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/oceans/oa_ssp/oa_co2/45/playlist.sos
+Ocean Acidification: Ocean-Atmosphere CO2 Exchange - SSP1 (Sustainability) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/oceans/oa_ssp/oa_co2/19/playlist.sos
+Ocean Acidification: Ocean-Atmosphere CO2 Exchange - SSP5 (Fossil-fueled Development) - 2015 - 2100,models and simulations,Water,No,,,/shared/sos/media/oceans/oa_ssp/oa_co2/85/playlist.sos
+Marine Life Tracks: Pacific Ocean,oceans,Water,No,,,/shared/sos/media/oceans/marine_life_tracking/playlist.sos
+Ocean Surface Winds,oceans,"Water, Air",Yes,,,/shared/sos/media/oceans/vector_winds/playlist.sos
+Sea Surface Temperature Observations - 2002 - 2006 (Retired 5/23/2023),oceans,Water,Yes,,,/shared/sos/media/oceans/modis_sst/playlist.sos
+Sea Turtle Track: Atlantic Ocean,oceans,Water,Yes,,,/shared/sos/media/oceans/atl_turtle/playlist.sos
+Chile Tsunami 2014,oceans,,Yes,,,/shared/sos/media/oceans/chile_tsunami_2014/playlist.sos
+September Minimum Sea Ice Coverage 1979 - 2004 w/ Red 15% Concentration Line,oceans,,Yes,,,/shared/sos/media/oceans/minimum_seaice/playlist.sos
+Seal and Seabird Tracks: Pacific Ocean,oceans,Water,Yes,,,/shared/sos/media/oceans/animal_tracking/playlist.sos
+Phytoplankton Model,oceans,Water,Yes,,,/shared/sos/media/oceans/phytoplankton/playlist.sos
+Ocean Drain (with colorized topography),oceans,Water,Yes,,,/shared/sos/media/oceans/ocean_drain/etopo/playlist.sos
+Ocean Drain (with gray bathymetry),oceans,Water,Yes,,,/shared/sos/media/oceans/ocean_drain/gray/playlist.sos
+Ocean Drain (with land vegetation),oceans,Water,Yes,,,/shared/sos/media/oceans/ocean_drain/land/playlist.sos
+Ocean Surface Vorticity,oceans,Water,Yes,,,/shared/sos/media/oceans/vorticity/playlist.sos
+Sea Surface Height Anomaly,oceans,Water,Yes,,,/shared/sos/media/oceans/sea_surface_height_anomaly/playlist.sos
+Sea Ice: Fraction and Solar Radiation Absorption  (Archived 5/16/23),oceans,"Snow and Ice, Water",No,,,/shared/sos/media/oceans/seaice_radiation/playlist.sos
+Great White Shark Track,oceans,Water,Yes,,,/shared/sos/media/oceans/shark/playlist.sos
+Sea Ice Animation - 2009 (Retired 5/23/2023),oceans,Snow and Ice,Yes,,,/shared/sos/media/oceans/2009_ice_animation/playlist.sos
+Biosphere: Marine Chlorophyll Concentration Model,,Water,Yes,,,/shared/sos/media/oceans/chlorophyll_model/playlist.sos
+Sea Ice Extent (Arctic only) - 1850 - 2017,oceans,Snow and Ice,Yes,,,/shared/sos/media/oceans/seaice_monthly/playlist.sos
+Sea Surface Currents and Temperature (vegetation on land),oceans,Water,Yes,,,/shared/sos/media/oceans/ecco2_sst/veg_land/playlist.sos
+Sea Surface Currents and Temperature (gray land),oceans,Water,Yes,,,/shared/sos/media/oceans/ecco2_sst/gray_land/playlist.sos
+"Fleet Numerical SST Anomaly (April 13, 2005 - May 28, 2007)",oceans,,Yes,,,/shared/sos/media/oceans/fleet_sst_anomaly/playlist.sos
+Float Tracks: Argo (buoy depths animation),oceans,Water,Yes,,,/shared/sos/media/oceans/argo_buoy_waterfall/playlist.sos
+Sea Level Rise Simulation - 30 Years,oceans,Water,Yes,,,/shared/sos/media/oceans/sea_level_30_years/playlist.sos
+Human Influences on Marine Ecosystems,oceans,Water,No,,,/shared/sos/media/oceans/marine_impacts/playlist.sos
+"Japan Earthquake, Tsunami Wave Propagation, and Wave Heights Combo",oceans,Water,Yes,,,/shared/sos/media/oceans/japan_tsunami_waves/combo/playlist.sos
+"Japan Tsunami Wave Propagation - March 11, 2011",oceans,Water,Yes,,,/shared/sos/media/oceans/japan_tsunami_waves/playlist.sos
+Oil Spill: Deep Water Horizons - 2010 (Retired 5/23/2023),oceans,Water,No,,,/shared/sos/media/oceans/oil_spill/playlist.sos
+Puerto Rico Hypothetical Tsunami,oceans,Water,Yes,,,/shared/sos/media/oceans/pr_tsunami/playlist.sos
+Sea Level Rise: 10m Increments,oceans,Water,Yes,,,/shared/sos/media/oceans/sea_level/playlist.sos
+Fisheries Catch Model  - 2005 vs 2050,oceans,Water,No,,,/shared/sos/media/oceans/catch_model/playlist.sos
+Biosphere: Marine Chlorophyll Concentration,oceans,"Water, Land",Yes,,,/shared/sos/media/oceans/seawifs/land_background/playlist.sos
+Biosphere: Marine Chlorophyll Concentration and Land Vegetation (with CO2 labels) (Retired 5/23/2023),oceans,"Water, Land",Yes,,,/shared/sos/media/oceans/seawifs/no_holes/playlist.sos
+Biosphere: Marine Chlorophyll Concentration and Land Vegetation (with CO2 graph) (Retired 5/23/2023),oceans,"Water, Land",Yes,,,/shared/sos/media/oceans/seawifs/mauna_loa_graph/playlist.sos
+Sea Surface Currents,oceans,Water,Yes,,,/shared/sos/media/oceans/nasa_speed/playlist.sos
+Buoy Locations (DART only) (Retired 5/23/2023),oceans,Water,No,,,/shared/sos/media/oceans/dart_buoy/playlist.sos
+Sea Turtle Track: Pacific Ocean (Archived 5/16/23),oceans,Water,Yes,,,/shared/sos/media/oceans/pac_turtle/playlist.sos
+Depth of 26 degree isotherm 2005,oceans,,Yes,,,/shared/sos/media/oceans/26_isotherm/playlist.sos
+Buoy Tracks: Argo (surface animation),oceans,Water,Yes,,,/shared/sos/media/oceans/argo_buoy_tracks/playlist.sos
+Buoy Locations,oceans,Water,No,,,/shared/sos/media/oceans/buoy_locations/old/playlist.sos
+Drought Risk with Crop Impacts - July 2025,Spotlight,"Air, Land, People",No,,,/shared/sos/media/temporary/drought/playlist.sos
+Hurricane Ian: Clouds (colorized),,,Yes,,,/shared/sos/media/temporary/ian/playlist.sos
+Population Growth Movie 1 C.E. - 2050 C.E.,,,Yes,,,/shared/sos/media/temporary/pop_movie/playlist.sos
+"Hurricane Florence: Linear IR - September 14, 2018",realtime,Air,No,,,/shared/sos/media/temporary/florence/playlist/playlist.sos
+"Hurricane Florence: Linear IR - September 14, 2018",realtime,Air,No,,,/shared/sos/media/temporary/florence/playlist.sos
+Heat Conductivity,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Heat_Conductivity/playlist.sos
+Geothermal Wells and Volcanoes,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Geothermal/Geothermal_Wells_Volcanoes/playlist.sos
+Solar Irradiance,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Solar_Irradiance/playlist.sos
+Wave and Tidal Energy Convertors,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wave_and_Tidal/Wave_Tidal_Energy_Converters/playlist.sos
+Tidal Time Lapse Movie,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wave_and_Tidal/Tidal_Time_Lapse_Movie/playlist.sos
+Wave Energy OWET Video,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wave_and_Tidal/OWET_Video/playlist.sos
+Wave Energy Map,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wave_and_Tidal/Wave_Energy_Map/playlist.sos
+La Nina Summer,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/ENSO/La_Nina_Summer/playlist.sos
+El Nino Winter,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/ENSO/El_Nino_Winter/playlist.sos
+El Nino Summer,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/ENSO/El_Nino_Summer/playlist.sos
+La Nina Winter,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/ENSO/La_Nina_Winter/playlist.sos
+Blue Mountains: John Day Fossil Beds,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/blue_mts_pic/playlist.sos
+Klamath Mts: Rogue River-Siskiyou,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/klamath_mts_pic/playlist.sos
+Snake River Plain,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/snake_river_plain_pic/playlist.sos
+Cascades: Mt Ranier,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/cascades_pic/playlist.sos
+Columbia Plateau: Alkali Lake,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/columbia_plateau_pic/playlist.sos
+Coast Range: Saddle Mt,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/coast_range_pic/playlist.sos
+Willamette Valley: W Eugene Wetlands,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/willamette_valley_pic/playlist.sos
+Oregon Ecoregions,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/ecoregion_map/playlist.sos
+OR Average Annual Precipitation,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/OR_precipitation/playlist.sos
+Oregon Topography,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/OR_topography/playlist.sos
+Eastern Cascades: Pumice Plateau,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/eastern_cascades/playlist.sos
+Basin and Range: Hart Mt,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/basin_and_range_pic/playlist.sos
+Rainshadow Effect,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/NW_Climate_and_Weather/rainshadow/playlist.sos
+Sunny - Sun,,Site_Custom,Yes,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/Sunny_and_Friends/sunny_sun/playlist.sos
+Sunny1-Intro,,Site_Custom,Yes,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/Sunny_and_Friends/sunny_intro/playlist.sos
+Sunny-Spring,,Site_Custom,Yes,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/Sunny_and_Friends/sunny_spring/playlist.sos
+Sunny-Meteorologists,,Site_Custom,Yes,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/Sunny_and_Friends/sunny_meteorologists/playlist.sos
+Sunny-Summer,,Site_Custom,Yes,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/Sunny_and_Friends/sunny_summer/playlist.sos
+Sunny-Winter,,Site_Custom,Yes,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/Sunny_and_Friends/sunny_winter/playlist.sos
+Sunny-Fall,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/weather_and_climate/Sunny_and_Friends/sunny_fall/playlist.sos
+Wind Resource Map,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wind/Wind_Resource_Map/playlist.sos
+Oregon Coast Wind,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wind/OR_Coast_Wind/playlist.sos
+Wind Speed Average 1983 - 1993 at 50m,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wind/Wind_Average_1983_to_1993/playlist.sos
+Wind Turbine Examples,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wind/Wind_Turbine_Examples/playlist.sos
+Wind Turbines,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wind/Wind_Turbines/playlist.sos
+Oregon Average Wind 80m,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wind/OR_Wind_80m/playlist.sos
+Oregon Wind Farm,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wind/OR_Wind_Farm/playlist.sos
+Wind Speeds Offshore at 10m to 90m,,Site_Custom,No,,,/shared/sos/media/site-custom/renewable_energy/Wind/Off_Shore_Wind/playlist.sos
+Humpback Whale Phytoplankton,,Site_Custom,No,,,/shared/sos/media/site-custom/climate_change/Whale_Migration/Phytoplankton/playlist.sos
+Humpback Whale Food Web,,Site_Custom,No,,,/shared/sos/media/site-custom/climate_change/Whale_Migration/Foodweb/playlist.sos
+Humpback Whale Migration,,Site_Custom,No,,,/shared/sos/media/site-custom/climate_change/Whale_Migration/WhaleMigration/playlist.sos
+Humpback Whale,,Site_Custom,No,,,/shared/sos/media/site-custom/climate_change/Whale_Migration/Humpbackwhale/playlist.sos
+Humpback Whale Krill,,Site_Custom,No,,,/shared/sos/media/site-custom/climate_change/Whale_Migration/Krill/playlist.sos
+"Changing Climate, Changing Ocean",,Site_Custom,Yes,,,/shared/sos/media/site-custom/climate_change/Changing_Climate_Changing_Ocean/playlist.sos
+Sea Level Rise 1 Meter,,Site_Custom,No,,,/shared/sos/media/site-custom/oceans/1M_sealevel/playlist.sos
+Gala 2016 Short Lights,,Site_Custom,No,,,/shared/sos/media/site-custom/OMSI_logos/GALA2012/2016_short_lights/playlist.sos
+Gala 2016 Long Black,,Site_Custom,No,,,/shared/sos/media/site-custom/OMSI_logos/GALA2012/2016_long_black/playlist.sos
+Gala 2016 Short Black,,Site_Custom,No,,,/shared/sos/media/site-custom/OMSI_logos/GALA2012/2016_short_black/playlist.sos
+Gala_2012_Air Traffic,,Site_Custom,Yes,,,/shared/sos/media/site-custom/OMSI_logos/GALA2012/gala2012_air_traffic/playlist.sos
+Gala 2016 Long,,Site_Custom,No,,,/shared/sos/media/site-custom/OMSI_logos/GALA2012/2016_long/playlist.sos
+Gala 2016 Long Lights,,Site_Custom,No,,,/shared/sos/media/site-custom/OMSI_logos/GALA2012/2016_long_lights/playlist.sos
+Gala 2016 Short,,Site_Custom,No,,,/shared/sos/media/site-custom/OMSI_logos/GALA2012/2016_short/playlist.sos
+Gala 2012 Blue Nightlights,,Site_Custom,Yes,,,/shared/sos/media/site-custom/OMSI_logos/GALA2012/gala2012_blue_nightlights/playlist.sos
+Gala Logo White,,Site_Custom,No,,,/shared/sos/media/site-custom/OMSI_logos/gala_marble_white/playlist.sos
+Renewable Energy Logos,,Site_Custom,No,,,/shared/sos/media/site-custom/OMSI_logos/RE_sponsors/playlist.sos
+Japan Wave Video,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/Japan_wave_video/playlist.sos
+Ghost Forest,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/Ghost_Forest/playlist.sos
+Japan Tectonic Map,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/Japan_tectonic_map/playlist.sos
+Japan Tsunami Animation Clip,,Site_Custom,Yes,,,/shared/sos/media/site-custom/japan/TsunamiMovie_capture/playlist.sos
+Japan Quake Eight,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/quake_8/playlist.sos
+Japan Skyscraper,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/Japan_skycraper/playlist.sos
+Japan Mendocino Fracture Zone,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/Japan_mendocine_fracture_zone/playlist.sos
+Japan Trench,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/Japan_trench/playlist.sos
+Japan Bathymetry two,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/Japan_Bathymetry_two/playlist.sos
+Japan Bathymetry One,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/Japan_Bathymetry/playlist.sos
+Orphan Tsunami,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/orphan_tsunami/playlist.sos
+Japan Quake Thirteen,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/quake_13/playlist.sos
+Japan Cascadia two,,Site_Custom,No,,,/shared/sos/media/site-custom/japan/japan_cascadia_subduction_two/playlist.sos
+Paleo Geographic Animation Portland,,Site_Custom,Yes,,,/shared/sos/media/site-custom/plate_tectonics/paleogeographic_continents/playlist.sos
+Drop Cover Hold On,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/drop_cover/playlist.sos
+Cascadia 1700 tsunami energy + coastal run-up map new color,Site_Custom,,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/tsunami_energy/playlist.sos
+Similue,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/similue/playlist.sos
+Tsunami Sheet,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/tsuanami_sheet/playlist.sos
+Tsunami Oral History,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/oral_history/playlist.sos
+Thunderbird and Whale,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/thunderbird_whale/playlist.sos
+Orphan Tsunami Book Cover,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/book_cover/playlist.sos
+Earthquake Timeline,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/earthquake_timeline/playlist.sos
+Cascadia Earthquake Types,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/cascadia_subduction/playlist.sos
+Cascadia Rupture Area,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/rupture_area/playlist.sos
+Tree Ring,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/tree_ring/playlist.sos
+Tsunami Cover,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/tsunami_cover/playlist.sos
+Miho,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/miho/playlist.sos
+Ghost Forest Forms,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/ghost_forest_forms/playlist.sos
+Cascadia Plates,,Site_Custom,No,,,/shared/sos/media/site-custom/plate_tectonics/orphan_tsunami/cascadia_plates/playlist.sos
+WODPPT24,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT24/playlist.sos
+WOD4,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WOD4/playlist.sos
+WODPPT7,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT7/playlist.sos
+WODPPT21,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT21/playlist.sos
+WODPPT20,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT20/playlist.sos
+WODPPT1,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT1/playlist.sos
+WODPPT4,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT4/playlist.sos
+WOD3,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WOD3/playlist.sos
+WODPPT14,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT14/playlist.sos
+WODPPT10,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT10/playlist.sos
+WODPPT12,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT12/playlist.sos
+WODPPT8,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT8/playlist.sos
+WODPPT28,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT28/playlist.sos
+WODPPT27,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT27/playlist.sos
+WODPPT19,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT19/playlist.sos
+WODPPT13,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT13/playlist.sos
+WODPPT3,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT3/playlist.sos
+WODPPT6,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT6/playlist.sos
+WODPPT26,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT26/playlist.sos
+WODPPT16,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT16/playlist.sos
+WOD1,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WOD1/playlist.sos
+WODPPT22,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT22/playlist.sos
+WOD5,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WOD5/playlist.sos
+WOD2,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WOD2/playlist.sos
+WODPPT18,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT18/playlist.sos
+WODPPT23,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT23/playlist.sos
+WODPPT15,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT15/playlist.sos
+WODPPT9,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT9/playlist.sos
+WODPPT2,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT2/playlist.sos
+WOD6,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WOD6/playlist.sos
+WODPPT17,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT17/playlist.sos
+WOD7,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WOD7/playlist.sos
+WODPPT25,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT25/playlist.sos
+WODPPT11,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT11/playlist.sos
+WODPPT5,,Site_Custom,No,,,/shared/sos/media/site-custom/world_ocean_day/WODPPT5/playlist.sos
+Hayley Earth,,,No,,,/shared/sos/media/site-custom/OMSI_EFS/Hayley2/EarthFromMoon/playlist.sos
+Hayley Voyager1 Disk,,,No,,,/shared/sos/media/site-custom/OMSI_EFS/Hayley2/Disk/playlist.sos
+GPS Satellite,,,No,,,/shared/sos/media/site-custom/OMSI_EFS/Beenish/sat1/playlist.sos
+GPS Satellite 2,,,No,,,/shared/sos/media/site-custom/OMSI_EFS/Beenish/sat2/playlist.sos
+GRACE gravityjpeg by JPL,,,Yes,,,/shared/sos/media/site-custom/OMSI_EFS/Tamara/jpl/playlist.sos
+Tamara Blue Marble (23 degree tilt),,,No,,,/shared/sos/media/site-custom/OMSI_EFS/Tamara/blue_marble/playlist.sos
+Hurricane Sandy,,,Yes,,,/shared/sos/media/site-custom/OMSI_EFS/Tamara/CoriolisEffect/sandy/playlist.sos
+Earth Topography and Bathymetry,,Site_Custom,No,,,/shared/sos/media/site-custom/OMSI_EFS/Tamara/CoriolisEffect/coriolis/playlist.sos
+Accumulative Hurricane Tracks 1950 - 2005,,Site_Custom,No,,,/shared/sos/media/site-custom/OMSI_EFS/Tamara/CoriolisEffect/cumulative/playlist.sos
+NASA Sea Currents,,,Yes,,,/shared/sos/media/site-custom/OMSI_EFS/Tamara/CoriolisEffect/nasa_speed/playlist.sos
+Lisbon 1755 tsunami energy + coastal run-up map new color,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Lisbon1755/new/playlist.sos
+Chile_Tsunami_1960_SOS,site-custom,,Yes,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Chile1960/animation/playlist.sos
+Japan 2011 tsunami energy + coastal run-up map new color,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Japan2011/new/playlist.sos
+Cascadia 1700 tsunami energy + coastal run-up map new color,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Cascadia1700/new/playlist.sos
+Chile 2010 tsunami energy + coastal run-up map new,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Chile2010/new/playlist.sos
+Chile_Tsunami_2010_SOS,site-custom,,Yes,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Chile2010/animation/playlist.sos
+Chile 2010 tsunami energy + coastal run-up map original,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Chile2010/original/playlist.sos
+Chile 2010 tsunami coastal run-up compare original and new,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Chile2010/compare/playlist.sos
+Chile 2014 Tsunami Stills,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Chile2014/time_steps/playlist.sos
+Chile Tsunami 2014,site-custom,,Yes,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Chile2014/animation/playlist.sos
+Chile 2014 tsunami coastal run-up map,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Chile2014/coastal/playlist.sos
+Chile 2014 tsunami energy map,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Chile2014/energy/playlist.sos
+Sullivan presenting- 2014 Chile tsunami +19 hours,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Chile2014/sullivan/playlist.sos
+Chile 2014 earthquake,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Chile2014/earthquake/playlist.sos
+ETOPO Anaglyph,Site_Custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/TopographyAnaglyphs/ETOPO_anaglyph/playlist.sos
+LRO Anaglyph,Site_Custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/TopographyAnaglyphs/LRO_anaglyph/playlist.sos
+MOLA Anaglyph,Site_Custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/TopographyAnaglyphs/MOLA_anaglyph/playlist.sos
+Photosphere Anaglyph,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Photospheres/Anaglyph/playlist.sos
+Photosphere PTWC,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/Photospheres/PTWC/playlist.sos
+Chile 2014 Tsunami Title Slide,site-custom,,No,,,/shared/sos/media/site-custom/sos_workshop/becker/tsunamiRT/TitlePage/playlist.sos
+Pluto: Dwarf Planet (16K),,,No,,,/shared/sos/media/site-custom/sos_workshop/stevealbers/pluto_new/playlist.sos
+Mars: Slideshow of Viking Landing Sites with Pictures,astronomy,Site_Custom,No,,,/shared/sos/media/site-custom/sos_workshop/stevealbers/viking/playlist.sos
+Discovery,,Site_Custom,No,,,/shared/sos/media/site-custom/sos_workshop/stevealbers/dscovr_new/playlist.sos
+Charon,,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/Charon/Charon/playlist.sos
+"Io, Moon of Jupiter - USGS",,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/Io_usgs/playlist.sos
+Ceres Half Phase,,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/Ceres/Ceres_Half/playlist.sos
+Ceres,,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/Ceres/Ceres/playlist.sos
+Ceres with Dawn,astronomy,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/Ceres_with_Dawn/playlist.sos
+NASA Pursuit of Light,,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/NASA_Pursuit_of_Light/playlist.sos
+Enceladus with Cassini,site_custom,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/enceladus_with_Cassini/playlist.sos
+Known Universe,,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/Known_Universe/playlist.sos
+Pluto True Color,,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/Pluto/Pluto_TrueColor/playlist.sos
+Pluto Black and White,,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/Pluto/Pluto_BlackandWhite/playlist.sos
+Ice Mountains of Pluto,,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/Pluto/Pluto_IceMountains/playlist.sos
+Enceladus: Saturn's Moon,astronomy,Space,No,,,/shared/sos/media/site-custom/astronomy/Enceladus_with_Cassini/playlist.sos
+Mercury Brighter,,Site_Custom,No,,,/shared/sos/media/site-custom/astronomy/Mercury_Brighter/playlist.sos
+Jupiter: Cassini 2000 with Earth to scale mp4,,Site_Custom,Yes,,,/shared/sos/media/site-custom/astronomy/Jupiter_with_earth/playlist.sos
+Transportation Routes,,Site_Custom,No,,,/shared/sos/media/site-custom/land/Transportation_Routes/playlist.sos
+11aShipTracks,,Site_Custom,No,,,/shared/sos/media/site-custom/land/Shipping_Lane_Tracks/playlist.sos
+Permafrost and Methane  Dr. Kathey Walters,,Site_Custom,Yes,,,/shared/sos/media/site-custom/land/Permafrost/playlist.sos
+Aerosols: FIM Chem Model - August 2015,,Site_Custom,No,,,/shared/sos/media/site-custom/atmosphere/AerosolsFIMChem_Aug2015/playlist.sos
+Air Traffic With No Powerpoint Slide,,Site_Custom,Yes,,,/shared/sos/media/site-custom/atmosphere/Air_Traffic/playlist.sos
+Electromagnetic Spectrum,,Site_Custom,No,,,/shared/sos/media/site-custom/atmosphere/Satellites/Electromagnetic_Spectrum/playlist.sos
+Crops and Pasturelands,,Site_Custom,No,,,/shared/sos/media/site-custom/atmosphere/Satellites/Crops_and_Pasturlands/playlist.sos
+Death Star,,Site_Custom,No,,,/shared/sos/media/site-custom/fun_stuff/Death_Star/playlist.sos
+Nate on a Sphere,,Site_Custom,No,,,/shared/sos/media/site-custom/fun_stuff/Nate_on_a_Sphere/playlist.sos
+Pokemon Ball,,Site_Custom,No,,,/shared/sos/media/site-custom/fun_stuff/Pokemon/playlist.sos
+Eye of Sauron,,Site_Custom,No,,,/shared/sos/media/site-custom/fun_stuff/Eye_of_Suaron/playlist.sos
+z - Name of Dataset With Capital Letters,,Site_Custom,No,,,/shared/sos/media/site-custom/zplaylist_template/playlist.sos
+Continent Borders (white),overlays,Extras,No,,,/shared/sos/media/overlays/continent_borders/white/playlist.sos
+Continent Borders,overlays,Extras,No,,,/shared/sos/media/overlays/continent_borders/playlist.sos
+Continent Borders (black),overlays,Extras,No,,,/shared/sos/media/overlays/continent_borders/black/playlist.sos
+Roads (white),overlays,Extras,No,,,/shared/sos/media/overlays/roads/white/playlist.sos
+Roads (black),overlays,Extras,No,,,/shared/sos/media/overlays/roads/black/playlist.sos
+Lat/Long Grid (white),overlays,Extras,No,,,/shared/sos/media/overlays/latlon_grid/white/playlist.sos
+Lat/Long Grid (black),overlays,Extras,No,,,/shared/sos/media/overlays/latlon_grid/black/playlist.sos
+Railroads,overlays,Extras,No,,,/shared/sos/media/overlays/railroad/playlist.sos
+Time zones,overlays,Extras,No,,,/shared/sos/media/overlays/timezones/playlist.sos
+Atmospheric General Circulation,overlays,Extras,No,,,/shared/sos/media/overlays/general_circulation/playlist.sos
+City Names,overlays,Extras,No,,,/shared/sos/media/overlays/city_names/playlist.sos
+Plate Names,overlays,Extras,No,,,/shared/sos/media/overlays/plate_names/playlist.sos
+Rivers,overlays,Extras,No,,,/shared/sos/media/overlays/rivers/playlist.sos
+Plate Boundaries (white),overlays,Extras,No,,,/shared/sos/media/overlays/plate_boundary/white/playlist.sos
+Ocean Names,overlays,Extras,No,,,/shared/sos/media/overlays/ocean_names/playlist.sos
+Continent Names,overlays,Extras,No,,,/shared/sos/media/overlays/continent_names/playlist.sos
+Undersea Communication Cables,overlays,Extras,No,,,/shared/sos/media/overlays/cables/playlist.sos
+Capital City Names,overlays,Extras,No,,,/shared/sos/media/overlays/capitals/playlist.sos
+Country and State Borders,overlays,,No,,,/shared/sos/media/overlays/country_state_borders/playlist.sos
+Country Borders (white),overlays,Extras,No,,,/shared/sos/media/overlays/country_borders/white/playlist.sos
+Country Borders - White,overlays,,No,,,/shared/sos/media/overlays/country_borders/playlist.sos
+Country Borders (black),overlays,Extras,No,,,/shared/sos/media/overlays/country_borders/black/playlist.sos
+Country Names,overlays,Extras,No,,,/shared/sos/media/overlays/country_pop_names/playlist.sos
+Land Mask (vegetation),overlays,Extras,No,,,/shared/sos/media/overlays/land_mask/veg/playlist.sos
+Land Mask (black),overlays,Extras,No,,,/shared/sos/media/overlays/land_mask/black/playlist.sos
+Moon: Slideshow of Landing Sites and Pictures,astronomy,Space,No,,,/shared/sos/media/astronomy/moon/landings/playlist.sos
+Moon: Shaded Lighting,astronomy,Space,No,,,/shared/sos/media/astronomy/moon/lroc/playlist.sos
+Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/moon/original/playlist.sos
+Enceladus: Saturn's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/enceladus/playlist.sos
+Io Volcanoes: Jupiter's Moon,astronomy,Space,Yes,,,/shared/sos/media/astronomy/io/volcanoes/playlist.sos
+Io: Jupiter's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/io/original/playlist.sos
+Triton: Neptune's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/triton/playlist.sos
+Moon: Surface Temperature,astronomy,Space,Yes,,,/shared/sos/media/astronomy/lro/diviner/playlist.sos
+Moon: Topography,astronomy,Space,No,,,/shared/sos/media/astronomy/lro/lola/topography/playlist.sos
+Moon: Surface Slope,astronomy,Space,No,,,/shared/sos/media/astronomy/lro/lola/slope/playlist.sos
+Moon: Surface Roughness,astronomy,Space,No,,,/shared/sos/media/astronomy/lro/lola/roughness/playlist.sos
+Sun: X-Ray - 2003,astronomy,Space,Yes,,,/shared/sos/media/astronomy/xray_sun/playlist.sos
+Oberon: Uranus' Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/uranus_moons/oberon/playlist.sos
+Titania: Uranus' Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/uranus_moons/titania/playlist.sos
+Miranda: Uranus' Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/uranus_moons/miranda/playlist.sos
+Ariel: Uranus' Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/uranus_moons/ariel/playlist.sos
+Umbriel: Uranus' Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/uranus_moons/umbriel/playlist.sos
+"Lunar Eclipse - Aug. 28, 2007 (Archived 5/23/2023)",astronomy,Space,Yes,,,/shared/sos/media/astronomy/lunar_eclipse/playlist.sos
+Mars: Topography,astronomy,Space,No,,,/shared/sos/media/astronomy/mars_mola/playlist.sos
+Exoplanet: TRAPPIST - 1c,astronomy,Space,No,,,/shared/sos/media/astronomy/trappist/Trappist_1C_Shadow/playlist.sos
+Exoplanet: TRAPPIST - 1h,astronomy,Space,No,,,/shared/sos/media/astronomy/trappist/Trappist_1H_Shadow/playlist.sos
+Exoplanet: TRAPPIST - 1e,astronomy,Space,No,,,/shared/sos/media/astronomy/trappist/Trappist_1E_Shadow/playlist.sos
+Exoplanet: TRAPPIST - 1f,astronomy,Space,No,,,/shared/sos/media/astronomy/trappist/Trappist_1F_Shadow/playlist.sos
+Exoplanet: TRAPPIST - 1b,astronomy,Space,No,,,/shared/sos/media/astronomy/trappist/Trappist_1B_Shadow/playlist.sos
+Exoplanet: TRAPPIST - 1g,astronomy,Space,No,,,/shared/sos/media/astronomy/trappist/Trappist_1G_Shadow/playlist.sos
+Exoplanet: TRAPPIST - 1d,astronomy,Space,No,,,/shared/sos/media/astronomy/trappist/Trappist_1D_Shadow/playlist.sos
+Dione: Saturn's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/dione/playlist.sos
+Rhea: Saturn's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/rhea/playlist.sos
+Sun: Carrington Rotation Map - 2003,astronomy,Space,Yes,,,/shared/sos/media/astronomy/soho/30day_maps/playlist.sos
+Sun: Historical Solar Flare - 2003,astronomy,Space,Yes,,,/shared/sos/media/astronomy/soho/oct_2003/playlist.sos
+Saturn (enhanced colors),astronomy,Space,No,,,/shared/sos/media/astronomy/saturn/color_enhanced/playlist.sos
+Saturn,astronomy,Space,No,,,/shared/sos/media/astronomy/saturn/original/playlist.sos
+Pluto: Dwarf Planet - Images over time (1992-2015),astronomy,Space,No,,,/shared/sos/media/astronomy/pluto_frames/playlist.sos
+Charon: Pluto's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/charon/playlist.sos
+Aurora,astronomy,Space,Yes,,,/shared/sos/media/astronomy/aurora/playlist.sos
+Pluto: Dwarf Planet,astronomy,Space,No,,,/shared/sos/media/astronomy/pluto/playlist.sos
+Ganymede: Jupiter's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/ganymede/playlist.sos
+Neptune,astronomy,Space,No,,,/shared/sos/media/astronomy/neptune/playlist.sos
+Cosmic Microwave Background: WMAP (third year),astronomy,Space,No,,,/shared/sos/media/astronomy/wmap_microwave/third_year/playlist.sos
+Cosmic Microwave Background: WMAP (first year),astronomy,Space,No,,,/shared/sos/media/astronomy/wmap_microwave/first_year/playlist.sos
+Cosmic Microwave Background: WMAP (fifth year sequence),astronomy,Space,No,,,/shared/sos/media/astronomy/wmap_microwave/fifth_year/playlist.sos
+Milky Way Panorama: Constellation Outlines,astronomy,Space,No,,,/shared/sos/media/astronomy/milky_way/constellations/playlist.sos
+Milky Way Panorama,astronomy,Space,No,,,/shared/sos/media/astronomy/milky_way/all_sky/playlist.sos
+Milky Way Panorama: Alpha Centauri Label,astronomy,Space,No,,,/shared/sos/media/astronomy/milky_way/alpha_centauri/playlist.sos
+Solar Synoptic Map Building,astronomy,Space,Yes,,,/shared/sos/media/astronomy/solar_synoptic/playlist.sos
+Mercury: Topography,astronomy,Space,No,,,/shared/sos/media/astronomy/mercury/mercury_topo/playlist.sos
+Mercury,astronomy,Space,No,,,/shared/sos/media/astronomy/mercury/oct2011/playlist.sos
+Mercury: Color Enhanced,astronomy,Space,No,,,/shared/sos/media/astronomy/mercury/colorized/playlist.sos
+Titan: Saturn's Moon (colorized),astronomy,Space,No,,,/shared/sos/media/astronomy/titan/color/playlist.sos
+Titan: Saturn's Moon (black and white),astronomy,Space,No,,,/shared/sos/media/astronomy/titan/black_white/playlist.sos
+Tethys: Saturn's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/tethys/playlist.sos
+Deimos: Mars' Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/mars_moons/deimos/playlist.sos
+Phobos: Mars' Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/mars_moons/phobos/playlist.sos
+Moon Transit from DSCOVR,astronomy,Space,No,,,/shared/sos/media/astronomy/dscovr_lunar/playlist.sos
+Vesta: Asteroid,astronomy,Space,No,,,/shared/sos/media/astronomy/vesta/playlist.sos
+Uranus,astronomy,Space,No,,,/shared/sos/media/astronomy/uranus/original/playlist.sos
+"Solar Eclipse Simulation (NASA) - August 21, 2017",astronomy,People,Yes,,,/shared/sos/media/astronomy/eclipse_nasa/playlist.sos
+"Lunar Eclipse - Feb. 21, 2008 (Archived 5/23/2023)",astronomy,Space,No,,,/shared/sos/media/astronomy/eclipse/playlist.sos
+Planet Rotations,,Site-Custom,Yes,,,/shared/sos/media/astronomy/planet_rotations/playlist.sos
+Phoebe: Saturn's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/phoebe/playlist.sos
+Solar Synoptic Map Building,astronomy,Space,Yes,,,/shared/sos/media/astronomy/sun_synoptic/playlist.sos
+Venus: Venera Landing Sites and Pictures,astronomy,Space,No,,,/shared/sos/media/astronomy/venus/landings/playlist.sos
+Venus: Topography,astronomy,Space,No,,,/shared/sos/media/astronomy/venus/topo/playlist.sos
+Venus: Shaded Relief,astronomy,Space,No,,,/shared/sos/media/astronomy/venus/shaded_relief/playlist.sos
+Venus: Radar Brightness,astronomy,Space,No,,,/shared/sos/media/astronomy/venus/original/playlist.sos
+"Venus: Animation of Clouds, Brightness, Topography",astronomy,Space,Yes,,,/shared/sos/media/astronomy/venus/clouds/playlist.sos
+All Sky Wide-field Infrared Survey Explorer Mosaic Image,astronomy,Space,No,,,/shared/sos/media/astronomy/allsky_wise/mosaic/playlist.sos
+Exoplanet: Kepler-22b,astronomy,Space,No,,,/shared/sos/media/astronomy/kepler/kepler22b/playlist.sos
+Exoplanet: Kepler-47c,astronomy,Space,No,,,/shared/sos/media/astronomy/kepler/kepler47c/playlist.sos
+Exoplanet: Kepler-37b,astronomy,Space,No,,,/shared/sos/media/astronomy/kepler/kepler37b/playlist.sos
+Exoplanet: Earth-like,astronomy,Space,No,,,/shared/sos/media/astronomy/kepler/earthlike/playlist.sos
+Exoplanet: Kepler-10b,astronomy,Space,No,,,/shared/sos/media/astronomy/kepler/kepler10b/playlist.sos
+Exoplanet: Kepler-9b,astronomy,Space,No,,,/shared/sos/media/astronomy/kepler/kepler09b/playlist.sos
+Ceres: Dwarf Planet,astronomy,Space,No,,,/shared/sos/media/astronomy/ceres/playlist.sos
+Callisto: Jupiter's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/callisto/playlist.sos
+Iapetus: Saturn's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/iapetus/playlist.sos
+Hubble Telescope: Fornax Constellation,astronomy,Space,Yes,,,/shared/sos/media/astronomy/hubble/playlist.sos
+Europa: Jupiter's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/europa/playlist.sos
+Solar System to Scale: Sun and Planets,astronomy,Space,No,,,/shared/sos/media/astronomy/solar_system/playlist.sos
+Mimas: Saturn's Moon,astronomy,Space,No,,,/shared/sos/media/astronomy/mimas/playlist.sos
+Moon Phases,astronomy,Space,Yes,,,/shared/sos/media/astronomy/moon_phases/playlist.sos
+Sun: Iron Wavelength (AIA 193),astronomy,Space,Yes,,,/shared/sos/media/astronomy/sun193/playlist.sos
+Sun: Helium Wavelength (AIA 304),astronomy,Space,Yes,,,/shared/sos/media/astronomy/sun304/playlist.sos
+Jupiter: Two Red Spots - 2007,astronomy,Space,No,,,/shared/sos/media/astronomy/jupiter/two_storms_feb2007/playlist.sos
+Jupiter: Shoemaker-Levy Comet Collision (Archived 5/23/2023),astronomy,Space,No,,,/shared/sos/media/astronomy/jupiter/comet_collision/playlist.sos
+Jupiter: Black and White - 2007 (Archived 5/23/2023),astronomy,Space,No,,,/shared/sos/media/astronomy/jupiter/new_horizons_black/playlist.sos
+Jupiter (movie),astronomy,Space,Yes,,,/shared/sos/media/astronomy/jupiter/largest/playlist.sos
+Jupiter (still),astronomy,Space,No,,,/shared/sos/media/astronomy/jupiter/still/playlist.sos
+Jupiter: Hubble Space Telescope Sequence - 2007,astronomy,Space,Yes,,,/shared/sos/media/astronomy/jupiter/HST_sequence_2007/playlist.sos
+Mars: Landing Sites  (Archived 5/23/2023),astronomy,Space,No,,,/shared/sos/media/astronomy/mars/landings/dmns/playlist.sos
+Mars,astronomy,Space,No,,,/shared/sos/media/astronomy/mars/original/playlist.sos
+Panoramic View of Mars from Phoenix Lander - 2008 (Archived 5/3/23),astronomy,Space,No,,,/shared/sos/media/astronomy/mars/phoenix_lander/panorama/playlist.sos
+Phoenix Mars Landing with Parachute - 2008 (Archived 5/3/23),astronomy,Space,No,,,/shared/sos/media/astronomy/mars/phoenix_lander/parachute/playlist.sos
+Midnight Sun from Mars Phoenix Lander - 2008 (Archived 5/3/23),astronomy,Space,No,,,/shared/sos/media/astronomy/mars/phoenix_lander/midnight_sun/playlist.sos
+Color Panorama from Phoenix Lander - 2008 (Archived 5/3/23),astronomy,Space,No,,,/shared/sos/media/astronomy/mars/phoenix_lander/color_panorama/playlist.sos
+Phoenix Mars Lander First Color Images - 2008 (Archived 5/3/23),astronomy,Space,No,,,/shared/sos/media/astronomy/mars/phoenix_lander/color/playlist.sos
+Mars Magnetic Map,astronomy,Space,No,,,/shared/sos/media/astronomy/mars/magnetic/playlist.sos
+"Solar Eclipse Simulation (NOAA) - August 21, 2017",astronomy,People,Yes,,,/shared/sos/media/astronomy/eclipse_dscvr/playlist.sos
+Age of the Seafloor iso lines black,land,,No,,,/shared/sos/media/land/sea_floor_age/iso_lines_black/playlist.sos
+Vegetation: Seasonal Changes - Apr 2012 - Apr 2013,land,Land,No,,,/shared/sos/media/land/global_vegetation/playlist.sos
+Agriculture: Pastureland Intensity,land,Land,No,,,/shared/sos/media/land/agriculture/pastureland/playlist.sos
+Agriculture: Cropland Intensity,land,Land,No,,,/shared/sos/media/land/agriculture/cropland/playlist.sos
+Earth's Magnetic Declination,land,"Land, Space",Yes,,,/shared/sos/media/land/magnetic_declination/playlist.sos
+"Chile Earthquake April 2, 2014",land,Land,No,,,/shared/sos/media/land/chile_quake/playlist.sos
+Day/Night Terminator (with clouds),land,"Land, Air",Yes,,,/shared/sos/media/land/irsat_nightlights/playlist.sos
+Agriculture: Food vs. Feed,land,Land,No,,,/shared/sos/media/land/food_v_feed/playlist.sos
+Nighttime Lights Comparison - 1992 and 2002 (Archived 5/16/23),land,"Land, People",No,,,/shared/sos/media/land/earth_night/1992_2002/playlist.sos
+Nighttime Lights Comparison - 1992 and 2009 (Archived 5/16/23),land,"Land, People",No,,,/shared/sos/media/land/earth_night/1992_2009/playlist.sos
+Nighttime Lights,land,"Land, People",No,,,/shared/sos/media/land/earth_night/nightlights/playlist.sos
+Nighttime Lights (colorized),land,"Land, People",No,,,/shared/sos/media/land/earth_night/color_nightlights/playlist.sos
+"Nighttime Lights Comparison - 1992, 2000, and 2008 (Archived 5/16/23)",land,"Land, People",No,,,/shared/sos/media/land/earth_night/1992_2008/playlist.sos
+Nighttime Lights - 2012,land,Land,No,,,/shared/sos/media/land/earth_night/2012/playlist.sos
+Earthquakes: Historical Top 10 - through 2011,land,Land,No,,,/shared/sos/media/land/top_quakes/playlist.sos
+Global Fire Map 2007,land,,No,,,/shared/sos/media/land/fire/2007/playlist.sos
+Global Fire Map 2009,land,,No,,,/shared/sos/media/land/fire/2009/playlist.sos
+Global Fire Map 2000,land,,No,,,/shared/sos/media/land/fire/2000/playlist.sos
+GRACE by JPL,land,,Yes,,,/shared/sos/media/land/grace/jpl/playlist.sos
+Groundwater Storage: Ice and Aquifers,land,Land,Yes,,,/shared/sos/media/land/grace/gsfc/playlist.sos
+Gray Earth,land,"Water, Land",No,,,/shared/sos/media/land/gray_earth/playlist.sos
+Agriculture: Cropland Yield (potential),land,Land,No,,,/shared/sos/media/land/land_production/cropland_potential/playlist.sos
+Agriculture: Cropland Production Gap,land,Land,No,,,/shared/sos/media/land/land_production/production_gap/playlist.sos
+Agriculture: Cropland Yield (current),land,Land,No,,,/shared/sos/media/land/land_production/cropland_current/playlist.sos
+Land Cover: Woody Biomass in Pan-tropics (Archived 5/23/2023),land,Land,No,,,/shared/sos/media/land/pantropical_biomass/playlist.sos
+Blue Marble - Seasonal,land,Land,Yes,,,/shared/sos/media/land/blue_marble/seasonal_blue_marble/playlist.sos
+Blue Marble: with Topography - Seasonal,land,Land,No,,,/shared/sos/media/land/blue_marble/next_gen/topo/playlist.sos
+Blue Marble: with Topography and Bathymetry,land,"Water, Land",No,,,/shared/sos/media/land/blue_marble/next_gen/topo_bathy/playlist.sos
+Earth Image with shaded Ocean,land,,No,,,/shared/sos/media/land/blue_marble/shaded_ocean/playlist.sos
+Blue Marble,land,Land,No,,,/shared/sos/media/land/blue_marble/blue_marble/playlist.sos
+Blue Marble: without Clouds,land,Land,No,,,/shared/sos/media/land/blue_marble/earth_vegetation/playlist.sos
+Earthquakes of the 20th Century,land,Land,Yes,,,/shared/sos/media/land/Earthquakes_1901-2000/playlist.sos
+Topography and Bathymetry with Nighttime Lights,land,"Water, Land, People",Yes,,,/shared/sos/media/land/hot_topo/playlist.sos
+ETOPO2: Topography and Bathymetry (shaded colors),land,"Water, Land",No,,,/shared/sos/media/land/etopo2/earth_shaded/playlist.sos
+ETOPO2: Topography and Bathymetry (bright colors) (Archived 5/16/23),land,"Water, Land",No,,,/shared/sos/media/land/etopo2/earth_bright/playlist.sos
+ETOPO2: Topography and Bathymetry (color enhanced) (Archived 5/16/23),land,"Water, Land",No,,,/shared/sos/media/land/etopo2/earth_color/playlist.sos
+ETOPO2: Topography and Bathymetry (natural colors),land,"Water, Land",No,,,/shared/sos/media/land/etopo2/earth_topo/playlist.sos
+ETOPO2: Bathymetry,land,"Water, Land",No,,,/shared/sos/media/land/etopo2/landsat/playlist.sos
+Paleo Geographic (frames),land,Land,No,,,/shared/sos/media/land/blakey_paleo/playlist.sos
+Land Cover (map with ribbon of labels),land,Land,No,,,/shared/sos/media/land/land_cover/ribbon/playlist.sos
+Land Cover (animation),land,Land,Yes,,,/shared/sos/media/land/land_cover/animation/playlist.sos
+Land Cover (map with slideshow of labels),land,Land,No,,,/shared/sos/media/land/land_cover/slideshow/playlist.sos
+Fire Observations and Vegetation - 2002 - 2011,land,Land,Yes,,,/shared/sos/media/land/fire_veg/playlist.sos
+Magnetic Declination with Earth Shaded background,land,,No,,,/shared/sos/media/land/earths_magnetism/magnetic_declination/playlist.sos
+ETOPO1: Topography and Bathymetry,land,"Water, Land",No,,,/shared/sos/media/land/etopo1/playlist.sos
+Plate Movement - 200 Million Years Ago to Today,land,Land,Yes,,,/shared/sos/media/land/plate_movement/playlist.sos
+Japan Earthquake by SSEC,land,Land,Yes,,,/shared/sos/media/land/japan_quake/ssec/playlist.sos
+Blue Marble and Nighttime Lights,land,"Land, People",Yes,,,/shared/sos/media/land/bluemarble_nightlights/playlist.sos
+Day/Night Terminator (daily),land,Land,Yes,,,/shared/sos/media/land/day_night/06z_only/playlist.sos
+Day/Night Terminator (single day),land,Land,Yes,,,/shared/sos/media/land/day_night/oneday/playlist.sos
+Day/Night Terminator (hourly),land,Land,Yes,,,/shared/sos/media/land/day_night/full_year/playlist.sos
+EMAG2 with iso lines black,land,,No,,,/shared/sos/media/land/emag2/playlist.sos
+PALEOMAP PaleoAtlas - 0 - 750 Million Years Ago,land,Land,Yes,,,/shared/sos/media/land/paleo_map/playlist.sos
+Koppen-Geiger Climate Classification - 2007,land,Land,No,,,/shared/sos/media/land/koppen_climate/koppen_2007/playlist.sos
+Koppen-Geiger Climate Changes - 1901 - 2100,land,Land,No,,,/shared/sos/media/land/koppen_climate/koppen_1901-2100/playlist.sos
+Permafrost and Methane  Dr. Kathey Walters,cryosphere,,Yes,,,/shared/sos/media/land/permafrost/playlist.sos
+Earthquake Magnitide Perspective,Land,Land,Yes,,,/shared/sos/media/land/earthquake/perspective/playlist.sos
+Earthquakes - 2001-2015,land,Land,Yes,,,/shared/sos/media/land/earthquake/2001-2015/playlist.sos
+Earthquakes,land,,Yes,,,/shared/sos/media/land/earthquake/original/playlist.sos
+Earthquakes: Cumulative - 1980 - 1995 (Archived 5/16/23),land,Land,Yes,,,/shared/sos/media/land/earthquake/1980-1995_quakes/playlist.sos
+Bird Migration Patterns - Western Hemisphere,extras,Land,Yes,,,/shared/sos/media/land/birds/playlist.sos
+Future Plate Tectonics - 250 million years,land,Land,Yes,,,/shared/sos/media/land/paleo_future/playlist.sos
+GUPS Aircraft and Dropsonde Track,atmosphere,,Yes,,,/shared/sos/media/atmosphere/gups_aircraft/playlist.sos
+"ACARS 24hr Wind Measurements 30,000ft to 45,000ft",atmosphere,,Yes,,,/shared/sos/media/atmosphere/acars/wind_upper/playlist.sos
+"ACARS 24hr Wind Measurements, surface to 30,000ft",atmosphere,,Yes,,,/shared/sos/media/atmosphere/acars/wind_surface/playlist.sos
+ACARS track 24hr time sequence 07-21-04,atmosphere,,Yes,,,/shared/sos/media/atmosphere/acars/tracks/playlist.sos
+Aerosols: Black Carbon and Sulfate,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/aerosol/blackcarbon_and_sulfate/playlist.sos
+Aerosols: Black Carbon,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/aerosol/blackcarbon/playlist.sos
+Aerosols: Sulfate,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/aerosol/sulfate/playlist.sos
+Temperature Anomaly: Monthly (NASA) - 1884 - 2012,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/giss_temp_anom/old/playlist.sos
+Hurricane Season - 2004,atmosphere,"Water, Air",Yes,,,/shared/sos/media/atmosphere/2004_ir_hurricane/playlist.sos
+International Space Station Track,atmosphere,Space,No,,,/shared/sos/media/atmosphere/iss_track/playlist.sos
+Temperature Anomaly: Yearly - 500 - 2006 (Paleoclimate Evidence),atmospere,Air,Yes,,,/shared/sos/media/atmosphere/pclim/playlist.sos
+Precipitable Water - Antarctic Expedition - 1902 - 1903,atmosphere,"Snow and Ice, Air",Yes,,,/shared/sos/media/atmosphere/reanalysis/antarctic/playlist.sos
+Precipitable Water - El Nino - 1917 - 1919,atmosphere,"Water, Air",Yes,,,/shared/sos/media/atmosphere/reanalysis/elnino/playlist.sos
+Precipitable Water - Galveston Hurricane - 1900,atmosphere,"Water, Air",Yes,,,/shared/sos/media/atmosphere/reanalysis/hurricane/playlist.sos
+Hurricane Season: Water Vapor and SST - 2017,atmosphere,"Water, Air",Yes,,,/shared/sos/media/atmosphere/hurricane_season_2017_wvsst/playlist.sos
+Hurricane Season - 2012,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/2012_hurricane/playlist.sos
+"Warming Stripes: Australia, Germany, and USA",atmosphere,"Air, People",No,,,/shared/sos/media/atmosphere/warming_stripe_countries/playlist.sos
+Balog Greenland video over surface anaomaly,atmosphere,,Yes,,,/shared/sos/media/atmosphere/balog_greenland/playlist.sos
+300mb Temperature by AIRS (11/1/05 - 11/1/06),atmosphere,,Yes,,,/shared/sos/media/atmosphere/airs/300_temp/playlist.sos
+925mb Temperature by AIRS (11/1/05 - 11/1/06),atmosphere,,Yes,,,/shared/sos/media/atmosphere/airs/925_temp/playlist.sos
+500mb Temperature by AIRS (11/1/05 - 11/1/06),atmosphere,,Yes,,,/shared/sos/media/atmosphere/airs/500_temp/playlist.sos
+1000 - 700 mb Precipitable Water by AIRS (11/1/05 - 11/1/06),atmosphere,,Yes,,,/shared/sos/media/atmosphere/airs/1000-700_water/playlist.sos
+700 - 500 mb Precipitable Water by AIRS (11/1/05 - 11/1/06),atmosphere,,Yes,,,/shared/sos/media/atmosphere/airs/700-500_water/playlist.sos
+500 - 100 mb Precipitable Water by AIRS (11/1/05 - 11/1/06),atmosphere,,Yes,,,/shared/sos/media/atmosphere/airs/500-100_water/playlist.sos
+Water Vapor: Hourly Model,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/water_vapor/playlist.sos
+Hurricane Harvey: Clouds with Precipitation - 2017,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/harvey/clouds_precip/playlist.sos
+Warming Stripes,atmosphere,"Air, People",No,,,/shared/sos/media/atmosphere/warming_stripe/playlist.sos
+Lightning Flash Rate,atmosphere,Air,No,,,/shared/sos/media/atmosphere/lightning/playlist.sos
+Hurricane Sandy: Linear IR - Oct. 2012,atmosphere,Water,Yes,,,/shared/sos/media/atmosphere/sandy/playlist.sos
+Polar Orbiting: NOAA-17 Satellite Coverage,atmosphere,Space,Yes,,,/shared/sos/media/atmosphere/poes_sat/playlist.sos
+Geostationary Satellites (Archived 5/16/23),atmosphere,Space,Yes,,,/shared/sos/media/atmosphere/geo_sat/playlist.sos
+Hurricane Season - 2020,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/2020_hurricane_season/playlist.sos
+Aerosols: FIM Chem Model,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/fim_chem/playlist.sos
+Fossil Fuel: CO2 Release - 2011-2012,atmosphere,"Air, People",No,,,/shared/sos/media/atmosphere/fossil_fuel/playlist.sos
+Polar Orbiting: NASA A-Train Satellites (Archived 5/16/23),atmosphere,Space,Yes,,,/shared/sos/media/atmosphere/nasa_sats/playlist.sos
+Typhoon Haiyan: Water Vapor and SST - Oct - Nov 2013,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/typhoon_haiyan/wvsst/playlist.sos
+Typhoon Haiyan - Oct - Nov 2013,atmosphere,Air,No,,,/shared/sos/media/atmosphere/typhoon_haiyan/playlist.sos
+Atmospheric Chemistry: GEOS-5 Model,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/nccs_models/chem/playlist.sos
+Carbon Dioxide Concentration: GEOS-5 Model,atmosphere,"People, Land, Air",Yes,,,/shared/sos/media/atmosphere/nccs_models/carbon/playlist.sos
+Water Vapor: GEOS-5 Model,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/nccs_models/water/playlist.sos
+Winds: GEOS-5 Model,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/nccs_models/winds/playlist.sos
+CarbonTracker (2004 Carbon Plumes),atmosphere,"People, Air",Yes,,,/shared/sos/media/atmosphere/carbon_tracker/playlist.sos
+NO2 Aura/OMI: 10/2004 - 2/2014,NEO,,No,,,/shared/sos/media/atmosphere/aura/no2/NESO/playlist.sos
+Aura Nitrogen Dioxide 6 day average,atmosphere,,No,,,/shared/sos/media/atmosphere/aura/no2/playlist.sos
+Carbon Dioxide: One Year - 2012,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/carbontracker_graph/playlist.sos
+Hurricane Season: Water Vapor and SST - 2005,atmosphere,"Water, Air",Yes,,,/shared/sos/media/atmosphere/2005_hurricane/wvsst/playlist.sos
+Hurricane Season - 2005,atmosphere,"Water, Air",Yes,,,/shared/sos/media/atmosphere/2005_hurricane/grayir/playlist.sos
+NOAA Satellite Positions,atmosphere,,No,,,/shared/sos/media/atmosphere/noaa_sat/position/playlist.sos
+Polar Orbiting: NOAA Satellite Tracks,atmosphere,Space,No,,,/shared/sos/media/atmosphere/noaa_sat/tracks/playlist.sos
+Hurricane Tracks,atmosphere,,Yes,,,/shared/sos/media/atmosphere/hurricane_tracks/animation/playlist.sos
+Carbon Flux,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/carbonflux/playlist.sos
+Swath: Net Radiation Flux Compared to Clouds,atmosphere,,Yes,,,/shared/sos/media/atmosphere/ceres/radiation_clouds/playlist.sos
+Swath: Incoming Solar Flux Compared to Clouds,atmosphere,,Yes,,,/shared/sos/media/atmosphere/ceres/solar_clouds/playlist.sos
+Swath: Outgoing Longwave Flux Compared to Clouds,atmosphere,,Yes,,,/shared/sos/media/atmosphere/ceres/longwave_clouds/playlist.sos
+Tropical Widening,atmosphere,Air,No,,,/shared/sos/media/atmosphere/tropical_widening/playlist.sos
+Polar Orbiting: Aqua Satellite and MODIS Swath,atmosphere,Space,Yes,,,/shared/sos/media/atmosphere/aqua_swath/playlist.sos
+Global Average Temperature Anomaly 2010,atmosphere,,No,,,/shared/sos/media/atmosphere/2010_temp_anom/playlist.sos
+Global Average Temperature Anomaly 2012,atmosphere,,No,,,/shared/sos/media/atmosphere/2012_temp_anom/playlist.sos
+Polar Orbiting: NOAA-17 and NOAA-18 (Archived 5/16/23),atmosphere,Space,Yes,,,/shared/sos/media/atmosphere/sunsync_sat/playlist.sos
+Satellites: Paths and Positions,atmosphere,Space,Yes,,,/shared/sos/media/atmosphere/all_sats/playlist.sos
+Globe NEO Biosphere 2007 monthly,atmosphere,,No,,,/shared/sos/media/atmosphere/globe/biosphere/playlist.sos
+Solar Insolation - Monthly (NASA),atmosphere,Space,No,,,/shared/sos/media/atmosphere/globe/insolation/playlist.sos
+Globe NEO Cloud Fraction 2007 monthly,atmosphere,,No,,,/shared/sos/media/atmosphere/globe/cloud_fraction/playlist.sos
+Globe NEO Aerosol 2007 monthly,atmosphere,,No,,,/shared/sos/media/atmosphere/globe/aerosols/playlist.sos
+Globe NEO Surface Temperature 2007 monthly,atmosphere,,No,,,/shared/sos/media/atmosphere/globe/surface_temp/playlist.sos
+Hurricane Season - 2017,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/hurricane_season_2017/playlist.sos
+Land Surface Temperature - 1950 - 1999 (Archived 5/16/23),atmosphere,"Land, Air",Yes,,,/shared/sos/media/atmosphere/land_temp/playlist.sos
+Carbon Monoxide - 2000,atmosphere,Air,Yes,,,/shared/sos/media/atmosphere/2000_carbon_monoxide/playlist.sos
+Geostationary Satellites: Scanning Pattern (Archived 5/16/23),atmosphere,Space,Yes,,,/shared/sos/media/atmosphere/geo_scan/playlist.sos
+Air Traffic,atmosphere,"Land, People",Yes,,,/shared/sos/media/atmosphere/air_traffic/playlist.sos
