@@ -95,7 +95,7 @@ def parse_playlist_file(file_content: str, playlist_path: str = ""):
         playlist_path: Full path to the playlist.sos file (for resolving relative caption paths)
         
     Returns:
-        dict: Dictionary with parsed fields (name, category, majorcategory, data, caption, is_movie)
+        dict: Dictionary with parsed fields (name, category, majorcategory, data, caption, is_movie, duration)
               or None if no data= field found
     """
     data = {
@@ -104,7 +104,8 @@ def parse_playlist_file(file_content: str, playlist_path: str = ""):
         'majorcategory': '',
         'data': '',
         'caption': '',
-        'is_movie': False
+        'is_movie': False,
+        'duration': ''
     }
     
     has_data = False
@@ -140,6 +141,8 @@ def parse_playlist_file(file_content: str, playlist_path: str = ""):
                     data['caption'] = caption_path
                 else:
                     data['caption'] = value
+            elif key == 'duration':
+                data['duration'] = value
     
     # Return None if no data= field found
     if not has_data:
@@ -238,18 +241,19 @@ def generate_server_index(output_file: str = "noaa_server_index.csv",
     # Write CSV file
     print(f"\nWriting CSV to: {output_file}")
     with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['name', 'category', 'majorcategory', 'is_movie', 'caption', 'pretty_name', 'path']
+        fieldnames = ['pretty_name', 'name', 'category', 'majorcategory', 'is_movie', 'duration', 'caption', 'path']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         
         writer.writeheader()
         for entry in csv_data:
             writer.writerow({
+                'pretty_name': '',  # Empty for manual modification
                 'name': entry['name'],
                 'category': entry['category'],
                 'majorcategory': entry['majorcategory'],
                 'is_movie': 'Yes' if entry['is_movie'] else 'No',
+                'duration': entry['duration'],
                 'caption': entry['caption'],
-                'pretty_name': '',  # Empty for manual modification
                 'path': entry['path']
             })
     
