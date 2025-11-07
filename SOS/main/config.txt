@@ -14,12 +14,12 @@ port=2468
 # The location of the PP and database file to use
 # including backslash at end
 # Example: default_path = C:\sos\
-default_path = C:\Users\agreen\Documents\GitHub\NatSci\SOS\
+default_path = C:\Users\agreen\Documents\GitHub\NatSci\SOS\main\
 
 
 # The name of the PP and database file
-# Example: default_name = main  (this will load main.ppt and main.txt)
-default_name = noaa_042013
+# Example: default_name = noaa_index  (this will load noaa_index.odp and noaa_index.csv)
+default_name = noaa_index
 
 # Time in seconds on each slide if a sos dataset has more than 1 slide 
 # associated with it.
