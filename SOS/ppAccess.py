@@ -58,6 +58,9 @@ class PowerPointShowController:
             possible_paths = [
                 r"C:\Program Files\LibreOffice\program\soffice.exe",
                 r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+                "/usr/bin/soffice",  # Linux/Raspberry Pi
+                "/usr/lib/libreoffice/program/soffice",  # Alternative Linux path
+                "/opt/libreoffice/program/soffice",  # Another possible location
             ]
             
             libreoffice_path = None
