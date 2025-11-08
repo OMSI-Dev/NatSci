@@ -9,13 +9,16 @@ import time
 import os
 import subprocess
 import tempfile
+import sys
+from PyQt5.QtWidgets import QApplication
 from subtitles import SubtitleManager
+from progressOverlay import ProgressOverlay
 
 
 class SimplePPEngine:
     """Simplified LibreOffice Impress engine for SOS integration."""
     
-    def __init__(self, pp, pp_dictionary, sos_ip, sos_port, clip_metadata=None, sos_user='sosdemo', sos_password=None):
+    def __init__(self, pp, pp_dictionary, sos_ip, sos_port, clip_metadata=None, sos_user='sosdemo', sos_password=None, use_gui_overlay=True, overlay_position='bottom'):
         """
         Initialize the engine.
         
@@ -25,6 +28,8 @@ class SimplePPEngine:
             sos_ip: IP address of SOS server
             sos_port: Port number of SOS server
             clip_metadata: Optional dict mapping clip names to metadata (caption paths, etc.)
+            use_gui_overlay: If True, use GUI overlay instead of terminal display
+            overlay_position: Position of overlay ('bottom', 'top', 'bottom-right', 'top-right')
         """
         self.pp = pp
         self.pp_dictionary = pp_dictionary
@@ -36,9 +41,20 @@ class SimplePPEngine:
         self.current_slide = -1
         self.sock = None
         
+        # GUI overlay support (PyQt5)
+        self.use_gui_overlay = use_gui_overlay
+        self.overlay = None
+        self.qapp = None
+        if use_gui_overlay:
+            print("Initializing GUI overlay for progress display...")
+            # Initialize QApplication if not already done
+            if not QApplication.instance():
+                self.qapp = QApplication(sys.argv)
+            self.overlay = ProgressOverlay(position=overlay_position, opacity=0.85)
+        
         # Subtitle support
         self.clip_metadata = clip_metadata or {}
-        self.subtitle_manager = SubtitleManager()
+        self.subtitle_manager = SubtitleManager(gui_overlay=self.overlay)
         self.subtitle_enabled = True  # Set to False to disable subtitle display
         
         # Create local cache directory for subtitles
@@ -341,6 +357,13 @@ class SimplePPEngine:
         """
         print("Starting LibreOffice Impress Engine...")
         
+        # Start GUI overlay if enabled
+        if self.use_gui_overlay and self.overlay:
+            print("Starting GUI overlay...")
+            self.overlay.start()
+            time.sleep(1)  # Give overlay time to initialize
+            print("✓ GUI overlay started")
+        
         # Launch LibreOffice Impress first
         try:
             self.pp.launchpp(RunShow=True)
@@ -350,6 +373,8 @@ class SimplePPEngine:
             print("\nDEBUG INFO:")
             import traceback
             traceback.print_exc()
+            if self.overlay:
+                self.overlay.stop()
             return
         
         # Connect to SOS
@@ -366,6 +391,10 @@ class SimplePPEngine:
         
         last_clip = ""
         while self.running:
+            # Process Qt events to keep GUI responsive
+            if self.qapp:
+                self.qapp.processEvents()
+            
             time.sleep(poll_interval)
             
             # Get current clip info from SOS
@@ -432,6 +461,10 @@ class SimplePPEngine:
                 # SubtitleManager.update() handles its own display via display_progress()
                 # No need to manually print subtitles here
                 self.subtitle_manager.update(current_frame, fps)
+                
+                # Process Qt events after updating GUI
+                if self.qapp:
+                    self.qapp.processEvents()
         
         # Cleanup
         if self.sock:
@@ -439,9 +472,17 @@ class SimplePPEngine:
                 self.sock.close()
             except:
                 pass
+        
+        # Stop GUI overlay
+        if self.overlay:
+            print("\nStopping GUI overlay...")
+            self.overlay.stop()
+        
         self.pp.close()
         print("Engine stopped")
     
     def stop(self):
         """Stop the engine."""
         self.running = False
+        if self.overlay:
+            self.overlay.stop()

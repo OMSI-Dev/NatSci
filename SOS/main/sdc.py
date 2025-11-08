@@ -143,7 +143,7 @@ def main():
     pp = PowerPointShowController(slideshow_path)
     
     # Initialize engine with SOS connection info and subtitle metadata
-    print("Initializing engine with subtitle support...")
+    print("Initializing engine with subtitle support and GUI overlay...")
     # Note: Default SOS user is 'sosdemo', update if different
     # Password can be passed as 5th parameter if needed
     engine = SimplePPEngine(
@@ -152,8 +152,10 @@ def main():
         config["sos_ip"], 
         config["port"], 
         clip_metadata,
-        sos_user='sosdemo',  # Update if your SOS server uses different username
-        sos_password=None     # Set password here if needed, or None for SSH key auth
+        sos_user='sosdemo',        # Update if your SOS server uses different username
+        sos_password=None,         # Set password here if needed, or None for SSH key auth
+        use_gui_overlay=True,      # Set to False to use terminal display instead
+        overlay_position='bottom'  # Options: 'bottom', 'top', 'bottom-right', 'top-right'
     )
     
     # Start exit controller thread

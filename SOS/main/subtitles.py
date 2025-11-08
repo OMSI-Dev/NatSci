@@ -204,12 +204,19 @@ class SubtitleManager:
     Manages subtitle loading and synchronization for clips.
     """
     
-    def __init__(self):
-        """Initialize the subtitle manager."""
+    def __init__(self, gui_overlay=None):
+        """
+        Initialize the subtitle manager.
+        
+        Args:
+            gui_overlay: Optional ProgressOverlay instance for GUI display
+        """
         self.current_clip = None
         self.subtitles = []
         self.duration = 0.0
         self.last_frame = -1
+        self.gui_overlay = gui_overlay
+        self.use_gui = gui_overlay is not None
     
     def load_subtitles_for_clip(self, clip_name, caption_path):
         """
@@ -254,7 +261,10 @@ class SubtitleManager:
         """
         # Detect clip loop
         if current_frame < self.last_frame:
-            print("\n[Clip looped]")
+            if self.use_gui:
+                print("\n[Clip looped]")  # Still print to console
+            else:
+                print("\n[Clip looped]")
         
         self.last_frame = current_frame
         
@@ -264,8 +274,11 @@ class SubtitleManager:
         # Find current subtitle
         subtitle_text = find_subtitle_at_time(self.subtitles, current_time)
         
-        # Display progress
-        display_progress(current_time, self.duration, subtitle_text, current_frame)
+        # Display progress - use GUI if available, otherwise terminal
+        if self.use_gui and self.gui_overlay and self.gui_overlay.is_active():
+            self.gui_overlay.update_progress(current_time, self.duration, subtitle_text, current_frame)
+        else:
+            display_progress(current_time, self.duration, subtitle_text, current_frame)
     
     def has_subtitles(self):
         """Check if subtitles are loaded."""
