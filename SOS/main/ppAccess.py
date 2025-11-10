@@ -1,16 +1,14 @@
 """
-Simplified LibreOffice Impress Controller
-Handles LibreOffice Impress application control and slide navigation.
+Simplified Presentation Controller
+Handles PowerPoint/LibreOffice Impress control with programmatic slide navigation.
+Uses win32com for Windows COM automation.
 """
 
-import uno
-from com.sun.star.beans import PropertyValue
-from com.sun.star.uno import RuntimeException
 import os
 
 
 class PowerPointShowController:
-    """Controller for LibreOffice Impress presentations."""
+    """Controller for PowerPoint/LibreOffice Impress presentations."""
     
     def __init__(self, slideshow):
         """
@@ -20,120 +18,74 @@ class PowerPointShowController:
             slideshow: Full path to the presentation file (supports .ppt, .pptx, .odp)
         """
         self.slideshow = slideshow
-        self.local_context = None
-        self.smgr = None
-        self.desktop = None
-        self.document = None
+        self.app = None
+        self.show = None
         self.presentation = None
-        self.controller = None
         self.launched = False
         self.count = 0
-    
-    def _create_uno_service(self, service_name):
-        """Helper to create UNO services."""
-        return self.smgr.createInstanceWithContext(service_name, self.local_context)
-    
-    def _create_property(self, name, value):
-        """Helper to create PropertyValue objects."""
-        prop = PropertyValue()
-        prop.Name = name
-        prop.Value = value
-        return prop
+        
+        # Determine if using PowerPoint or LibreOffice based on file extension
+        ext = os.path.splitext(slideshow)[1].lower()
+        self.is_powerpoint = ext in ['.ppt', '.pptx']
+        self.is_libreoffice = ext in ['.odp']
     
     def launchpp(self, RunShow=True):
         """
-        Launch LibreOffice Impress and open the presentation.
+        Launch presentation software and open the presentation.
+        Uses Windows COM for programmatic control.
         
         Args:
             RunShow: If True, start the slideshow automatically
         """
         try:
-            print("  Starting LibreOffice with UNO connection...")
-            
-            import subprocess
+            from win32com.client import Dispatch
             import time
             
-            # Start LibreOffice in listening mode for UNO connections
-            # This allows us to connect programmatically
-            possible_paths = [
-                r"C:\Program Files\LibreOffice\program\soffice.exe",
-                r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
-                "/usr/bin/soffice",  # Linux/Raspberry Pi
-                "/usr/lib/libreoffice/program/soffice",  # Alternative Linux path
-                "/opt/libreoffice/program/soffice",  # Another possible location
-            ]
-            
-            libreoffice_path = None
-            for path in possible_paths:
-                if os.path.exists(path):
-                    libreoffice_path = path
-                    print(f"  Found LibreOffice at: {path}")
-                    break
-            
-            if not libreoffice_path:
-                raise Exception("Could not find LibreOffice installation")
-            
-            # Start LibreOffice with socket connection enabled
-            print("  Starting LibreOffice in server mode...")
-            process = subprocess.Popen(
-                [libreoffice_path, "--accept=socket,host=localhost,port=2002;urp;StarOffice.ServiceManager", "--norestore", "--nofirststartwizard", "--nologo", "--nolockcheck"],
-                creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
-            )
-            
-            print(f"  ✓ LibreOffice process started (PID: {process.pid})")
-            print("  Waiting for LibreOffice to initialize...")
-            time.sleep(5)
-            
-            # Connect via UNO
-            print("  Connecting to LibreOffice via UNO...")
-            self.local_context = uno.getComponentContext()
-            resolver = self.local_context.ServiceManager.createInstanceWithContext(
-                "com.sun.star.bridge.UnoUrlResolver", self.local_context
-            )
-            
-            # Connect to the running LibreOffice instance
-            ctx = resolver.resolve(
-                "uno:socket,host=localhost,port=2002;urp;StarOffice.ComponentContext"
-            )
-            self.smgr = ctx.ServiceManager
-            self.desktop = self._create_uno_service("com.sun.star.frame.Desktop")
-            
-            print("  ✓ Connected to LibreOffice via UNO")
-            
-            # Convert file path to URL format
-            if os.path.exists(self.slideshow):
-                from urllib.parse import quote
+            if self.is_powerpoint:
+                # Use PowerPoint
+                print("  Launching PowerPoint...")
+                self.app = Dispatch('Powerpoint.Application')
+                self.app.Visible = 1
+                
+                print(f"  Opening: {self.slideshow}")
+                self.show = self.app.Presentations.Open(FileName=self.slideshow)
+                
+                if RunShow:
+                    print("  Starting slideshow...")
+                    self.presentation = self.show.SlideShowSettings.Run()
+                    self.launched = True
+                
+                self.count = self.get_slide_total()
+                print(f"✓ PowerPoint launched: {self.count} slides")
+                
+            elif self.is_libreoffice:
+                # Use LibreOffice via COM
+                print("  Launching LibreOffice Impress...")
+                self.app = Dispatch('com.sun.star.ServiceManager')
+                desktop = self.app.createInstance('com.sun.star.frame.Desktop')
+                
+                # Convert to file URL
                 file_url = "file:///" + self.slideshow.replace("\\", "/")
+                print(f"  Opening: {self.slideshow}")
+                
+                self.show = desktop.loadComponentFromURL(file_url, "_blank", 0, ())
+                
+                if RunShow:
+                    print("  Starting slideshow...")
+                    presentation = self.show.getPresentation()
+                    presentation.start()
+                    time.sleep(2)
+                    self.presentation = presentation
+                    self.launched = True
+                
+                self.count = self.get_slide_total()
+                print(f"✓ LibreOffice Impress launched: {self.count} slides")
+            
             else:
-                raise Exception(f"Presentation file not found: {self.slideshow}")
-            
-            # Load the presentation
-            print(f"  Loading presentation: {self.slideshow}")
-            props = [self._create_property("Hidden", False)]
-            self.document = self.desktop.loadComponentFromURL(file_url, "_blank", 0, tuple(props))
-            
-            if not self.document:
-                raise Exception("Failed to load presentation document")
-            
-            print("  ✓ Presentation loaded")
-            
-            # Get slide count
-            self.count = self.get_slide_total()
-            print(f"  Total slides: {self.count}")
-            
-            # Start presentation if requested
-            if RunShow:
-                print("  Starting slideshow...")
-                self.presentation = self.document.getPresentation()
-                self.presentation.start()
-                time.sleep(2)
-                print("  ✓ Slideshow started")
-            
-            self.launched = True
-            print(f"\n✓ LibreOffice Impress launched successfully with UNO control!")
+                raise Exception(f"Unsupported file type: {os.path.splitext(self.slideshow)[1]}")
             
         except Exception as e:
-            print(f"Error launching LibreOffice Impress: {e}")
+            print(f"Error launching presentation: {e}")
             print(f"File path: {self.slideshow}")
             import traceback
             traceback.print_exc()
@@ -150,62 +102,23 @@ class PowerPointShowController:
             print("Warning: Slideshow not launched")
             return
         
-        # Basic validation
-        if number < 1:
-            print(f"Warning: Invalid slide number {number}. Must be >= 1.")
-            return
-        
-        # Validate against known slide count if available
-        if self.count > 0 and number > self.count:
-            print(f"Warning: Slide {number} exceeds total slides ({self.count}). Clamping to {self.count}.")
-            number = self.count
+        if number < 1 or number > self.count:
+            print(f"Warning: Slide {number} out of range (1-{self.count}). Going to slide 1.")
+            number = 1
         
         try:
-            if not self.document:
-                print(f"Error: No document loaded. Cannot navigate to slide {number}")
-                return
-            
-            # Convert to 0-indexed for UNO API
-            slide_index = number - 1
-            
-            # Get the draw pages (slides)
-            draw_pages = self.document.getDrawPages()
-            
-            if slide_index >= draw_pages.getCount():
-                print(f"Warning: Slide {number} (index {slide_index}) exceeds available slides ({draw_pages.getCount()})")
-                return
-            
-            # Get the target slide
-            target_slide = draw_pages.getByIndex(slide_index)
-            
-            # Navigate using presentation controller
-            if self.presentation:
-                # Get the presentation controller (slideshow view)
+            if self.is_powerpoint:
+                # PowerPoint navigation
+                self.presentation.View.GotoSlide(number)
+                print(f"  → Navigated to slide {number}")
+            elif self.is_libreoffice:
+                # LibreOffice navigation
                 controller = self.presentation.getController()
                 if controller:
-                    # Use gotoSlideIndex if available
-                    if hasattr(controller, 'gotoSlideIndex'):
-                        controller.gotoSlideIndex(slide_index)
-                        print(f"  → Navigated to slide {number}")
-                    else:
-                        # Fallback: use gotoBookmark or other method
-                        controller.gotoFirstSlide()
-                        for _ in range(slide_index):
-                            controller.gotoNextSlide()
-                        print(f"  → Navigated to slide {number} (via iteration)")
-                else:
-                    print(f"Warning: No presentation controller available")
-            else:
-                # Not in slideshow mode - just set the current page in edit view
-                view_controller = self.document.getCurrentController()
-                if view_controller:
-                    view_controller.setCurrentPage(target_slide)
-                    print(f"  → Set current page to slide {number} (edit mode)")
-                        
+                    controller.gotoSlideIndex(number - 1)  # 0-indexed
+                    print(f"  → Navigated to slide {number}")
         except Exception as e:
             print(f"Error navigating to slide {number}: {e}")
-            import traceback
-            traceback.print_exc()
     
     def get_slide_total(self):
         """
@@ -214,36 +127,34 @@ class PowerPointShowController:
         Returns:
             int: Total slide count
         """
-        if self.document:
+        if self.show:
             try:
-                draw_pages = self.document.getDrawPages()
-                self.count = draw_pages.getCount()
+                if self.is_powerpoint:
+                    self.count = self.show.Slides.count
+                elif self.is_libreoffice:
+                    self.count = self.show.getDrawPages().getCount()
             except Exception as e:
                 print(f"Error getting slide count: {e}")
                 self.count = 0
         return self.count
     
     def close(self):
-        """Close LibreOffice Impress and cleanup."""
-        if self.document:
+        """Close presentation and cleanup."""
+        if self.app:
             try:
-                # Stop presentation if running
-                if self.presentation and self.launched:
-                    try:
-                        self.presentation.end()
-                    except:
-                        pass
-                
-                # Close the document
-                self.document.close(True)
-                print("LibreOffice Impress closed")
+                if self.is_powerpoint:
+                    if self.show:
+                        self.show.Save()
+                    self.app.Quit()
+                    print("PowerPoint closed")
+                elif self.is_libreoffice:
+                    if self.show:
+                        self.show.close(True)
+                    print("LibreOffice Impress closed")
             except Exception as e:
-                print(f"Warning: Error closing LibreOffice Impress: {e}")
+                print(f"Warning: Error closing presentation: {e}")
             finally:
-                self.document = None
+                self.show = None
+                self.app = None
                 self.presentation = None
-                self.controller = None
-                self.desktop = None
-                self.smgr = None
-                self.local_context = None
                 self.launched = False

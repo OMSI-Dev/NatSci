@@ -19,7 +19,7 @@ default_path = C:\OMSI\App\SOS\
 
 # The name of the PP and database file
 # Example: default_name = noaa_index  (this will load noaa_index.odp and noaa_index.csv)
-default_name = noaa_index
+default_name = noaa_042013
 
 # Time in seconds on each slide if a sos dataset has more than 1 slide 
 # associated with it.

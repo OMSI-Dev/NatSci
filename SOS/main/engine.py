@@ -10,15 +10,57 @@ import os
 import subprocess
 import tempfile
 import sys
+import re
 from PyQt5.QtWidgets import QApplication
 from subtitles import SubtitleManager
 from progressOverlay import ProgressOverlay
 
 
+def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
+    """Receive data from socket until idle timeout."""
+    buffer = bytearray()
+    orig_timeout = sock.gettimeout()
+    try:
+        sock.settimeout(0.2)
+        start = time.time()
+        while True:
+            try:
+                chunk = sock.recv(4096)
+                if chunk:
+                    buffer.extend(chunk)
+                    start = time.time()
+                else:
+                    break
+            except socket.timeout:
+                if time.time() - start >= timeout_idle:
+                    break
+    finally:
+        sock.settimeout(orig_timeout)
+    return bytes(buffer)
+
+
+def parse_name_value_pairs(data: str) -> dict:
+    """
+    Parse SOS name-value pair output into a dictionary.
+    Handles values in curly braces {like this} and regular values.
+    """
+    result = {}
+    # Pattern to match: key followed by either {value} or regular value
+    pattern = r'(\w+)\s+(?:\{([^}]+)\}|(\S+))'
+    
+    matches = re.findall(pattern, data)
+    for match in matches:
+        key = match[0]
+        value = match[1] if match[1] else match[2]
+        result[key] = value
+    
+    return result
+
+
 class SimplePPEngine:
     """Simplified LibreOffice Impress engine for SOS integration."""
     
-    def __init__(self, pp, pp_dictionary, sos_ip, sos_port, clip_metadata=None, sos_user='sosdemo', sos_password=None, use_gui_overlay=True, overlay_position='bottom'):
+    def __init__(self, pp, pp_dictionary, sos_ip, sos_port):
         """
         Initialize the engine.
         
@@ -27,35 +69,27 @@ class SimplePPEngine:
             pp_dictionary: Dict mapping clip names to slide numbers
             sos_ip: IP address of SOS server
             sos_port: Port number of SOS server
-            clip_metadata: Optional dict mapping clip names to metadata (caption paths, etc.)
-            use_gui_overlay: If True, use GUI overlay instead of terminal display
-            overlay_position: Position of overlay ('bottom', 'top', 'bottom-right', 'top-right')
         """
         self.pp = pp
         self.pp_dictionary = pp_dictionary
         self.sos_ip = sos_ip
         self.sos_port = sos_port
-        self.sos_user = sos_user
-        self.sos_password = sos_password
         self.running = True
         self.current_slide = -1
         self.sock = None
         
-        # GUI overlay support (PyQt5)
-        self.use_gui_overlay = use_gui_overlay
-        self.overlay = None
-        self.qapp = None
-        if use_gui_overlay:
-            print("Initializing GUI overlay for progress display...")
-            # Initialize QApplication if not already done
-            if not QApplication.instance():
-                self.qapp = QApplication(sys.argv)
-            self.overlay = ProgressOverlay(position=overlay_position, opacity=0.85)
+        # GUI overlay support
+        print("Initializing GUI overlay for progress display...")
+        if not QApplication.instance():
+            self.qapp = QApplication(sys.argv)
+        else:
+            self.qapp = QApplication.instance()
+        self.overlay = ProgressOverlay(position='bottom', opacity=0.85)
         
-        # Subtitle support
-        self.clip_metadata = clip_metadata or {}
+        # Subtitle support - metadata fetched dynamically from SOS
+        self.current_clip_metadata = {}
         self.subtitle_manager = SubtitleManager(gui_overlay=self.overlay)
-        self.subtitle_enabled = True  # Set to False to disable subtitle display
+        self.subtitle_enabled = True
         
         # Create local cache directory for subtitles
         self.subtitle_cache_dir = os.path.join(os.path.dirname(__file__), 'subtitle_cache')
@@ -143,6 +177,36 @@ class SimplePPEngine:
             print(f"Error getting clip info: {e}")
             return (False, "")
     
+    def fetch_clip_metadata(self, clip_number):
+        """
+        Fetch all metadata for a clip from SOS server using get_all_name_value_pairs.
+        
+        Args:
+            clip_number: The clip number to fetch metadata for
+            
+        Returns:
+            dict: Parsed metadata dictionary, or empty dict on failure
+        """
+        if not self.sock:
+            return {}
+        
+        try:
+            # Get all name-value pairs for the current clip
+            command = f'get_all_name_value_pairs {clip_number}\n'.encode('utf-8')
+            self.sock.sendall(command)
+            data = recv_data(self.sock, timeout_idle=1.0)
+            clip_data = data.decode('utf-8', 'ignore').strip()
+            
+            # Parse the data into a dictionary
+            clip_metadata = parse_name_value_pairs(clip_data)
+            clip_metadata['clip_number'] = clip_number
+            
+            return clip_metadata
+            
+        except Exception as e:
+            print(f"Warning: Could not fetch clip metadata: {e}")
+            return {}
+    
     def get_frame_number(self):
         """
         Get current frame number from SOS server.
@@ -199,7 +263,7 @@ class SimplePPEngine:
     
     def fetch_subtitle_file(self, remote_path):
         """
-        Fetch subtitle file from SOS server via SSH/SCP.
+        Fetch subtitle file from SOS server via HTTP.
         
         Args:
             remote_path: Path to subtitle file on SOS server (e.g., /shared/sos/media/extras/...)
@@ -221,66 +285,10 @@ class SimplePPEngine:
         
         print(f"  Fetching subtitle from SOS server: {filename}")
         
-        # Use plink/pscp on Windows if password is provided
-        import platform
-        is_windows = platform.system() == 'Windows'
-        
-        if is_windows and self.sos_password:
-            # Try using pscp (PuTTY's SCP) with password on Windows
-            try:
-                pscp_command = [
-                    'pscp',
-                    '-batch',
-                    '-pw', self.sos_password,
-                    f'{self.sos_user}@{self.sos_ip}:{remote_path}',
-                    local_path
-                ]
-                
-                result = subprocess.run(
-                    pscp_command,
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
-                
-                if result.returncode == 0 and os.path.exists(local_path):
-                    print(f"  ✓ Downloaded subtitle: {filename}")
-                    return local_path
-                    
-            except FileNotFoundError:
-                # pscp not available, will try socket method
-                pass
-            except Exception as e:
-                print(f"  ⚠ pscp error: {e}")
-        
-        # Socket-based method - read file directly via SSH socket connection
-        # This is more portable and doesn't require external tools
-        try:
-            print(f"  Trying direct socket SSH method...")
-            import socket as net_socket
-            
-            # Connect to SSH server
-            sock = net_socket.socket(net_socket.AF_INET, net_socket.SOCK_STREAM)
-            sock.settimeout(10)
-            sock.connect((self.sos_ip, 22))
-            
-            # Send SSH version exchange
-            sock.recv(1024)  # Receive server version
-            sock.sendall(b'SSH-2.0-Python\r\n')
-            
-            # This is a simplified approach - for production use paramiko
-            sock.close()
-            print(f"  ⚠ Socket SSH requires paramiko library")
-            
-        except Exception as e:
-            print(f"  ⚠ Socket method failed: {e}")
-        
-        # Fallback: Try HTTP/network share if available
-        # Many SOS servers also host files via HTTP
+        # Try HTTP on common ports
         try:
             import urllib.request
             
-            # Try HTTP on common ports
             for port in [80, 8080]:
                 try:
                     http_url = f'http://{self.sos_ip}:{port}{remote_path}'
@@ -301,37 +309,8 @@ class SimplePPEngine:
         except Exception as e:
             pass
         
-        # Last resort: Try SSH with key-based auth (no password)
-        try:
-            scp_command = [
-                'scp',
-                '-o', 'StrictHostKeyChecking=no',
-                '-o', 'PasswordAuthentication=no',
-                '-o', 'ConnectTimeout=5',
-                f'{self.sos_user}@{self.sos_ip}:{remote_path}',
-                local_path
-            ]
-            
-            result = subprocess.run(
-                scp_command,
-                capture_output=True,
-                text=True,
-                timeout=10,
-                stdin=subprocess.DEVNULL  # Don't prompt for password
-            )
-            
-            if result.returncode == 0 and os.path.exists(local_path):
-                print(f"  ✓ Downloaded subtitle: {filename}")
-                return local_path
-                
-        except Exception as e:
-            pass
-        
         print(f"  ✗ Could not fetch subtitle file")
-        print(f"     To enable automatic fetching:")
-        print(f"     1. Install PuTTY (for pscp) on Windows")
-        print(f"     2. Or set up SSH key: ssh-keygen & ssh-copy-id {self.sos_user}@{self.sos_ip}")
-        print(f"     3. Or manually download to: {self.subtitle_cache_dir}")
+        print(f"     Manually download to: {self.subtitle_cache_dir}")
         return None
     
     def get_slide_numbers(self, clip_name):
@@ -357,12 +336,11 @@ class SimplePPEngine:
         """
         print("Starting LibreOffice Impress Engine...")
         
-        # Start GUI overlay if enabled
-        if self.use_gui_overlay and self.overlay:
-            print("Starting GUI overlay...")
-            self.overlay.start()
-            time.sleep(1)  # Give overlay time to initialize
-            print("✓ GUI overlay started")
+        # Start GUI overlay
+        print("Starting GUI overlay...")
+        self.overlay.start()
+        time.sleep(1)
+        print("✓ GUI overlay started")
         
         # Launch LibreOffice Impress first
         try:
@@ -392,8 +370,7 @@ class SimplePPEngine:
         last_clip = ""
         while self.running:
             # Process Qt events to keep GUI responsive
-            if self.qapp:
-                self.qapp.processEvents()
+            self.qapp.processEvents()
             
             time.sleep(poll_interval)
             
@@ -427,44 +404,81 @@ class SimplePPEngine:
                     self.pp.goto(target_slide)
                     self.current_slide = target_slide
                 
-                # Load subtitles when clip changes
-                if self.subtitle_enabled and clip_name in self.clip_metadata:
-                    caption_path = self.clip_metadata[clip_name].get('caption', '')
-                    if caption_path:
-                        print(f"\n[Subtitles] Loading for: {clip_name}")
+                # Fetch clip metadata from SOS server
+                try:
+                    # Get clip number for metadata fetch
+                    self.sock.sendall(b'get_clip_number\n')
+                    data = self.sock.recv(1024)
+                    clip_number = data.decode('utf-8', 'ignore').strip()
+                    
+                    if clip_number and clip_number.isdigit():
+                        print(f"\nFetching metadata for clip #{clip_number}: {clip_name}")
+                        self.current_clip_metadata = self.fetch_clip_metadata(clip_number)
                         
-                        # Try to fetch from SOS server if path looks like a server path
-                        local_subtitle_path = None
-                        if caption_path.startswith('/shared/sos/') or caption_path.startswith('/'):
-                            # This is a server path - try to fetch it
-                            local_subtitle_path = self.fetch_subtitle_file(caption_path)
-                        elif os.path.exists(caption_path):
-                            # Already a local path that exists
-                            local_subtitle_path = caption_path
-                        else:
-                            # Try relative to project directory
-                            relative_path = os.path.join(os.path.dirname(__file__), caption_path)
-                            if os.path.exists(relative_path):
-                                local_subtitle_path = relative_path
+                        # Display fetched metadata
+                        if self.current_clip_metadata:
+                            duration = self.current_clip_metadata.get('duration', 'N/A')
+                            fps = self.current_clip_metadata.get('fps', 'N/A')
+                            category = self.current_clip_metadata.get('category', 'N/A')
+                            print(f"  Duration: {duration}s | FPS: {fps} | Category: {category}")
                         
-                        if local_subtitle_path:
-                            self.subtitle_manager.load_subtitles_for_clip(clip_name, local_subtitle_path)
-                            print(f"[Subtitles] ✓ Ready for display\n")
-                        else:
-                            print(f"[Subtitles] ✗ Could not load subtitle file\n")
+                        # Load subtitles when clip changes
+                        if self.subtitle_enabled:
+                            caption_path = self.current_clip_metadata.get('caption', '')
+                            if caption_path:
+                                print(f"[Subtitles] Loading for: {clip_name}")
+                                
+                                # Try to fetch from SOS server if path looks like a server path
+                                local_subtitle_path = None
+                                if caption_path.startswith('/shared/sos/') or caption_path.startswith('/'):
+                                    # This is a server path - try to fetch it
+                                    local_subtitle_path = self.fetch_subtitle_file(caption_path)
+                                elif os.path.exists(caption_path):
+                                    # Already a local path that exists
+                                    local_subtitle_path = caption_path
+                                else:
+                                    # Try relative to project directory
+                                    relative_path = os.path.join(os.path.dirname(__file__), caption_path)
+                                    if os.path.exists(relative_path):
+                                        local_subtitle_path = relative_path
+                                
+                                if local_subtitle_path:
+                                    self.subtitle_manager.load_subtitles_for_clip(clip_name, local_subtitle_path)
+                                    print(f"[Subtitles] ✓ Ready for display\n")
+                                else:
+                                    print(f"[Subtitles] ✗ Could not load subtitle file\n")
+                except Exception as e:
+                    print(f"Warning: Could not fetch clip metadata: {e}")
             
-            # Update subtitle display during playback
-            if self.subtitle_enabled and clip_name and self.subtitle_manager.has_subtitles():
+            # Update subtitle display and progress overlay during playback
+            if clip_name:
                 current_frame = self.get_frame_number()
                 fps = self.get_frame_rate()
                 
-                # SubtitleManager.update() handles its own display via display_progress()
-                # No need to manually print subtitles here
-                self.subtitle_manager.update(current_frame, fps)
+                # Calculate current time from frame number and fps
+                current_time = current_frame / fps if fps > 0 else 0
+                
+                # Get total duration from metadata (in seconds)
+                total_duration = 0.0
+                if self.current_clip_metadata:
+                    duration_str = self.current_clip_metadata.get('duration', '0')
+                    try:
+                        total_duration = float(duration_str)
+                    except (ValueError, TypeError):
+                        total_duration = 0.0
+                
+                # Get current subtitle text
+                subtitle_text = ""
+                if self.subtitle_enabled and self.subtitle_manager.has_subtitles():
+                    # Find subtitle at current time
+                    from subtitles import find_subtitle_at_time
+                    subtitle_text = find_subtitle_at_time(self.subtitle_manager.subtitles, current_time)
+                
+                # Update progress overlay with timing and subtitle
+                self.overlay.update_progress(current_time, total_duration, subtitle_text, current_frame)
                 
                 # Process Qt events after updating GUI
-                if self.qapp:
-                    self.qapp.processEvents()
+                self.qapp.processEvents()
         
         # Cleanup
         if self.sock:
@@ -474,9 +488,8 @@ class SimplePPEngine:
                 pass
         
         # Stop GUI overlay
-        if self.overlay:
-            print("\nStopping GUI overlay...")
-            self.overlay.stop()
+        print("\nStopping GUI overlay...")
+        self.overlay.stop()
         
         self.pp.close()
         print("Engine stopped")
@@ -484,5 +497,4 @@ class SimplePPEngine:
     def stop(self):
         """Stop the engine."""
         self.running = False
-        if self.overlay:
-            self.overlay.stop()
+        self.overlay.stop()

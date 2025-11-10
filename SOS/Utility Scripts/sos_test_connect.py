@@ -1,25 +1,6 @@
 import socket
 import time
-
-
-def connect_to_server(host: str = "10.10.51.87", port: int = 2468, timeout: float = 4.0):
-    """
-    Connects to the OMSI SOS server
-    Assumes server is running and actively playing a clip.
-    Returns playlist info and current clip name.
-    
-    """
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(timeout)
-    try:
-        print(f"Connecting to {host}:{port}")
-        sock.connect((host, port))
-        print("Connected successfully")
-        return sock
-    except OSError as e:
-        print(f"Connection failed: {e}")
-        sock.close()
-        return None
+import re
 
 
 def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
@@ -45,71 +26,70 @@ def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
     return bytes(buffer)
 
 
-def send_handshake(sock: socket.socket):
-    """Send enable handshake to server."""
-    print("Sending handshake")
-    sock.sendall(b'enable\n')
-    data = recv_data(sock, timeout_idle=1.0)
-    reply = data.decode('utf-8', 'ignore').strip()
-    print(f"Handshake reply: {reply}")
-    return reply
-
-
-def get_clip_info(sock: socket.socket):
-    """Request clip info with 'get_clip_info *'."""
-    print("Requesting clip info: 'get_clip_info *'")
-    sock.sendall(b'get_clip_info *\n')
-    data = recv_data(sock, timeout_idle=1.0)
-    text = data.decode('utf-8', 'ignore').strip()
-    print(f"\nClip Info:\n{text}")
-    return text
-
-
-def get_clip_name(sock: socket.socket):
-    """Request current clip number and name."""
-    print("\nRequesting current clip number")
-    sock.sendall(b'get_clip_number\n')
-    data = recv_data(sock, timeout_idle=0.8)
-    clip_num = data.decode('utf-8', 'ignore').strip()
-    print(f"Current clip number: {clip_num}")
+def parse_name_value_pairs(data: str) -> dict:
+    """
+    Parse SOS name-value pair output into a dictionary.
+    Handles values in curly braces {like this} and regular values.
+    """
+    result = {}
+    # Pattern to match: key followed by either {value} or regular value
+    pattern = r'(\w+)\s+(?:\{([^}]+)\}|(\S+))'
     
-    # Now get the name for this specific clip
-    if clip_num.isdigit():
-        print(f"Requesting clip name for clip #{clip_num}")
-        sock.sendall(f'get_clip_info {clip_num}\n'.encode('utf-8'))
-        data = recv_data(sock, timeout_idle=0.8)
-        clip_name = data.decode('utf-8', 'ignore').strip()
-        print(f"Current clip name: {clip_name}")
-        return clip_num, clip_name
-    else:
-        print("Clip number is not numeric, cannot request clip name")
-        return clip_num, None
+    matches = re.findall(pattern, data)
+    for match in matches:
+        key = match[0]
+        value = match[1] if match[1] else match[2]
+        result[key] = value
+    
+    return result
 
 
-def main():
-    # Connect to server
-    sock = connect_to_server()
-    if not sock:
-        print("Failed to connect")
-        return
+def get_clip_info(host: str = "10.10.51.87", port: int = 2468, timeout: float = 4.0):
+    """
+    Connects to the OMSI SOS server and retrieves clip information.
+    Returns a dictionary of clip metadata, or None if connection fails.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
     
     try:
-        # Send handshake
-        send_handshake(sock)
+        # Connect
+        sock.connect((host, port))
         
-        # Get clip info *
-        get_clip_info(sock)
+        # Handshake
+        sock.sendall(b'enable\n')
+        recv_data(sock, timeout_idle=1.0)
         
-        # Get current clip name
-        get_clip_name(sock)
+        # Get current clip number
+        sock.sendall(b'get_clip_number\n')
+        data = recv_data(sock, timeout_idle=1.0)
+        clip_number = data.decode('utf-8', 'ignore').strip()
         
-        print("\nCompleted successfully")
+        # Get all name-value pairs for the current clip
+        command = f'get_all_name_value_pairs {clip_number}\n'.encode('utf-8')
+        sock.sendall(command)
+        data = recv_data(sock, timeout_idle=1.0)
+        clip_data = data.decode('utf-8', 'ignore').strip()
         
-    except Exception as e:
+        # Parse the data into a dictionary
+        clip_info = parse_name_value_pairs(clip_data)
+        clip_info['clip_number'] = clip_number
+        
+        return clip_info
+        
+    except OSError as e:
         print(f"Error: {e}")
+        return None
     finally:
         sock.close()
 
 
 if __name__ == '__main__':
-    main()
+    clip_info = get_clip_info()
+    if clip_info:
+        print("Clip Information:")
+        print("-" * 50)
+        for key, value in sorted(clip_info.items()):
+            print(f"{key:20s}: {value}")
+    else:
+        print("Failed to retrieve clip data")
