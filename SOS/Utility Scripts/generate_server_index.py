@@ -1,7 +1,133 @@
 import subprocess
 import os
 import csv
+import socket
+import time
+import re
 from datetime import datetime, timedelta
+
+
+def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
+    """Receive data from socket until idle timeout."""
+    buffer = bytearray()
+    orig_timeout = sock.gettimeout()
+    try:
+        sock.settimeout(0.2)
+        start = time.time()
+        while True:
+            try:
+                chunk = sock.recv(4096)
+                if chunk:
+                    buffer.extend(chunk)
+                    start = time.time()
+                else:
+                    break
+            except socket.timeout:
+                if time.time() - start >= timeout_idle:
+                    break
+    finally:
+        sock.settimeout(orig_timeout)
+    return bytes(buffer)
+
+
+def parse_name_value_pairs(data: str) -> dict:
+    """
+    Parse SOS name-value pair output into a dictionary.
+    Handles values in curly braces {like this} and regular values.
+    """
+    result = {}
+    # Pattern to match: key followed by either {value} or regular value
+    pattern = r'(\w+)\s+(?:\{([^}]+)\}|(\S+))'
+    
+    matches = re.findall(pattern, data)
+    for match in matches:
+        key = match[0]
+        value = match[1] if match[1] else match[2]
+        result[key] = value
+    
+    return result
+
+
+def connect_to_sos(host: str = "10.10.51.87", port: int = 9750, timeout: int = 4):
+    """
+    Connect to the SOS server and send enable handshake.
+    
+    Args:
+        host: SOS server IP address
+        port: SOS server port
+        timeout: Socket timeout in seconds
+        
+    Returns:
+        socket.socket or None: Connected socket if successful, None otherwise
+    """
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        
+        print(f"Connecting to SOS at {host}:{port}...")
+        sock.connect((host, port))
+        print("[Success] Connected to SOS server")
+        
+        # Send enable handshake
+        sock.sendall(b'enable\n')
+        
+        # Wait for response
+        data = sock.recv(1024)
+        response = data.decode('utf-8', 'ignore').strip()
+        
+        if response == 'R':
+            print("[Success] SOS Handshake successful")
+            return sock
+        else:
+            print(f"⚠ Unexpected handshake response: {response}")
+            # Continue anyway - some SOS versions respond differently
+            return sock
+            
+    except socket.timeout:
+        print(f"✗ Connection timeout to SOS server")
+        return None
+    except socket.error as e:
+        print(f"✗ Failed to connect to SOS: {e}")
+        return None
+    except Exception as e:
+        print(f"✗ Error during SOS connection: {e}")
+        return None
+
+
+def fetch_dataset_metadata_by_name(sock: socket.socket, dataset_name: str) -> dict:
+    """
+    Fetch metadata for a dataset by name using SOS filesystem query.
+    Uses 'get_name_value_pairs_for_item' command which queries the filesystem.
+    
+    Args:
+        sock: Connected socket to SOS server
+        dataset_name: The name of the dataset to fetch metadata for
+        
+    Returns:
+        dict: Parsed metadata dictionary, or empty dict on failure
+    """
+    if not sock:
+        return {}
+    
+    try:
+        # Query SOS for metadata of a specific dataset by name
+        # This queries the filesystem, not the current playlist
+        command = f'get_name_value_pairs_for_item {dataset_name}\n'.encode('utf-8')
+        sock.sendall(command)
+        data = recv_data(sock, timeout_idle=1.0)
+        metadata_str = data.decode('utf-8', 'ignore').strip()
+        
+        if not metadata_str:
+            return {}
+        
+        # Parse the data into a dictionary
+        metadata = parse_name_value_pairs(metadata_str)
+        
+        return metadata
+        
+    except Exception as e:
+        print(f"  ⚠ Could not fetch metadata: {e}")
+        return {}
 
 
 def check_directory_modified(host: str = "10.10.51.87", 
@@ -88,15 +214,14 @@ def find_all_playlist_files(host: str = "10.10.51.87",
 
 def parse_playlist_file(file_content: str, playlist_path: str = ""):
     """
-    Parse a playlist.sos file content and extract relevant fields.
+    Parse a playlist.sos file content and extract ALL relevant fields.
     
     Args:
         file_content: Content of the playlist.sos file
         playlist_path: Full path to the playlist.sos file (for resolving relative caption paths)
         
     Returns:
-        dict: Dictionary with parsed fields (name, category, majorcategory, data, caption, is_movie, duration)
-              or None if no data= field found
+        dict: Dictionary with all parsed fields, or None if no data= field found
     """
     data = {
         'name': '',
@@ -105,13 +230,23 @@ def parse_playlist_file(file_content: str, playlist_path: str = ""):
         'data': '',
         'caption': '',
         'is_movie': False,
-        'duration': ''
+        'duration': '',
+        'timer': '',
+        'fps': '',
+        'startframe': '',
+        'endframe': '',
+        'firstdwell': '',
+        'lastdwell': ''
     }
     
     has_data = False
     
     for line in file_content.split('\n'):
         line = line.strip()
+        
+        # Skip comments and empty lines
+        if not line or line.startswith('#'):
+            continue
         
         if '=' in line:
             key, value = line.split('=', 1)
@@ -143,6 +278,18 @@ def parse_playlist_file(file_content: str, playlist_path: str = ""):
                     data['caption'] = value
             elif key == 'duration':
                 data['duration'] = value
+            elif key == 'timer':
+                data['timer'] = value
+            elif key == 'fps':
+                data['fps'] = value
+            elif key == 'startframe':
+                data['startframe'] = value
+            elif key == 'endframe':
+                data['endframe'] = value
+            elif key == 'firstdwell':
+                data['firstdwell'] = value
+            elif key == 'lastdwell':
+                data['lastdwell'] = value
     
     # Return None if no data= field found
     if not has_data:
@@ -186,12 +333,16 @@ def download_and_parse_playlist(remote_path: str,
         return None
 
 
+
+
+
 def generate_server_index(output_file: str = "noaa_server_index.csv",
                           host: str = "10.10.51.87",
                           username: str = "sosdemo",
                           remote_dir: str = "/shared/sos/media"):
     """
     Generate a CSV index of all playlist.sos files on the server.
+    Parses files directly via SSH - no SOS API calls needed.
     
     Args:
         output_file: Local path for the output CSV file
@@ -202,13 +353,6 @@ def generate_server_index(output_file: str = "noaa_server_index.csv",
     print("=" * 60)
     print("SOS Server Playlist Index Generator")
     print("=" * 60)
-    
-    # COMMENTED OUT: Check if directory was modified in the past 3 days
-    # print("\nChecking directory modification time...")
-    # if not check_directory_modified(host, username, remote_dir, days=3):
-    #     print("Directory has not been modified in the past 3 days. Skipping index generation.")
-    #     return
-    # print("Directory was recently modified. Proceeding with index generation.")
     
     # Find all playlist.sos files
     playlist_files = find_all_playlist_files(host, username, remote_dir)
@@ -223,39 +367,65 @@ def generate_server_index(output_file: str = "noaa_server_index.csv",
     flagged_files = []
     
     for i, playlist_path in enumerate(playlist_files, 1):
-        print(f"[{i}/{len(playlist_files)}] Processing: {playlist_path}")
+        file_start_time = time.time()
+        print(f"\n[{i}/{len(playlist_files)}] Processing: {playlist_path}")
         
-        parsed_data = download_and_parse_playlist(playlist_path, host, username)
-        
-        if parsed_data is None:
-            # No data= field found, flag this file
-            flagged_files.append(playlist_path)
-            print(f"  ⚠ No data= field found, flagged for review")
+        try:
+            parsed_data = download_and_parse_playlist(playlist_path, host, username)
+            
+            if parsed_data is None:
+                # No data= field found, flag this file
+                flagged_files.append(playlist_path)
+                print(f"  ⚠ No data= field found, flagged for review")
+                continue
+            
+            # Add path to the data
+            parsed_data['path'] = playlist_path
+            
+            # Show what we found
+            key_fields = ['startframe', 'endframe', 'fps', 'firstdwell', 'lastdwell', 'timer', 'duration']
+            present_fields = [f for f in key_fields if parsed_data.get(f)]
+            if present_fields:
+                print(f"  ✓ Metadata: {', '.join(f'{f}={parsed_data[f]}' for f in present_fields)}")
+            
+            csv_data.append(parsed_data)
+            elapsed = time.time() - file_start_time
+            print(f"  ✓ Name: {parsed_data['name']}, Category: {parsed_data.get('category', '')}, Movie: {parsed_data.get('is_movie', False)} ({elapsed:.2f}s)")
+            
+        except Exception as e:
+            print(f"  ✗ Error processing file: {e}")
+            # Continue to next file even if this one fails
             continue
-        
-        # Add path to the data
-        parsed_data['path'] = playlist_path
-        csv_data.append(parsed_data)
-        print(f"  ✓ Name: {parsed_data['name']}, Category: {parsed_data['category']}, Movie: {parsed_data['is_movie']}")
     
     # Write CSV file
     print(f"\nWriting CSV to: {output_file}")
     with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['pretty_name', 'name', 'category', 'majorcategory', 'is_movie', 'duration', 'caption', 'path']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        # Include all metadata fields from playlist.sos files
+        fieldnames = ['pretty_name', 'name', 'category', 'majorcategory', 'is_movie', 
+                     'duration', 'timer', 'caption', 'path', 'data',
+                     'fps', 'startframe', 'endframe', 'firstdwell', 'lastdwell']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames, extrasaction='ignore')
         
         writer.writeheader()
         for entry in csv_data:
-            writer.writerow({
+            row = {
                 'pretty_name': '',  # Empty for manual modification
-                'name': entry['name'],
-                'category': entry['category'],
-                'majorcategory': entry['majorcategory'],
-                'is_movie': 'Yes' if entry['is_movie'] else 'No',
-                'duration': entry['duration'],
-                'caption': entry['caption'],
-                'path': entry['path']
-            })
+                'name': entry.get('name', ''),
+                'category': entry.get('category', ''),
+                'majorcategory': entry.get('majorcategory', ''),
+                'is_movie': 'Yes' if entry.get('is_movie', False) else 'No',
+                'duration': entry.get('duration', ''),
+                'timer': entry.get('timer', ''),
+                'caption': entry.get('caption', ''),
+                'path': entry.get('path', ''),
+                'data': entry.get('data', ''),
+                'fps': entry.get('fps', ''),
+                'startframe': entry.get('startframe', ''),
+                'endframe': entry.get('endframe', ''),
+                'firstdwell': entry.get('firstdwell', ''),
+                'lastdwell': entry.get('lastdwell', '')
+            }
+            writer.writerow(row)
     
     print(f"✓ CSV index created with {len(csv_data)} entries")
     

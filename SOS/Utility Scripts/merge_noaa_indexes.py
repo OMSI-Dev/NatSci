@@ -3,6 +3,8 @@
 Script to merge noaa_server_index.csv with noaa_042013.csv
 Takes precedence from noaa_server_index.csv and attempts to match
 names to assign slide numbers from noaa_042013.csv
+
+noaa_server_index.csv generated from generate_server_index.py
 """
 
 import csv
@@ -75,16 +77,13 @@ def merge_csv_files(server_index_path, legacy_path, output_path):
     legacy_by_name = {}
     
     with open(legacy_path, 'r', encoding='utf-8') as f:
-        # Skip the first line if it exists (header)
-        content = f.read().strip()
-        lines = content.split('\n')
+        # Use csv.reader to properly handle quoted fields with commas
+        reader = csv.reader(f)
         
-        for line in lines:
-            # Split by comma, handling quotes
-            parts = line.split(',')
-            if len(parts) >= 2:
-                name = parts[0].strip()
-                slide_nums = parts[1].strip()
+        for row in reader:
+            if len(row) >= 2:
+                name = row[0].strip()
+                slide_nums = row[1].strip()
                 
                 if name and slide_nums:
                     legacy_data.append({'name': name, 'slide_numbers': slide_nums})

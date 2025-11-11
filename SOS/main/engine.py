@@ -98,6 +98,13 @@ class SimplePPEngine:
         # TEMPORARY: Testing stopwatch counter for clips without duration/timer
         self.clip_start_time = None
         self.clip_real_start_time = None  # Track real elapsed time for progress bar
+        
+        # Multi-slide navigation support
+        self.current_slide_list = []  # All slides for current dataset
+        self.current_slide_index = 0  # Current position in slide list
+        self.slide_durations = []     # Duration for each slide in the list
+        self.auto_advance_sent = False  # Flag to prevent repeated auto-advances
+        self.cached_total_duration = 180.0  # Cached duration for current clip
     
     def connect_to_sos(self, timeout=4):
         """
@@ -138,6 +145,50 @@ class SimplePPEngine:
             return False
         except Exception as e:
             print(f"✗ Error during SOS connection: {e}")
+            return False
+    
+    def restart_current_clip(self):
+        """
+        Restart the currently playing clip by going to previous then next.
+        This is a workaround since SOS doesn't have a direct restart command.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.sock:
+            return False
+        
+        try:
+            print("Restarting current clip...")
+            
+            # Send prev_clip command
+            self.sock.sendall(b'prev_clip\n')
+            time.sleep(0.2)  # Small delay to let SOS process the command
+            
+            # Clear any response
+            try:
+                self.sock.recv(1024)
+            except socket.timeout:
+                pass
+            
+            # Send next_clip command to return to the clip
+            self.sock.sendall(b'next_clip\n')
+            time.sleep(0.2)
+            
+            # Clear any response
+            try:
+                self.sock.recv(1024)
+            except socket.timeout:
+                pass
+            
+            print("[Success] Clip restarted")
+            return True
+            
+        except socket.error as e:
+            print(f"⚠ Error restarting clip: {e}")
+            return False
+        except Exception as e:
+            print(f"⚠ Error restarting clip: {e}")
             return False
     
     def get_current_clip_info(self):
@@ -301,12 +352,12 @@ class SimplePPEngine:
             return self.pp_dictionary[clip_name.strip()]
         return [1]
     
-    def run(self, poll_interval=1):
+    def run(self, poll_interval=0.5):
         """
         Main engine loop.
         
         Args:
-            poll_interval: Time between checks in seconds (default: 1 second for smooth progress)
+            poll_interval: Time between checks in seconds (default: 0.5 seconds)
         """
         print("Starting LibreOffice Impress Engine...")
         
@@ -334,6 +385,9 @@ class SimplePPEngine:
             print("Failed to connect to SOS. Exiting.")
             self.pp.close()
             return
+        
+        # Restart the current clip to sync from the beginning
+        self.restart_current_clip()
         
         # Main loop
         print("\nEngine loop running...")
@@ -365,23 +419,101 @@ class SimplePPEngine:
                     break
                 continue
             
+            # Update progress overlay continuously during playback
+            if clip_name:
+                current_frame = self.get_frame_number()
+                fps = self.get_frame_rate()
+                
+                # Calculate current time using real elapsed time
+                if self.clip_real_start_time is not None:
+                    current_time = time.time() - self.clip_real_start_time
+                else:
+                    current_time = current_frame / fps if fps > 0 else 0
+                
+                # Use cached total duration (calculated when clip changed)
+                total_duration = self.cached_total_duration
+                
+                # Handle multi-slide progression
+                if len(self.current_slide_list) > 1 and self.slide_durations:
+                    # Calculate which slide we should be on based on elapsed time
+                    # Build cumulative time boundaries for each slide
+                    cumulative_time = 0
+                    target_slide_index = 0
+                    
+                    for i, slide_duration in enumerate(self.slide_durations):
+                        cumulative_time += slide_duration
+                        if current_time < cumulative_time:
+                            # We're still within this slide's time window
+                            target_slide_index = i
+                            break
+                    else:
+                        # We've passed all time boundaries, use last slide
+                        target_slide_index = len(self.current_slide_list) - 1
+                    
+                    # Navigate to next slide if needed
+                    if target_slide_index != self.current_slide_index:
+                        self.current_slide_index = target_slide_index
+                        target_slide = self.current_slide_list[self.current_slide_index]
+                        
+                        # Calculate time boundaries for debugging
+                        time_boundaries = []
+                        cumulative = 0
+                        for dur in self.slide_durations:
+                            cumulative += dur
+                            time_boundaries.append(f"{cumulative:.1f}s")
+                        
+                        print(f"  → Auto-advancing to slide {target_slide} ({self.current_slide_index + 1}/{len(self.current_slide_list)}) at {current_time:.1f}s")
+                        print(f"     Slide boundaries: {' | '.join(time_boundaries)}")
+                        self.pp.goto(target_slide)
+                        self.current_slide = target_slide
+                
+                # Get current subtitle text
+                subtitle_text = ""
+                if self.subtitle_enabled and self.subtitle_manager.has_subtitles():
+                    if self.subtitle_manager.current_clip == clip_name:
+                        from subtitles import find_subtitle_at_time
+                        subtitle_text = find_subtitle_at_time(self.subtitle_manager.subtitles, current_time)
+                
+                # Update progress overlay with slide transition markers
+                self.overlay.update_progress(current_time, total_duration, subtitle_text, current_frame, 
+                                            slide_count=len(self.current_slide_list))
+                
+                # Auto-advance to next clip if duration is exceeded (only once)
+                if current_time > total_duration and not self.auto_advance_sent:
+                    print(f"\n[Auto-advance] Duration exceeded ({current_time:.1f}s > {total_duration:.1f}s), advancing to next clip...")
+                    try:
+                        self.sock.sendall(b'next_clip\n')
+                        time.sleep(0.1)
+                        # Clear response
+                        try:
+                            self.sock.recv(1024)
+                        except socket.timeout:
+                            pass
+                        print("[Auto-advance] Sent next_clip command")
+                        self.auto_advance_sent = True  # Mark that we've sent the command
+                    except Exception as e:
+                        print(f"[Auto-advance] Error sending next_clip: {e}")
+            
             # Only process if clip changed
             if clip_name and clip_name != last_clip:
-                # TEMPORARY: Print elapsed time for previous clip (testing)
+                # Print stopwatch value for previous clip (if not first clip)
                 if self.clip_start_time is not None and last_clip:
                     elapsed = time.time() - self.clip_start_time
-                    print(f"\n[TIMING] Clip '{last_clip}' was active for {elapsed:.2f} seconds\n")
-                
+                    print(f"[Stopwatch] Actual duration for '{last_clip}': {elapsed:.2f}s\n")
+
                 # Start timer for new clip
                 self.clip_start_time = time.time()
                 self.clip_real_start_time = time.time()  # Track real elapsed time independently
-                
+
+                # Reset auto-advance flag for new clip
+                self.auto_advance_sent = False
+
                 last_clip = clip_name
-                
+
                 # Subtitle check: Clear old subtitles when clip changes
                 self.subtitle_manager.subtitles = []
                 self.subtitle_manager.current_clip = None
-                
+
                 # Get slide numbers for this clip
                 slide_nums = self.get_slide_numbers(clip_name)
                 
@@ -403,10 +535,108 @@ class SimplePPEngine:
                                 print(f"  {key:20s}: {value}")
                             print("-" * 50)
                         
-                        # Navigate to slide if different
+                        # Set up multi-slide navigation
+                        self.current_slide_list = slide_nums
+                        self.current_slide_index = 0
+                        
+                        # Determine if this is an image or movie based on file extension
+                        data_path = self.current_clip_metadata.get('data', '')
+                        is_image = False
+                        if data_path:
+                            data_lower = data_path.lower()
+                            is_image = data_lower.endswith('.jpg') or data_lower.endswith('.jpeg') or data_lower.endswith('.png')
+                        
+                        # Get total duration for the dataset
+                        # Images default to 180s, movies only default to 180s as last resort
+                        total_duration = None
+                        duration_str = self.current_clip_metadata.get('duration', '')
+                        timer_str = self.current_clip_metadata.get('timer', '')
+                        
+                        # Check explicit duration fields first
+                        if duration_str:
+                            try:
+                                total_duration = float(duration_str)
+                                print(f"[Duration] Using duration field: {total_duration:.1f}s")
+                            except (ValueError, TypeError):
+                                pass
+                        elif timer_str:
+                            try:
+                                total_duration = float(timer_str)
+                                print(f"[Duration] Using timer field: {total_duration:.1f}s")
+                            except (ValueError, TypeError):
+                                pass
+                        
+                        # If no explicit duration, try to calculate from frame data (movies only)
+                        if total_duration is None:
+                            startframe_str = self.current_clip_metadata.get('startframe', '')
+                            endframe_str = self.current_clip_metadata.get('endframe', '')
+                            fps_str = self.current_clip_metadata.get('fps', '')
+                            firstdwell_str = self.current_clip_metadata.get('firstdwell', '')
+                            lastdwell_str = self.current_clip_metadata.get('lastdwell', '')
+                            
+                            if startframe_str and endframe_str and fps_str:
+                                try:
+                                    startframe = int(startframe_str)
+                                    endframe = int(endframe_str)
+                                    fps = float(fps_str)
+                                    
+                                    if fps > 0:
+                                        frame_count = endframe - startframe
+                                        base_duration = frame_count / fps
+                                        
+                                        # Add dwell times (converted from milliseconds to seconds)
+                                        firstdwell_sec = 0.0
+                                        lastdwell_sec = 0.0
+                                        if firstdwell_str:
+                                            try:
+                                                firstdwell_sec = float(firstdwell_str) / 1000.0
+                                            except (ValueError, TypeError):
+                                                pass
+                                        if lastdwell_str:
+                                            try:
+                                                lastdwell_sec = float(lastdwell_str) / 1000.0
+                                            except (ValueError, TypeError):
+                                                pass
+                                        
+                                        # Calculate dwell frames to subtract from total frame count
+                                        firstdwell_frames = int(firstdwell_sec * fps) if firstdwell_sec > 0 else 0
+                                        lastdwell_frames = int(lastdwell_sec * fps) if lastdwell_sec > 0 else 0
+                                        
+                                        # Actual playback frames = total frames minus dwell frames
+                                        playback_frame_count = frame_count - firstdwell_frames - lastdwell_frames
+                                        playback_duration = playback_frame_count / fps if playback_frame_count > 0 else base_duration
+                                        
+                                        total_duration = playback_duration
+                                        print(f"[Duration] Calculated from frames: {total_duration:.1f}s")
+                                except (ValueError, TypeError):
+                                    pass
+                        
+                        # Apply defaults only if no duration found
+                        if total_duration is None:
+                            if is_image:
+                                total_duration = 180.0  # Images always default to 180s
+                                print(f"[Duration] Image detected, using default: {total_duration:.1f}s")
+                            else:
+                                # For movies, only default to 180s as last resort
+                                total_duration = 180.0
+                                print(f"[Duration] No metadata found, using default: {total_duration:.1f}s")
+                        
+                        # Cache the calculated duration for use in progress loop
+                        self.cached_total_duration = total_duration
+                        
+                        # Calculate duration for each slide (divide total duration evenly)
+                        num_slides = len(slide_nums)
+                        slide_duration = total_duration / num_slides
+                        self.slide_durations = [slide_duration] * num_slides
+                        
+                        # Navigate to first slide
                         if self.current_slide not in slide_nums:
                             target_slide = slide_nums[0]
-                            print(f"Clip: '{clip_name}' -> Slide {target_slide}")
+                            if num_slides > 1:
+                                slide_list_str = ", ".join(map(str, slide_nums))
+                                print(f"Clip: '{clip_name}' -> Slides [{slide_list_str}] ({slide_duration:.1f}s each)")
+                            else:
+                                print(f"Clip: '{clip_name}' -> Slide {target_slide}")
                             self.pp.goto(target_slide)
                             self.current_slide = target_slide
                         
@@ -438,54 +668,6 @@ class SimplePPEngine:
                                     print(f"[Subtitles-error] Could not load subtitle file\n")
                 except Exception as e:
                     print(f"Warning: Could not fetch clip metadata: {e}")
-            
-            # Update subtitle display and progress overlay during playback
-            if clip_name:
-                current_frame = self.get_frame_number()
-                fps = self.get_frame_rate()
-                
-                # Calculate current time - use real elapsed time if frame counter is unreliable
-                # (frame counter resets for static images around 22-23 seconds)
-                if self.clip_real_start_time is not None:
-                    current_time = time.time() - self.clip_real_start_time
-                else:
-                    # Fallback to frame-based timing
-                    current_time = current_frame / fps if fps > 0 else 0
-                
-                # Get total duration from metadata (in seconds)
-                # Check for timer= or duration= parameters, default to 180 seconds if neither exists
-                total_duration = 180.0  # Default: 3 minutes
-                
-                if self.current_clip_metadata:
-                    duration_str = self.current_clip_metadata.get('duration', '')
-                    timer_str = self.current_clip_metadata.get('timer', '')
-                    
-                    if duration_str:
-                        try:
-                            total_duration = float(duration_str)
-                        except (ValueError, TypeError):
-                            total_duration = 180.0
-                    elif timer_str:
-                        try:
-                            total_duration = float(timer_str)
-                        except (ValueError, TypeError):
-                            total_duration = 180.0
-                    # else: Keep default 180.0 seconds
-                
-                # Get current subtitle text
-                subtitle_text = ""
-                if self.subtitle_enabled and self.subtitle_manager.has_subtitles():
-                    # Subtitle check: Ensure subtitle manager clip matches current clip
-                    if self.subtitle_manager.current_clip == clip_name:
-                        # Find subtitle at current time
-                        from subtitles import find_subtitle_at_time
-                        subtitle_text = find_subtitle_at_time(self.subtitle_manager.subtitles, current_time)
-                
-                # Update progress overlay with timing and subtitle
-                self.overlay.update_progress(current_time, total_duration, subtitle_text, current_frame)
-                
-                # Process Qt events after updating GUI
-                self.qapp.processEvents()
         
         # Cleanup
         if self.sock:

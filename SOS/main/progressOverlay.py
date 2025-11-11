@@ -4,13 +4,59 @@ Displays a transparent overlay window with playback progress and timestamp infor
 Designed to appear over LibreOffice presentations.
 """
 
-from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
-                              QLabel, QProgressBar, QPushButton, QGraphicsBlurEffect)
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QThread
-from PyQt5.QtGui import QFont, QPalette, QColor, QPainter, QBrush, QLinearGradient
-import sys
-import ctypes
-from ctypes import c_int, byref, sizeof
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QProgressBar
+from PyQt5.QtCore import Qt, QRect
+from PyQt5.QtGui import QFont, QPainter, QPen, QColor
+
+
+class TickedProgressBar(QProgressBar):
+    """Custom progress bar with tick marks for slide transitions."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.tick_count = 1  # Number of slides (ticks at transitions)
+    
+    def set_tick_count(self, count):
+        """Set the number of slides (determines tick mark positions)."""
+        self.tick_count = max(1, count)
+        self.update()
+    
+    def paintEvent(self, event):
+        """Override paint to add tick marks."""
+        # Draw the standard progress bar first
+        super().paintEvent(event)
+        
+        # Only draw ticks if we have multiple slides
+        if self.tick_count <= 1:
+            return
+        
+        # Draw tick marks for slide transitions
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Set tick mark style
+        pen = QPen(QColor(255, 255, 255, 180))  # White with some transparency
+        pen.setWidth(2)
+        painter.setPen(pen)
+        
+        # Get progress bar dimensions
+        width = self.width()
+        height = self.height()
+        
+        # Draw tick marks at slide transition points
+        # We want (tick_count - 1) tick marks between the slides
+        for i in range(1, self.tick_count):
+            # Calculate position as percentage of total width
+            position_percent = i / self.tick_count
+            x = int(width * position_percent)
+            
+            # Draw vertical line (tick mark)
+            # Make it slightly shorter than the bar height
+            y_start = 3
+            y_end = height - 3
+            painter.drawLine(x, y_start, x, y_end)
+        
+        painter.end()
 
 
 class ProgressOverlay(QWidget):
@@ -31,11 +77,11 @@ class ProgressOverlay(QWidget):
         self.position = position
         self.opacity_value = opacity
         
-        # Current state
         self.current_time = 0.0
         self.total_duration = 0.0
         self.current_subtitle = ""
         self.current_frame = 0
+        self.slide_count = 1  # Number of slides in current dataset
         
         self._setup_window()
         self._create_widgets()
@@ -43,21 +89,17 @@ class ProgressOverlay(QWidget):
     
     def _setup_window(self):
         """Configure window properties for overlay appearance."""
-        # Window flags: stay on top, frameless, tool window
+
         self.setWindowFlags(
             Qt.WindowStaysOnTopHint | 
             Qt.FramelessWindowHint |
             Qt.Tool
         )
         
-        # Fully transparent background
         self.setAttribute(Qt.WA_TranslucentBackground)
         
-        # Get screen width and set window to full width with extra height for subtitles
         screen = QApplication.primaryScreen().geometry()
         self.setFixedSize(screen.width(), 180)
-    
-
     
     def _create_widgets(self):
         """Create the UI widgets for the overlay."""
@@ -73,21 +115,20 @@ class ProgressOverlay(QWidget):
         self.time_label.setAlignment(Qt.AlignRight)
         layout.addWidget(self.time_label)
         
-        # Progress bar - desaturated purple/magenta color
-        self.progress_bar = QProgressBar()
+        # Progress bar with tick marks - desaturated purple/magenta color
+        self.progress_bar = TickedProgressBar()
         self.progress_bar.setMinimum(0)
-        self.progress_bar.setMaximum(100)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setFixedHeight(25)
         self.progress_bar.setStyleSheet("""
             QProgressBar {
-                border: 1px solid #555555;
-                border-radius: 4px;
-                background-color: rgba(42, 42, 42, 200);
+                border: 1px solid #210dff;
+                border-radius: 2px;
+                background-color: rgba(0, 0, 0, 200);
             }
             QProgressBar::chunk {
-                background-color: #9B6B9E;
+                background-color: #210dff;
                 border-radius: 3px;
             }
         """)
@@ -101,14 +142,17 @@ class ProgressOverlay(QWidget):
         self.subtitle_label.setMinimumHeight(50)  # Allow space for multiple lines
         layout.addWidget(self.subtitle_label)
         
-        # Frame counter (smaller, for debugging)
-        self.frame_label = QLabel("Frame: 0")
-        self.frame_label.setFont(QFont('Arial', 8))
-        self.frame_label.setStyleSheet("color: #888888; background: transparent;")
-        self.frame_label.setAlignment(Qt.AlignRight)
-        layout.addWidget(self.frame_label)
+        # # Frame counter (smaller, for debugging)
+        # self.frame_label = QLabel("Frame: 0")
+        # self.frame_label.setFont(QFont('Arial', 8))
+        # self.frame_label.setStyleSheet("color: #888888; background: transparent;")
+        # self.frame_label.setAlignment(Qt.AlignRight)
+        # layout.addWidget(self.frame_label)
         
         self.setLayout(layout)
+        
+        # Standard progress bar (0-100)
+        self.progress_bar.setMaximum(100)
     
     def _position_window(self):
         """Position the window based on the position setting."""
@@ -129,7 +173,7 @@ class ProgressOverlay(QWidget):
         
         self.move(x, y)
     
-    def update_progress(self, current_time, total_duration, subtitle_text="", current_frame=None):
+    def update_progress(self, current_time, total_duration, subtitle_text="", current_frame=None, slide_count=1):
         """
         Update the progress display.
         
@@ -138,11 +182,13 @@ class ProgressOverlay(QWidget):
             total_duration: Total duration in seconds
             subtitle_text: Current subtitle text to display
             current_frame: Optional frame number
+            slide_count: Number of slides in the dataset (for tick marks)
         """
         self.current_time = current_time
         self.total_duration = total_duration
         self.current_subtitle = subtitle_text
-        self.current_frame = current_frame if current_frame is not None else 0
+        self.slide_count = slide_count
+        # self.current_frame = current_frame if current_frame is not None else 0
         
         # Update UI elements
         self._update_ui()
@@ -154,13 +200,17 @@ class ProgressOverlay(QWidget):
         total_str = self._format_time(self.total_duration)
         self.time_label.setText(f"{current_str} / {total_str}")
         
-        # Update progress bar
+        # Update progress bar (0-100)
         if self.total_duration > 0:
             progress = int((self.current_time / self.total_duration) * 100)
             progress = min(100, max(0, progress))
         else:
             progress = 0
+        
         self.progress_bar.setValue(progress)
+        
+        # Update tick marks for slide transitions
+        self.progress_bar.set_tick_count(self.slide_count)
         
         # Update subtitle
         if self.current_subtitle:
@@ -168,11 +218,11 @@ class ProgressOverlay(QWidget):
         else:
             self.subtitle_label.setText("")
         
-        # Update frame counter
-        if self.current_frame > 0:
-            self.frame_label.setText(f"Frame: {self.current_frame}")
-        else:
-            self.frame_label.setText("")
+        # # Update frame counter
+        # if self.current_frame > 0:
+        #     self.frame_label.setText(f"Frame: {self.current_frame}")
+        # else:
+        #     self.frame_label.setText("")
     
     def _format_time(self, seconds):
         """
@@ -205,47 +255,3 @@ class ProgressOverlay(QWidget):
     def stop(self):
         """Close the overlay window."""
         self.close()
-
-
-# Test the overlay if run directly
-if __name__ == "__main__":
-    import time
-    
-    print("Testing Progress Overlay (PyQt5 version)...")
-    print("Overlay will appear on screen for 30 seconds with simulated progress.")
-    
-    app = QApplication(sys.argv)
-    overlay = ProgressOverlay(position='bottom', opacity=0.85)
-    overlay.start()
-    
-    # Simulate playback for 30 seconds
-    total_duration = 30.0
-    
-    timer = QTimer()
-    counter = [0]  # Use list to allow modification in closure
-    
-    def update():
-        current_time = counter[0] / 10.0
-        frame = counter[0] * 3  # Simulate 30 fps
-        
-        # Simulate subtitle appearance
-        if 5 < current_time < 10:
-            subtitle = "This is a test subtitle that appears during playback"
-        elif 15 < current_time < 20:
-            subtitle = "Another subtitle appears here to test the display"
-        else:
-            subtitle = ""
-        
-        overlay.update_progress(current_time, total_duration, subtitle, frame)
-        
-        counter[0] += 1
-        if counter[0] >= 300:  # 30 seconds at 10 updates per second
-            timer.stop()
-            print("\nTest complete. Closing overlay...")
-            overlay.close()
-            app.quit()
-    
-    timer.timeout.connect(update)
-    timer.start(100)  # Update every 100ms
-    
-    sys.exit(app.exec_())
