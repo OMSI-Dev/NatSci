@@ -43,35 +43,26 @@ class PowerPointShowController:
             
             if self.is_powerpoint:
                 # Use PowerPoint
-                print("  Launching PowerPoint...")
                 self.app = Dispatch('Powerpoint.Application')
                 self.app.Visible = 1
-                
-                print(f"  Opening: {self.slideshow}")
                 self.show = self.app.Presentations.Open(FileName=self.slideshow)
                 
                 if RunShow:
-                    print("  Starting slideshow...")
                     self.presentation = self.show.SlideShowSettings.Run()
                     self.launched = True
                 
                 self.count = self.get_slide_total()
-                print(f"✓ PowerPoint launched: {self.count} slides")
+                print(f"[Success] PowerPoint launched: {self.count} slides")
                 
             elif self.is_libreoffice:
                 # Use LibreOffice via COM
-                print("  Launching LibreOffice Impress...")
                 self.app = Dispatch('com.sun.star.ServiceManager')
                 desktop = self.app.createInstance('com.sun.star.frame.Desktop')
                 
-                # Convert to file URL
                 file_url = "file:///" + self.slideshow.replace("\\", "/")
-                print(f"  Opening: {self.slideshow}")
-                
                 self.show = desktop.loadComponentFromURL(file_url, "_blank", 0, ())
                 
                 if RunShow:
-                    print("  Starting slideshow...")
                     presentation = self.show.getPresentation()
                     presentation.start()
                     time.sleep(2)
@@ -79,14 +70,13 @@ class PowerPointShowController:
                     self.launched = True
                 
                 self.count = self.get_slide_total()
-                print(f"✓ LibreOffice Impress launched: {self.count} slides")
+                print(f"[Success] LibreOffice Impress launched: {self.count} slides")
             
             else:
                 raise Exception(f"Unsupported file type: {os.path.splitext(self.slideshow)[1]}")
             
         except Exception as e:
             print(f"Error launching presentation: {e}")
-            print(f"File path: {self.slideshow}")
             import traceback
             traceback.print_exc()
             raise
@@ -99,24 +89,18 @@ class PowerPointShowController:
             number: Slide number to navigate to (1-indexed)
         """
         if not self.launched:
-            print("Warning: Slideshow not launched")
             return
         
         if number < 1 or number > self.count:
-            print(f"Warning: Slide {number} out of range (1-{self.count}). Going to slide 1.")
             number = 1
         
         try:
             if self.is_powerpoint:
-                # PowerPoint navigation
                 self.presentation.View.GotoSlide(number)
-                print(f"  → Navigated to slide {number}")
             elif self.is_libreoffice:
-                # LibreOffice navigation
                 controller = self.presentation.getController()
                 if controller:
                     controller.gotoSlideIndex(number - 1)  # 0-indexed
-                    print(f"  → Navigated to slide {number}")
         except Exception as e:
             print(f"Error navigating to slide {number}: {e}")
     
@@ -146,13 +130,11 @@ class PowerPointShowController:
                     if self.show:
                         self.show.Save()
                     self.app.Quit()
-                    print("PowerPoint closed")
                 elif self.is_libreoffice:
                     if self.show:
                         self.show.close(True)
-                    print("LibreOffice Impress closed")
             except Exception as e:
-                print(f"Warning: Error closing presentation: {e}")
+                print(f"Error closing presentation: {e}")
             finally:
                 self.show = None
                 self.app = None

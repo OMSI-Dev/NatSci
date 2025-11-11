@@ -5,10 +5,12 @@ Designed to appear over LibreOffice presentations.
 """
 
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
-                              QLabel, QProgressBar, QPushButton)
+                              QLabel, QProgressBar, QPushButton, QGraphicsBlurEffect)
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QThread
-from PyQt5.QtGui import QFont, QPalette, QColor
+from PyQt5.QtGui import QFont, QPalette, QColor, QPainter, QBrush, QLinearGradient
 import sys
+import ctypes
+from ctypes import c_int, byref, sizeof
 
 
 class ProgressOverlay(QWidget):
@@ -48,87 +50,65 @@ class ProgressOverlay(QWidget):
             Qt.Tool
         )
         
-        # Set window opacity
-        self.setWindowOpacity(self.opacity_value)
+        # Fully transparent background
+        self.setAttribute(Qt.WA_TranslucentBackground)
         
-        # Set window size
-        self.setFixedSize(600, 120)
-        
-        # Dark background
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #1a1a1a;
-                color: white;
-            }
-        """)
+        # Get screen width and set window to full width with extra height for subtitles
+        screen = QApplication.primaryScreen().geometry()
+        self.setFixedSize(screen.width(), 180)
+    
+
     
     def _create_widgets(self):
         """Create the UI widgets for the overlay."""
+        # Main layout for content
         layout = QVBoxLayout()
-        layout.setContentsMargins(15, 10, 15, 10)
-        layout.setSpacing(5)
+        layout.setContentsMargins(30, 15, 30, 15)
+        layout.setSpacing(8)
         
-        # Time display (current / total)
+        # Time display (current / total) - right aligned
         self.time_label = QLabel("0:00 / 0:00")
         self.time_label.setFont(QFont('Arial', 14, QFont.Bold))
-        self.time_label.setStyleSheet("color: #ffffff;")
+        self.time_label.setStyleSheet("color: #ffffff; background: transparent;")
+        self.time_label.setAlignment(Qt.AlignRight)
         layout.addWidget(self.time_label)
         
-        # Progress bar
+        # Progress bar - desaturated purple/magenta color
         self.progress_bar = QProgressBar()
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(100)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setFixedHeight(20)
+        self.progress_bar.setFixedHeight(25)
         self.progress_bar.setStyleSheet("""
             QProgressBar {
-                border: 1px solid #444444;
-                border-radius: 3px;
-                background-color: #333333;
+                border: 1px solid #555555;
+                border-radius: 4px;
+                background-color: rgba(42, 42, 42, 200);
             }
             QProgressBar::chunk {
-                background-color: #00aa00;
+                background-color: #9B6B9E;
+                border-radius: 3px;
             }
         """)
         layout.addWidget(self.progress_bar)
         
-        # Subtitle display
+        # Subtitle display - allow more height for wrapping
         self.subtitle_label = QLabel("")
-        self.subtitle_label.setFont(QFont('Arial', 11))
-        self.subtitle_label.setStyleSheet("color: #ffff00;")
+        self.subtitle_label.setFont(QFont('Arial', 12))
+        self.subtitle_label.setStyleSheet("color: #ffff00; background: transparent;")
         self.subtitle_label.setWordWrap(True)
+        self.subtitle_label.setMinimumHeight(50)  # Allow space for multiple lines
         layout.addWidget(self.subtitle_label)
         
         # Frame counter (smaller, for debugging)
         self.frame_label = QLabel("Frame: 0")
         self.frame_label.setFont(QFont('Arial', 8))
-        self.frame_label.setStyleSheet("color: #888888;")
+        self.frame_label.setStyleSheet("color: #888888; background: transparent;")
         self.frame_label.setAlignment(Qt.AlignRight)
         layout.addWidget(self.frame_label)
         
-        # Close button (small X in corner)
-        close_btn = QPushButton("×")
-        close_btn.setFont(QFont('Arial', 16, QFont.Bold))
-        close_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #ff0000;
-                color: white;
-                border: none;
-                padding: 0px;
-            }
-            QPushButton:hover {
-                background-color: #cc0000;
-            }
-        """)
-        close_btn.setFixedSize(25, 25)
-        close_btn.clicked.connect(self.close)
-        close_btn.move(570, 5)
-        
         self.setLayout(layout)
-        
-        # Enable mouse tracking for dragging
-        self.drag_position = None
     
     def _position_window(self):
         """Position the window based on the position setting."""
@@ -136,36 +116,18 @@ class ProgressOverlay(QWidget):
         screen = QApplication.primaryScreen().geometry()
         window_rect = self.frameGeometry()
         
-        # Calculate position
-        if self.position == 'bottom':
-            x = (screen.width() - window_rect.width()) // 2
-            y = screen.height() - window_rect.height() - 50
-        elif self.position == 'top':
-            x = (screen.width() - window_rect.width()) // 2
-            y = 50
-        elif self.position == 'bottom-right':
-            x = screen.width() - window_rect.width() - 20
-            y = screen.height() - window_rect.height() - 50
-        elif self.position == 'top-right':
-            x = screen.width() - window_rect.width() - 20
-            y = 50
-        else:  # default to bottom center
-            x = (screen.width() - window_rect.width()) // 2
-            y = screen.height() - window_rect.height() - 50
+        # Full width, so x is always 0
+        x = 0
+        
+        # Calculate y position based on setting
+        if self.position == 'bottom' or self.position == 'bottom-right':
+            y = screen.height() - window_rect.height()
+        elif self.position == 'top' or self.position == 'top-right':
+            y = 0
+        else:  # default to bottom
+            y = screen.height() - window_rect.height()
         
         self.move(x, y)
-    
-    def mousePressEvent(self, event):
-        """Handle mouse press for dragging."""
-        if event.button() == Qt.LeftButton:
-            self.drag_position = event.globalPos() - self.frameGeometry().topLeft()
-            event.accept()
-    
-    def mouseMoveEvent(self, event):
-        """Handle mouse move for dragging."""
-        if event.buttons() == Qt.LeftButton and self.drag_position:
-            self.move(event.globalPos() - self.drag_position)
-            event.accept()
     
     def update_progress(self, current_time, total_duration, subtitle_text="", current_frame=None):
         """

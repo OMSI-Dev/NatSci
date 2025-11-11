@@ -92,7 +92,7 @@ def parse_srt_file(filepath):
                 print(f"Warning: Error parsing subtitle block: {e}")
                 continue
         
-        print(f"✓ Loaded {len(subtitles)} subtitles from {os.path.basename(filepath)}")
+        print(f"[Success] Yippee ~ Loaded {len(subtitles)} subtitles")
         return subtitles
         
     except Exception as e:
@@ -100,22 +100,54 @@ def parse_srt_file(filepath):
         return []
 
 
-def find_subtitle_at_time(subtitles, time_seconds):
+# Track accumulated subtitles across calls
+_subtitle_accumulator = []
+_last_subtitle_index = -1
+
+def find_subtitle_at_time(subtitles, time_seconds, max_chars=200):
     """
-    Find the subtitle that should be displayed at the given time.
+    Find and accumulate subtitles over time until line is full, then clear and continue.
     
     Args:
         subtitles: List of subtitle dictionaries from parse_srt_file()
         time_seconds: Current playback time in seconds
+        max_chars: Maximum characters before clearing (roughly screen width)
         
     Returns:
-        str: Subtitle text to display, or empty string if no subtitle at this time
+        str: Accumulated subtitle text, or empty string if none
     """
+    global _subtitle_accumulator, _last_subtitle_index
+    
+    # Find current active subtitle
+    current_sub = None
     for sub in subtitles:
         if sub['start_time'] <= time_seconds <= sub['end_time']:
-            return sub['text']
+            current_sub = sub
+            break
     
-    return ""
+    # If no subtitle is active, keep showing accumulated text
+    if not current_sub:
+        return " ".join(_subtitle_accumulator)
+    
+    # If this is a new subtitle we haven't seen yet
+    if current_sub['index'] != _last_subtitle_index:
+        _last_subtitle_index = current_sub['index']
+        
+        # Clean subtitle text (remove newlines)
+        new_text = current_sub['text'].replace('\n', ' ')
+        
+        # Check if adding this would exceed max_chars
+        current_length = sum(len(text) for text in _subtitle_accumulator)
+        
+        if current_length + len(new_text) > max_chars:
+            # Clear and start fresh with new subtitle
+            _subtitle_accumulator = [new_text]
+        else:
+            # Add to accumulator
+            _subtitle_accumulator.append(new_text)
+    
+    # Return accumulated text joined with spaces
+    return " ".join(_subtitle_accumulator)
 
 
 def get_duration_from_subtitles(subtitles):
@@ -238,14 +270,13 @@ class SubtitleManager:
             self.duration = 0.0
             return False
         
-        print(f"\nLoading captions for: {clip_name}")
-        print(f"  Caption path: {caption_path}")
+        print(f"  → Filepath on server: {caption_path} \n")
         
         self.subtitles = parse_srt_file(caption_path)
         self.duration = get_duration_from_subtitles(self.subtitles)
         
         if self.subtitles:
-            print(f"  Duration: {format_time(self.duration)} ({len(self.subtitles)} subtitles)")
+            print(f"  → Duration: {format_time(self.duration)}")
             return True
         else:
             print(f"  No subtitles loaded")

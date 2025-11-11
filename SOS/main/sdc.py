@@ -25,7 +25,7 @@ class ExitController(threading.Thread):
     def run(self):
         time.sleep(2)
         while True:
-            user_input = input("\nPress 'q' to quit: ")
+            user_input = input("\n[EXIT] Press 'q' to quit: ")
             if user_input.lower() in ['q', 'quit', 'exit']:
                 print("Stopping engine...")
                 self.engine.stop()
@@ -93,7 +93,6 @@ def main():
     print(f"\nSlideshow: {slideshow_path}")
     print(f"Database:  {database_path}")
     
-    print("\nInitializing LibreOffice Impress controller...")
     pp_dictionary = load_slide_mapping(database_path)
     if not pp_dictionary:
         sys.exit(1)

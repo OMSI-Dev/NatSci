@@ -1,6 +1,7 @@
 """
-Simplified Parsers
-Functions to parse configuration and slide database files.
+Configuration and Slide Mapping Parser
+Loads config.txt (SOS IP, port, paths) and slide mapping CSV (clip name -> slide numbers).
+Clip metadata is now fetched dynamically from SOS via get_all_name_value_pairs.
 """
 
 import csv
@@ -77,18 +78,19 @@ def parseConfig(config_file):
 
 def parseSlideNames(slide_file):
     """
-    Parse the slide database file mapping clip names to slide numbers.
+    Parse CSV file to map clip names to slide numbers.
+    Only extracts clip names and their associated slide numbers.
+    All other metadata (captions, duration, fps, etc.) is fetched from SOS dynamically.
     
-    Supports two formats:
-    1. New format (CSV with headers): pretty_name,name,category,majorcategory,is_movie,caption,path,slide_numbers,...
-    2. Legacy format: clip_name, slide_numbers (comma or semicolon separated)
+    Supports two CSV formats:
+    1. Headers format: name,slide_numbers (or pretty_name,slide_numbers)
+    2. Legacy format: clip_name,slide_numbers (comma or semicolon separated)
     
     Args:
-        slide_file: Path to CSV database file
+        slide_file: Path to CSV file
         
     Returns:
-        tuple: (success, mapping) where mapping is a dict of 
-               {clip_name: [slide_numbers]}
+        tuple: (success, mapping) where mapping is dict of {clip_name: [slide_numbers]}
     """
     mapping = {}
     
@@ -106,7 +108,7 @@ def parseSlideNames(slide_file):
                 reader = csv.DictReader(f)
                 for line_num, row in enumerate(reader, start=2):  # Start at 2 because of header
                     try:
-                        # Get clip name - prefer 'name' column, fallback to 'pretty_name'
+                        # Get clip name (prefer 'name', fallback to 'pretty_name')
                         clip_name = row.get('name', '').strip()
                         if not clip_name:
                             clip_name = row.get('pretty_name', '').strip()
@@ -114,28 +116,22 @@ def parseSlideNames(slide_file):
                         if not clip_name:
                             continue
                         
-                        # Get slide numbers from 'slide_numbers' column
+                        # Get slide numbers
                         slide_str = row.get('slide_numbers', '').strip()
                         
                         if not slide_str:
-                            # No slide numbers - skip this entry
                             continue
                         
-                        # Parse slide numbers - can be comma separated like "1,2,3" or just "1"
+                        # Parse slide numbers (e.g., "1,2,3" or "5")
                         slide_numbers = []
-                        tokens = re.split(r'[;,]', slide_str)
-                        for token in tokens:
+                        for token in re.split(r'[;,]', slide_str):
                             token = token.strip()
                             if token:
                                 try:
-                                    if token.isdigit():
-                                        slide_numbers.append(int(token))
-                                    else:
-                                        slide_numbers.append(int(float(token)))
+                                    slide_numbers.append(int(float(token)))
                                 except ValueError:
                                     print(f"Warning: Invalid slide number '{token}' on line {line_num}")
                         
-                        # Add to mapping if we have valid data
                         if clip_name and slide_numbers:
                             mapping[clip_name] = slide_numbers
                             
@@ -144,43 +140,33 @@ def parseSlideNames(slide_file):
                         continue
             
             else:
-                # Legacy format - first column is name, rest are slide numbers
+                # Legacy format: clip_name,slide_numbers
                 f.seek(0)
                 delimiter = ';' if ';' in first_line else ','
                 
                 for line_num, raw_line in enumerate(f, start=1):
-                    # Remove comments
                     line = raw_line.split('#', 1)[0].strip()
-                    
                     if not line:
                         continue
                     
                     try:
-                        # Parse CSV fields
                         fields = next(csv.reader([line], delimiter=delimiter))
-                        
                         if len(fields) < 2:
                             continue
                         
                         clip_name = fields[0].strip()
                         
-                        # Extract all numeric values from remaining fields
+                        # Extract slide numbers from remaining fields
                         slide_numbers = []
                         for field in fields[1:]:
-                            # Split on commas and semicolons
-                            tokens = re.split(r'[;,]', field)
-                            for token in tokens:
+                            for token in re.split(r'[;,]', field):
                                 token = token.strip()
                                 if token:
                                     try:
-                                        if token.isdigit():
-                                            slide_numbers.append(int(token))
-                                        else:
-                                            slide_numbers.append(int(float(token)))
+                                        slide_numbers.append(int(float(token)))
                                     except ValueError:
                                         print(f"Warning: Invalid slide number '{token}' on line {line_num}")
                         
-                        # Add to mapping if we have valid data
                         if clip_name and slide_numbers:
                             mapping[clip_name] = slide_numbers
                             
@@ -196,8 +182,8 @@ def parseSlideNames(slide_file):
         return (False, {})
     
     if not mapping:
-        print("Warning: No valid clip-to-slide mappings found in database")
-        print("Note: If using the new format, entries need slide_numbers populated")
+        print("Warning: No clip-to-slide mappings found")
+        print("Note: CSV must have 'slide_numbers' column populated")
         return (False, {})
     
     return (True, mapping)

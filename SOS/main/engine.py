@@ -79,7 +79,7 @@ class SimplePPEngine:
         self.sock = None
         
         # GUI overlay support
-        print("Initializing GUI overlay for progress display...")
+        print("Initializing GUI overlay for progress bar...")
         if not QApplication.instance():
             self.qapp = QApplication(sys.argv)
         else:
@@ -94,6 +94,10 @@ class SimplePPEngine:
         # Create local cache directory for subtitles
         self.subtitle_cache_dir = os.path.join(os.path.dirname(__file__), 'subtitle_cache')
         os.makedirs(self.subtitle_cache_dir, exist_ok=True)
+        
+        # TEMPORARY: Testing stopwatch counter for clips without duration/timer
+        self.clip_start_time = None
+        self.clip_real_start_time = None  # Track real elapsed time for progress bar
     
     def connect_to_sos(self, timeout=4):
         """
@@ -111,19 +115,18 @@ class SimplePPEngine:
             
             print(f"Connecting to SOS at {self.sos_ip}:{self.sos_port}...")
             self.sock.connect((self.sos_ip, self.sos_port))
-            print("✓ Connected to SOS server")
+            print("[Success] Connected to SOS server")
             
             # Send enable handshake
-            print("Sending handshake...")
             self.sock.sendall(b'enable\n')
             
             # Wait for response
             data = self.sock.recv(1024)
             response = data.decode('utf-8', 'ignore').strip()
-            print(f"Handshake response: {repr(response)}")
+            # print(f"Handshake response: {repr(response)}")
             
             if response == 'R':
-                print("✓ Handshake successful")
+                print("[Success] SOS Handshake successful")
                 return True
             else:
                 print(f"⚠ Unexpected handshake response: {response}")
@@ -280,38 +283,9 @@ class SimplePPEngine:
         
         # Check if already cached
         if os.path.exists(local_path):
-            print(f"  ✓ Using cached subtitle: {filename}")
+            print(f" → Filename: {filename}")
             return local_path
-        
-        print(f"  Fetching subtitle from SOS server: {filename}")
-        
-        # Try HTTP on common ports
-        try:
-            import urllib.request
-            
-            for port in [80, 8080]:
-                try:
-                    http_url = f'http://{self.sos_ip}:{port}{remote_path}'
-                    print(f"  Trying HTTP: {http_url}")
-                    
-                    response = urllib.request.urlopen(http_url, timeout=5)
-                    content = response.read()
-                    
-                    with open(local_path, 'wb') as f:
-                        f.write(content)
-                    
-                    print(f"  ✓ Downloaded subtitle via HTTP: {filename}")
-                    return local_path
-                    
-                except Exception:
-                    continue
-                    
-        except Exception as e:
-            pass
-        
-        print(f"  ✗ Could not fetch subtitle file")
-        print(f"     Manually download to: {self.subtitle_cache_dir}")
-        return None
+                
     
     def get_slide_numbers(self, clip_name):
         """
@@ -327,12 +301,12 @@ class SimplePPEngine:
             return self.pp_dictionary[clip_name.strip()]
         return [1]
     
-    def run(self, poll_interval=2):
+    def run(self, poll_interval=1):
         """
         Main engine loop.
         
         Args:
-            poll_interval: Time between checks in seconds
+            poll_interval: Time between checks in seconds (default: 1 second for smooth progress)
         """
         print("Starting LibreOffice Impress Engine...")
         
@@ -340,12 +314,12 @@ class SimplePPEngine:
         print("Starting GUI overlay...")
         self.overlay.start()
         time.sleep(1)
-        print("✓ GUI overlay started")
+        print("[Success] GUI overlay started")
         
         # Launch LibreOffice Impress first
         try:
             self.pp.launchpp(RunShow=True)
-            print("LibreOffice Impress slideshow started")
+            print("LibreOffice slideshow started")
         except Exception as e:
             print(f"Failed to launch LibreOffice Impress: {e}")
             print("\nDEBUG INFO:")
@@ -356,18 +330,19 @@ class SimplePPEngine:
             return
         
         # Connect to SOS
-        print(f"\nConnecting to SOS server...")
         if not self.connect_to_sos():
             print("Failed to connect to SOS. Exiting.")
             self.pp.close()
             return
         
         # Main loop
-        print("\nEngine running...")
-        print("Monitoring SOS for clip changes...")
-        print("Note: Slide navigation uses keyboard simulation")
+        print("\nEngine loop running...")
+        print("Monitoring SOS for clip changes...\n")
         
         last_clip = ""
+        # Initialize timing to avoid None checks
+        self.clip_real_start_time = time.time()
+        
         while self.running:
             # Process Qt events to keep GUI responsive
             self.qapp.processEvents()
@@ -392,17 +367,23 @@ class SimplePPEngine:
             
             # Only process if clip changed
             if clip_name and clip_name != last_clip:
+                # TEMPORARY: Print elapsed time for previous clip (testing)
+                if self.clip_start_time is not None and last_clip:
+                    elapsed = time.time() - self.clip_start_time
+                    print(f"\n[TIMING] Clip '{last_clip}' was active for {elapsed:.2f} seconds\n")
+                
+                # Start timer for new clip
+                self.clip_start_time = time.time()
+                self.clip_real_start_time = time.time()  # Track real elapsed time independently
+                
                 last_clip = clip_name
+                
+                # Subtitle check: Clear old subtitles when clip changes
+                self.subtitle_manager.subtitles = []
+                self.subtitle_manager.current_clip = None
                 
                 # Get slide numbers for this clip
                 slide_nums = self.get_slide_numbers(clip_name)
-                
-                # Navigate to slide if different
-                if self.current_slide not in slide_nums:
-                    target_slide = slide_nums[0]
-                    print(f"Clip: '{clip_name}' -> Slide {target_slide}")
-                    self.pp.goto(target_slide)
-                    self.current_slide = target_slide
                 
                 # Fetch clip metadata from SOS server
                 try:
@@ -412,21 +393,29 @@ class SimplePPEngine:
                     clip_number = data.decode('utf-8', 'ignore').strip()
                     
                     if clip_number and clip_number.isdigit():
-                        print(f"\nFetching metadata for clip #{clip_number}: {clip_name}")
                         self.current_clip_metadata = self.fetch_clip_metadata(clip_number)
                         
-                        # Display fetched metadata
+                        # Display fetched metadata in formatted dictionary style
                         if self.current_clip_metadata:
-                            duration = self.current_clip_metadata.get('duration', 'N/A')
-                            fps = self.current_clip_metadata.get('fps', 'N/A')
-                            category = self.current_clip_metadata.get('category', 'N/A')
-                            print(f"  Duration: {duration}s | FPS: {fps} | Category: {category}")
+                            print("Clip Metadata:")
+                            print("-" * 50)
+                            for key, value in sorted(self.current_clip_metadata.items()):
+                                print(f"  {key:20s}: {value}")
+                            print("-" * 50)
+                        
+                        # Navigate to slide if different
+                        if self.current_slide not in slide_nums:
+                            target_slide = slide_nums[0]
+                            print(f"Clip: '{clip_name}' -> Slide {target_slide}")
+                            self.pp.goto(target_slide)
+                            self.current_slide = target_slide
                         
                         # Load subtitles when clip changes
+                        print()
                         if self.subtitle_enabled:
                             caption_path = self.current_clip_metadata.get('caption', '')
                             if caption_path:
-                                print(f"[Subtitles] Loading for: {clip_name}")
+                                print(f"[Subtitles]: {clip_name}")
                                 
                                 # Try to fetch from SOS server if path looks like a server path
                                 local_subtitle_path = None
@@ -444,9 +433,9 @@ class SimplePPEngine:
                                 
                                 if local_subtitle_path:
                                     self.subtitle_manager.load_subtitles_for_clip(clip_name, local_subtitle_path)
-                                    print(f"[Subtitles] ✓ Ready for display\n")
+                                    print(f"[Subtitles] Ready for display\n")
                                 else:
-                                    print(f"[Subtitles] ✗ Could not load subtitle file\n")
+                                    print(f"[Subtitles-error] Could not load subtitle file\n")
                 except Exception as e:
                     print(f"Warning: Could not fetch clip metadata: {e}")
             
@@ -455,24 +444,42 @@ class SimplePPEngine:
                 current_frame = self.get_frame_number()
                 fps = self.get_frame_rate()
                 
-                # Calculate current time from frame number and fps
-                current_time = current_frame / fps if fps > 0 else 0
+                # Calculate current time - use real elapsed time if frame counter is unreliable
+                # (frame counter resets for static images around 22-23 seconds)
+                if self.clip_real_start_time is not None:
+                    current_time = time.time() - self.clip_real_start_time
+                else:
+                    # Fallback to frame-based timing
+                    current_time = current_frame / fps if fps > 0 else 0
                 
                 # Get total duration from metadata (in seconds)
-                total_duration = 0.0
+                # Check for timer= or duration= parameters, default to 180 seconds if neither exists
+                total_duration = 180.0  # Default: 3 minutes
+                
                 if self.current_clip_metadata:
-                    duration_str = self.current_clip_metadata.get('duration', '0')
-                    try:
-                        total_duration = float(duration_str)
-                    except (ValueError, TypeError):
-                        total_duration = 0.0
+                    duration_str = self.current_clip_metadata.get('duration', '')
+                    timer_str = self.current_clip_metadata.get('timer', '')
+                    
+                    if duration_str:
+                        try:
+                            total_duration = float(duration_str)
+                        except (ValueError, TypeError):
+                            total_duration = 180.0
+                    elif timer_str:
+                        try:
+                            total_duration = float(timer_str)
+                        except (ValueError, TypeError):
+                            total_duration = 180.0
+                    # else: Keep default 180.0 seconds
                 
                 # Get current subtitle text
                 subtitle_text = ""
                 if self.subtitle_enabled and self.subtitle_manager.has_subtitles():
-                    # Find subtitle at current time
-                    from subtitles import find_subtitle_at_time
-                    subtitle_text = find_subtitle_at_time(self.subtitle_manager.subtitles, current_time)
+                    # Subtitle check: Ensure subtitle manager clip matches current clip
+                    if self.subtitle_manager.current_clip == clip_name:
+                        # Find subtitle at current time
+                        from subtitles import find_subtitle_at_time
+                        subtitle_text = find_subtitle_at_time(self.subtitle_manager.subtitles, current_time)
                 
                 # Update progress overlay with timing and subtitle
                 self.overlay.update_progress(current_time, total_duration, subtitle_text, current_frame)
