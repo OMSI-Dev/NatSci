@@ -463,7 +463,7 @@ class SimplePPEngine:
                             time_boundaries.append(f"{cumulative:.1f}s")
                         
                         print(f"  → Auto-advancing to slide {target_slide} ({self.current_slide_index + 1}/{len(self.current_slide_list)}) at {current_time:.1f}s")
-                        print(f"     Slide boundaries: {' | '.join(time_boundaries)}")
+                        print(f"     Slide boundaries: {' | '.join(time_boundaries)}\n")
                         self.pp.goto(target_slide)
                         self.current_slide = target_slide
                 
