@@ -64,18 +64,20 @@ class ProgressOverlay(QWidget):
     A transparent/semi-transparent overlay window that shows playback progress.
     """
     
-    def __init__(self, position='bottom', opacity=0.85):
+    def __init__(self, position='bottom', opacity=0.85, y_offset=35):
         """
         Initialize the progress overlay.
         
         Args:
             position: Position of overlay ('bottom', 'top', 'bottom-right', 'top-right')
             opacity: Window opacity from 0.0 (transparent) to 1.0 (opaque)
+            y_offset: Vertical offset in pixels (positive = up, negative = down)
         """
         super().__init__()
         
         self.position = position
         self.opacity_value = opacity
+        self.y_offset = y_offset
         
         self.current_time = 0.0
         self.total_duration = 0.0
@@ -162,7 +164,7 @@ class ProgressOverlay(QWidget):
         
         # Full width, so x is always 0
         x = 0
-        
+
         # Calculate y position based on setting
         if self.position == 'bottom' or self.position == 'bottom-right':
             y = screen.height() - window_rect.height()
@@ -171,6 +173,8 @@ class ProgressOverlay(QWidget):
         else:  # default to bottom
             y = screen.height() - window_rect.height()
         
+        # Apply y_offset (positive moves up, negative moves down)
+        y = max(0, min(screen.height() - window_rect.height(), y - self.y_offset))
         self.move(x, y)
     
     def update_progress(self, current_time, total_duration, subtitle_text="", slide_count=1):

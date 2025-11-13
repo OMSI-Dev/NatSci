@@ -59,7 +59,7 @@ def parse_name_value_pairs(data: str) -> dict:
 class SimplePPEngine:
     """Simplified LibreOffice Impress engine for SOS integration."""
     
-    def __init__(self, pp, pp_dictionary, sos_ip, sos_port):
+    def __init__(self, pp, pp_dictionary, sos_ip, sos_port, pi_ip="10.10.51.97", pi_port=4096):
         """
         Initialize the engine.
         
@@ -68,11 +68,15 @@ class SimplePPEngine:
             pp_dictionary: Dict mapping clip names to slide numbers
             sos_ip: IP address of SOS server
             sos_port: Port number of SOS server
+            pi_ip: IP address of Raspberry Pi (optional)
+            pi_port: Port number of Raspberry Pi (optional)
         """
         self.pp = pp
         self.pp_dictionary = pp_dictionary
         self.sos_ip = sos_ip
         self.sos_port = sos_port
+        self.pi_ip = pi_ip
+        self.pi_port = pi_port
         self.running = True
         self.current_slide = -1
         self.sock = None
@@ -433,6 +437,74 @@ class SimplePPEngine:
         except Exception as e:
             print(f"[Playlist Metadata] Error: {e}")
     
+    def send_now_playing_to_pi(self, clip_name):
+        """
+        Send the current clip name to the Raspberry Pi via socket.
+        The Pi should be running nowPlaying.py and listening for messages.
+        """
+        if not self.pi_ip or not self.pi_port or not clip_name:
+            return
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as pi_sock:
+                pi_sock.settimeout(2)
+                pi_sock.connect((self.pi_ip, self.pi_port))
+                msg = f"NOW_PLAYING:{clip_name}\n"
+                pi_sock.sendall(msg.encode('utf-8'))
+                # Optionally, receive acknowledgment
+                # ack = pi_sock.recv(64)
+        except Exception as e:
+            print(f"[Pi] Could not send now playing info: {e}")
+
+    def send_clip_to_pi(self, clip_name):
+        """Send the current clip name to the Pi."""
+        if not self.pi_ip or not self.pi_port or not clip_name:
+            return
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(2)
+                s.connect((self.pi_ip, self.pi_port))
+                msg = f"CLIP:{clip_name}\n"
+                s.sendall(msg.encode('utf-8'))
+        except Exception as e:
+            print(f"[Pi] Error sending clip name: {e}")
+
+    def send_playlist_to_pi(self, clip_names):
+        """Send the list of clip names in the playlist to the Pi."""
+        if not self.pi_ip or not self.pi_port or not clip_names:
+            return
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(2)
+                s.connect((self.pi_ip, self.pi_port))
+                # Send as comma-separated string
+                msg = f"PLAYLIST:{','.join(clip_names)}\n"
+                s.sendall(msg.encode('utf-8'))
+        except Exception as e:
+            print(f"[Pi] Error sending playlist info: {e}")
+
+    def fetch_playlist_clip_names(self):
+        """Fetch and return a list of all clip names in the current playlist."""
+        if not self.sock:
+            return []
+        clip_names = []
+        try:
+            self.sock.sendall(b'get_clip_count\n')
+            data = recv_data(self.sock, timeout_idle=2.0)
+            clip_count_str = data.decode('utf-8', 'ignore').strip()
+            if not clip_count_str.isdigit():
+                return []
+            clip_count = int(clip_count_str)
+            for clip_number in range(1, clip_count + 1):
+                cmd = f'get_all_name_value_pairs {clip_number}\n'.encode('utf-8')
+                self.sock.sendall(cmd)
+                clip_data = recv_data(self.sock, timeout_idle=2.0).decode('utf-8', 'ignore').strip()
+                metadata = parse_name_value_pairs(clip_data)
+                clip_name = metadata.get('name', f'Clip {clip_number}')
+                clip_names.append(clip_name)
+        except Exception as e:
+            print(f"[Playlist Metadata] Error fetching clip names: {e}")
+        return clip_names
+
     def run(self, poll_interval=0.5):
         """
         Main engine loop.
@@ -475,6 +547,7 @@ class SimplePPEngine:
         print("Monitoring SOS for clip changes...\n")
         
         last_clip = ""
+        last_playlist = None
         # Initialize timing to avoid None checks
         self.clip_real_start_time = time.time()
         
@@ -562,6 +635,12 @@ class SimplePPEngine:
                     elapsed = time.time() - self.clip_start_time
                     print(f"[Stopwatch] Actual duration for '{last_clip}': {elapsed:.2f}s\n")
 
+                # Send now playing info to Pi
+                self.send_now_playing_to_pi(clip_name)
+
+                # Send clip name to Pi
+                self.send_clip_to_pi(clip_name)
+
                 # Start timer for new clip
                 self.clip_start_time = time.time()
                 self.clip_real_start_time = time.time()  # Track real elapsed time independently
@@ -587,6 +666,9 @@ class SimplePPEngine:
                     self.clip_real_start_time = None
                     self.cached_total_duration = 180.0
                     self.fetch_playlist_metadata()
+                    # Send playlist info to Pi (list of clip names)
+                    clip_names = self.fetch_playlist_clip_names()
+                    self.send_playlist_to_pi(clip_names)
     
                 try:
                     self.sock.sendall(b'get_clip_number\n')
