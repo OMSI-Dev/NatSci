@@ -45,6 +45,7 @@ def parse_name_value_pairs(data: str) -> dict:
     Handles values in curly braces {like this} and regular values.
     """
     result = {}
+    # Pattern to match: key followed by either {value} or regular value
     pattern = r'(\w+)\s+(?:\{([^}]+)\}|(\S+))'
     
     matches = re.findall(pattern, data)
@@ -102,6 +103,7 @@ class SimplePPEngine:
         self.current_slide_list = []  # All slides for current dataset
         self.current_slide_index = 0  # Current position in slide list
         self.slide_durations = []     # Duration for each slide in the list
+        self.auto_advance_sent = False  # Flag to prevent repeated auto-advances
         self.cached_total_duration = 180.0  # Cached duration for current clip
         self.current_playlist_name = None
 
@@ -316,7 +318,7 @@ class SimplePPEngine:
     
     def fetch_subtitle_file(self, remote_path):
         """
-        Fetch subtitle file from SOS server via SSH (scp).
+        Fetch subtitle file from SOS server via HTTP.
         
         Args:
             remote_path: Path to subtitle file on SOS server (e.g., /shared/sos/media/extras/...)
@@ -326,42 +328,16 @@ class SimplePPEngine:
         """
         if not remote_path:
             return None
-
+        
         # Generate local filename from remote path
         filename = os.path.basename(remote_path)
         local_path = os.path.join(self.subtitle_cache_dir, filename)
-
+        
         # Check if already cached
         if os.path.exists(local_path):
-            print(f" → Filename: {filename} (cached)")
+            print(f" → Filename: {filename}")
             return local_path
-
-        # SSH/SCP fetch logic
-        # You may need to adjust user and keyfile as appropriate
-        ssh_user = "sosdemo"  # Replace with actual username
-        ssh_host = self.sos_ip
-        ssh_key = None  # Optionally set path to private key file
-
-        scp_cmd = [
-            "scp",
-            "-o", "StrictHostKeyChecking=no",
-        ]
-        if ssh_key:
-            scp_cmd += ["-i", ssh_key]
-        scp_cmd += [f"{ssh_user}@{ssh_host}:{remote_path}", local_path]
-
-        print(f"Fetching subtitle file via SSH: {remote_path}")
-        try:
-            result = subprocess.run(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
-            if result.returncode == 0 and os.path.exists(local_path):
-                print(f" → Filename: {filename} (fetched)")
-                return local_path
-            else:
-                print(f"[Subtitles-error] SCP failed: {result.stderr.decode('utf-8', 'ignore')}")
-                return None
-        except Exception as e:
-            print(f"[Subtitles-error] Exception during SCP: {e}")
-            return None
+                
     
     def get_slide_numbers(self, clip_name):
         """
@@ -419,17 +395,19 @@ class SimplePPEngine:
                 self.sock.sendall(cmd)
                 clip_data = recv_data(self.sock, timeout_idle=2.0).decode('utf-8', 'ignore').strip()
                 metadata = parse_name_value_pairs(clip_data)
-
                 clip_name = metadata.get('name', f'Clip {clip_number}')
                 duration = metadata.get('duration', None)
                 timer = metadata.get('timer', None)
+                datadir = metadata.get('datadir', '')
+                is_jpg = datadir.lower().endswith('.jpg')
+                has_duration = duration is not None and duration != ''
                 has_timer = timer is not None and timer != ''
-
-                if not has_timer:
-                    print(f"[Clip {clip_number}] {clip_name}: No timer found. Default duration is 180s.")
-                elif has_timer:
-                    print(f"[Clip {clip_number}] {clip_name}: duration={duration}, timer={timer}.")
-    
+                if has_duration or has_timer:
+                    print(f"[Clip {clip_number}] {clip_name}: duration={duration}, timer={timer}")
+                elif is_jpg:
+                    print(f"[Clip {clip_number}] {clip_name}: .jpg detected, skipping duration tracker. timer={timer}")
+                else:
+                    print(f"[Clip {clip_number}] {clip_name}: No duration/timer found. Triggering duration tracker.")
         except Exception as e:
             print(f"[Playlist Metadata] Error: {e}")
     
@@ -448,7 +426,7 @@ class SimplePPEngine:
         time.sleep(1)
         print("[Success] GUI overlay started")
         
-        # Launch LibreOffice Impress 
+        # Launch LibreOffice Impress first
         try:
             self.pp.launchpp(RunShow=True)
             print("LibreOffice slideshow started")
@@ -555,7 +533,23 @@ class SimplePPEngine:
                 self.overlay.update_progress(current_time, total_duration, subtitle_text, 
                                             slide_count=len(self.current_slide_list))
                 
-
+                # Auto-advance to next clip if duration is exceeded (only once)
+                # if current_time > total_duration and not self.auto_advance_sent:
+                #     print(f"\n[Auto-advance] Duration exceeded ({current_time:.1f}s > {total_duration:.1f}s), advancing to next clip...")
+                #     try:
+                #         self.sock.sendall(b'next_clip\n')
+                #         time.sleep(0.1)
+                #         # Clear response
+                #         try:
+                #             self.sock.recv(1024)
+                #         except socket.timeout:
+                #             pass
+                #         print("[Auto-advance] Sent next_clip command")
+                #         self.auto_advance_sent = True  # Mark that we've sent the command
+                #     except Exception as e:
+                #         print(f"[Auto-advance] Error sending next_clip: {e}")
+            
+            # Only process if clip changed
             if clip_name and clip_name != last_clip:
                 # Print stopwatch value for previous clip (if not first clip)
                 if self.clip_start_time is not None and last_clip:
@@ -566,6 +560,9 @@ class SimplePPEngine:
                 self.clip_start_time = time.time()
                 self.clip_real_start_time = time.time()  # Track real elapsed time independently
 
+                # Reset auto-advance flag for new clip
+                self.auto_advance_sent = False
+
                 last_clip = clip_name
 
                 # Subtitle check: Clear old subtitles when clip changes
@@ -575,7 +572,7 @@ class SimplePPEngine:
                 # Get slide numbers for this clip
                 slide_nums = self.get_slide_numbers(clip_name)
 
-                # Check for playlist change
+                # Fetch playlist name from SOS server
                 playlist_name = self.get_playlist_name()
                 if playlist_name != self.current_playlist_name:
                     print(f"[Playlist] Changed: {self.current_playlist_name} -> {playlist_name}\n")
@@ -583,18 +580,25 @@ class SimplePPEngine:
                     self.current_clip_metadata = {}  # Clear previous clip metadata
                     self.current_slide_list = []    # Clear previous slide list
                     self.current_slide_index = 0    # Reset slide index
+                    self.auto_advance_sent = False  # Reset auto-advance flag
                     self.clip_start_time = None     # Reset clip timing
                     self.clip_real_start_time = None
                     self.cached_total_duration = 180.0
                     self.fetch_playlist_metadata()
-    
+                    # Do NOT set playlist_just_changed flag, always fetch new clip metadata
+                # else:
+                    # print(f"[Playlist] Current: {self.current_playlist_name}\n")
+
+                # Fetch clip metadata from SOS server
                 try:
+                    # Get clip number for metadata fetch
                     self.sock.sendall(b'get_clip_number\n')
                     data = self.sock.recv(1024)
                     clip_number = data.decode('utf-8', 'ignore').strip()
                     if clip_number and clip_number.isdigit():
                         self.current_clip_metadata = self.fetch_clip_metadata(clip_number)
                         
+                        # Display fetched metadata in formatted dictionary style
                         if self.current_clip_metadata:
                             print(f"\nClip '{clip_name}' Metadata:")
                             print("-" * 50)
@@ -602,37 +606,56 @@ class SimplePPEngine:
                                 print(f"  {key:20s}: {value}")
                             print("-" * 50)
                         
+                        # Set up multi-slide navigation
                         self.current_slide_list = slide_nums
-                        self.current_slide_index = 0                         
-
-                        # Robust duration logic
-                        duration_str = self.current_clip_metadata.get('duration', None)
-                        timer_str = self.current_clip_metadata.get('timer', None)
-
+                        self.current_slide_index = 0
+                        
+                        # Determine if this is an image or movie based on file extension
+                        data_path = self.current_clip_metadata.get('data', '')
+                        is_image = False
+                        if data_path:
+                            data_lower = data_path.lower()
+                            is_image = data_lower.endswith('.jpg') or data_lower.endswith('.jpeg') or data_lower.endswith('.png')
+                        
+                        # Get total duration for the dataset
+                        # Images default to 180s, movies only default to 180s as last resort
                         total_duration = None
-                        if timer_str is not None and str(timer_str).strip() != "":
+                        duration_str = self.current_clip_metadata.get('duration', '')
+                        timer_str = self.current_clip_metadata.get('timer', '')
+                        
+                        # Check explicit duration fields first
+                        if duration_str:
+                            try:
+                                total_duration = float(duration_str)
+                                print(f"[Duration] Using duration field: {total_duration:.1f}s")
+                            except (ValueError, TypeError):
+                                pass
+                        elif timer_str:
                             try:
                                 total_duration = float(timer_str)
                                 print(f"[Duration] Using timer field: {total_duration:.1f}s")
                             except (ValueError, TypeError):
-                                print(f"[Duration] Invalid timer value, using default: 180.0s")
-                                total_duration = 180.0
-                        elif duration_str is not None and str(duration_str).strip() != "":
-                            try:
-                                total_duration = float(duration_str)
-                                print(f"[Duration] Using specified duration: {total_duration:.1f}s")
-                            except (ValueError, TypeError):
-                                print(f"[Duration] Invalid duration value, using default: 180.0s")
-                                total_duration = 180.0
-                        else:
-                            total_duration = 180.0
-                            print(f"[Duration] No timer or duration found, using default: {total_duration:.1f}s")
-
+                                pass
+                        
+                        # Apply defaults only if no duration found
+                        if total_duration is None:
+                            if is_image:
+                                total_duration = 180.0  # Images always default to 180s
+                                print(f"[Duration] Image detected, using default: {total_duration:.1f}s")
+                            else:
+                                #check csv 
+                                #check for log# column is less than 10 
+                                #if log# is less than 10, start duration tracker 
+                                #if value in duration column, set as total duration 
+                                #else if no value, pass -1 to progress bar to signal initialization 
+                                print(0)
+                        
+                        # Cache the calculated duration for use in progress loop
                         self.cached_total_duration = total_duration
-
+                        
                         # Calculate duration for each slide (divide total duration evenly)
                         num_slides = len(slide_nums)
-                        slide_duration = total_duration / num_slides if num_slides > 0 else total_duration
+                        slide_duration = total_duration / num_slides
                         self.slide_durations = [slide_duration] * num_slides
                         
                         # Navigate to first slide
@@ -675,12 +698,14 @@ class SimplePPEngine:
                 except Exception as e:
                     print(f"Warning: Could not fetch clip metadata: {e}")
         
+        # Cleanup
         if self.sock:
             try:
                 self.sock.close()
             except:
                 pass
         
+        # Stop GUI overlay
         print("\nStopping GUI overlay...")
         self.overlay.stop()
         

@@ -173,7 +173,7 @@ class ProgressOverlay(QWidget):
         
         self.move(x, y)
     
-    def update_progress(self, current_time, total_duration, subtitle_text="", current_frame=None, slide_count=1):
+    def update_progress(self, current_time, total_duration, subtitle_text="", slide_count=1):
         """
         Update the progress display.
         
@@ -181,21 +181,17 @@ class ProgressOverlay(QWidget):
             current_time: Current playback time in seconds
             total_duration: Total duration in seconds
             subtitle_text: Current subtitle text to display
-            current_frame: Optional frame number
             slide_count: Number of slides in the dataset (for tick marks)
         """
         self.current_time = current_time
         self.total_duration = total_duration
         self.current_subtitle = subtitle_text
         self.slide_count = slide_count
-        # self.current_frame = current_frame if current_frame is not None else 0
         
-        # Update UI elements
         self._update_ui()
     
     def _update_ui(self):
         """Update UI elements with current values."""
-        # Update time label
         current_str = self._format_time(self.current_time)
         total_str = self._format_time(self.total_duration)
         self.time_label.setText(f"{current_str} / {total_str}")
@@ -206,24 +202,16 @@ class ProgressOverlay(QWidget):
             progress = min(100, max(0, progress))
         else:
             progress = 0
+            #initialize with duration timer 
         
         self.progress_bar.setValue(progress)
+        self.progress_bar.set_tick_count(self.slide_count) #multiple slides
         
-        # Update tick marks for slide transitions
-        self.progress_bar.set_tick_count(self.slide_count)
-        
-        # Update subtitle
         if self.current_subtitle:
             self.subtitle_label.setText(f"► {self.current_subtitle}")
         else:
             self.subtitle_label.setText("")
         
-        # # Update frame counter
-        # if self.current_frame > 0:
-        #     self.frame_label.setText(f"Frame: {self.current_frame}")
-        # else:
-        #     self.frame_label.setText("")
-    
     def _format_time(self, seconds):
         """
         Format seconds as M:SS or H:MM:SS.
