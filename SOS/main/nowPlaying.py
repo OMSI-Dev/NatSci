@@ -50,11 +50,10 @@ class ImageApp:
         # "Now Playing" label - smaller, elegant header
         now_playing_header = tk.Label(
             header_frame,
-            text="NOW PLAYING",
+            text="N O W   P L A Y I N G",
             font=("Helvetica Neue", 16, "bold"),
             fg="#7c8db5",
-            bg="#1a1f3a",
-            letterSpacing=2
+            bg="#1a1f3a"
         )
         now_playing_header.pack(pady=(10, 0))
         
