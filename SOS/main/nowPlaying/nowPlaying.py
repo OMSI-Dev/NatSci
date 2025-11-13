@@ -49,18 +49,18 @@ class ImageApp:
         
         # Header frame with semi-transparent background
         # Create a translucent overlay effect
-        header_canvas = tk.Canvas(root, bg="", highlightthickness=0)
+        header_canvas = tk.Canvas(root, bg="#f0f0f0", highlightthickness=0)
         header_canvas.place(relx=0.5, rely=0.08, anchor="center", relwidth=0.9, height=100)
         
         # Draw semi-transparent rectangle
         header_canvas.create_rectangle(
             0, 0, screen_width, 100,
-            fill="#ffffff",
+            fill="#f5f5f5",
             stipple="gray50",  # Creates transparency effect
             outline=""
         )
         
-        header_frame = tk.Frame(header_canvas, bg="", highlightthickness=0)
+        header_frame = tk.Frame(header_canvas, bg="#f0f0f0", highlightthickness=0)
         header_frame.place(relx=0.5, rely=0.5, anchor="center")
         
         # "Now Playing" label - smaller, elegant header
@@ -69,7 +69,7 @@ class ImageApp:
             text="N O W   P L A Y I N G",
             font=("Helvetica Neue", 16, "bold"),
             fg="#2c3e50",
-            bg=""
+            bg="#f0f0f0"
         )
         now_playing_header.pack(pady=(10, 0))
         
@@ -79,24 +79,24 @@ class ImageApp:
             text="Waiting for data...",
             font=("Helvetica Neue", 32, "bold"),
             fg="#1a1a1a",
-            bg="",
+            bg="#f0f0f0",
             wraplength=int(screen_width * 0.85)
         )
         self.text_label.pack(pady=(5, 10))
         
         # Playlist container frame with semi-transparent background
-        playlist_canvas_bg = tk.Canvas(root, bg="", highlightthickness=0)
+        playlist_canvas_bg = tk.Canvas(root, bg="#f0f0f0", highlightthickness=0)
         playlist_canvas_bg.place(relx=0.5, rely=0.55, anchor="center", relwidth=0.85, relheight=0.7)
         
         # Draw semi-transparent rectangle for playlist
         playlist_canvas_bg.create_rectangle(
             0, 0, int(screen_width * 0.85), int(screen_height * 0.7),
-            fill="#ffffff",
+            fill="#f5f5f5",
             stipple="gray50",  # Creates transparency effect
             outline=""
         )
         
-        playlist_frame = tk.Frame(playlist_canvas_bg, bg="", highlightthickness=0)
+        playlist_frame = tk.Frame(playlist_canvas_bg, bg="#f0f0f0", highlightthickness=0)
         playlist_frame.place(relwidth=1, relheight=1)
         
         # Playlist header
@@ -105,13 +105,13 @@ class ImageApp:
             text="UPCOMING IN PLAYLIST",
             font=("Helvetica Neue", 14, "bold"),
             fg="#2c3e50",
-            bg="",
+            bg="#f0f0f0",
             anchor="w"
         )
         playlist_header.pack(fill="x", padx=40, pady=(30, 15))
         
         # Playlist content with scrollable frame
-        self.playlist_canvas = tk.Canvas(playlist_frame, bg="", highlightthickness=0)
+        self.playlist_canvas = tk.Canvas(playlist_frame, bg="#f0f0f0", highlightthickness=0)
         self.playlist_canvas.pack(fill="both", expand=True, padx=40, pady=(0, 30))
         
         # Playlist label
@@ -120,7 +120,7 @@ class ImageApp:
             text="Playlist will appear here",
             font=("Helvetica Neue", 18),
             fg="#1a1a1a",
-            bg="",
+            bg="#f0f0f0",
             justify="left",
             anchor="nw"
         )
