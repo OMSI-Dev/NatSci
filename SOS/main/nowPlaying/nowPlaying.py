@@ -28,32 +28,48 @@ class ImageApp:
         self.root.bind('<Escape>', lambda e: self.root.attributes('-fullscreen', False))
         self.root.bind('<F11>', lambda e: self.root.attributes('-fullscreen', True))
         
-        # Background setup with gradient effect
+        # Background - load geo.png
         self.bg_frame = tk.Frame(root, bg="#0a0e27")
         self.bg_frame.place(relwidth=1, relheight=1)
         
-        # Try to load background image if available
-        if image_path and os.path.exists(image_path):
+        # Try to load geo.png from same directory as script
+        bg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "geo.png")
+        if os.path.exists(bg_path):
             try:
-                image = Image.open(image_path)
+                image = Image.open(bg_path)
                 image = image.resize((screen_width, screen_height), Image.Resampling.LANCZOS)
                 self.image_tk = ImageTk.PhotoImage(image)
                 self.bg_label = tk.Label(self.bg_frame, image=self.image_tk)
                 self.bg_label.place(relwidth=1, relheight=1)
+                print(f"✅ Loaded background image: {bg_path}")
             except Exception as e:
                 print(f"Could not load background image: {e}")
+        else:
+            print(f"⚠️ Background image not found: {bg_path}")
         
         # Header frame with semi-transparent background
-        header_frame = tk.Frame(root, bg="#1a1f3a", highlightthickness=0)
-        header_frame.place(relx=0.5, rely=0.08, anchor="center", relwidth=0.9, height=100)
+        # Create a translucent overlay effect
+        header_canvas = tk.Canvas(root, bg="", highlightthickness=0)
+        header_canvas.place(relx=0.5, rely=0.08, anchor="center", relwidth=0.9, height=100)
+        
+        # Draw semi-transparent rectangle
+        header_canvas.create_rectangle(
+            0, 0, screen_width, 100,
+            fill="#ffffff",
+            stipple="gray50",  # Creates transparency effect
+            outline=""
+        )
+        
+        header_frame = tk.Frame(header_canvas, bg="", highlightthickness=0)
+        header_frame.place(relx=0.5, rely=0.5, anchor="center")
         
         # "Now Playing" label - smaller, elegant header
         now_playing_header = tk.Label(
             header_frame,
             text="N O W   P L A Y I N G",
             font=("Helvetica Neue", 16, "bold"),
-            fg="#7c8db5",
-            bg="#1a1f3a"
+            fg="#2c3e50",
+            bg=""
         )
         now_playing_header.pack(pady=(10, 0))
         
@@ -62,29 +78,40 @@ class ImageApp:
             header_frame,
             text="Waiting for data...",
             font=("Helvetica Neue", 32, "bold"),
-            fg="#ffffff",
-            bg="#1a1f3a",
+            fg="#1a1a1a",
+            bg="",
             wraplength=int(screen_width * 0.85)
         )
         self.text_label.pack(pady=(5, 10))
         
-        # Playlist container frame
-        playlist_frame = tk.Frame(root, bg="#141829", highlightthickness=0)
-        playlist_frame.place(relx=0.5, rely=0.55, anchor="center", relwidth=0.85, relheight=0.7)
+        # Playlist container frame with semi-transparent background
+        playlist_canvas_bg = tk.Canvas(root, bg="", highlightthickness=0)
+        playlist_canvas_bg.place(relx=0.5, rely=0.55, anchor="center", relwidth=0.85, relheight=0.7)
+        
+        # Draw semi-transparent rectangle for playlist
+        playlist_canvas_bg.create_rectangle(
+            0, 0, int(screen_width * 0.85), int(screen_height * 0.7),
+            fill="#ffffff",
+            stipple="gray50",  # Creates transparency effect
+            outline=""
+        )
+        
+        playlist_frame = tk.Frame(playlist_canvas_bg, bg="", highlightthickness=0)
+        playlist_frame.place(relwidth=1, relheight=1)
         
         # Playlist header
         playlist_header = tk.Label(
             playlist_frame,
             text="UPCOMING IN PLAYLIST",
             font=("Helvetica Neue", 14, "bold"),
-            fg="#7c8db5",
-            bg="#141829",
+            fg="#2c3e50",
+            bg="",
             anchor="w"
         )
         playlist_header.pack(fill="x", padx=40, pady=(30, 15))
         
         # Playlist content with scrollable frame
-        self.playlist_canvas = tk.Canvas(playlist_frame, bg="#141829", highlightthickness=0)
+        self.playlist_canvas = tk.Canvas(playlist_frame, bg="", highlightthickness=0)
         self.playlist_canvas.pack(fill="both", expand=True, padx=40, pady=(0, 30))
         
         # Playlist label
@@ -92,22 +119,12 @@ class ImageApp:
             self.playlist_canvas,
             text="Playlist will appear here",
             font=("Helvetica Neue", 18),
-            fg="#c8d1e8",
-            bg="#141829",
+            fg="#1a1a1a",
+            bg="",
             justify="left",
             anchor="nw"
         )
         self.playlist_canvas.create_window(0, 0, window=self.playlist_label, anchor="nw")
-        
-        # Footer with instructions
-        footer = tk.Label(
-            root,
-            text="Press ESC to exit fullscreen  |  F11 to enter fullscreen",
-            font=("Helvetica Neue", 10),
-            fg="#4a5568",
-            bg="#0a0e27"
-        )
-        footer.place(relx=0.5, rely=0.98, anchor="center")
 
     def update_playing(self, current_title: str):
         """Updates the current playing label."""
@@ -199,8 +216,7 @@ def pi_socket_server(app: ImageApp):
 def main():
     root = tk.Tk()
     
-    # You can specify a background image path here if you have one
-    # app = ImageApp(root, image_path="Now_Playing/bg.jpg")
+    # No need for image_path parameter anymore - uses geo.png from script directory
     app = ImageApp(root)
 
     # Start socket server in background thread
