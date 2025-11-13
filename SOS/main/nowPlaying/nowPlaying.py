@@ -1,5 +1,5 @@
 import tkinter as tk
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 import socket
 import threading
 import os
@@ -47,29 +47,33 @@ class ImageApp:
         else:
             print(f"⚠️ Background image not found: {bg_path}")
         
-        # Header frame with semi-transparent background
-        # Create a translucent overlay effect
-        header_canvas = tk.Canvas(root, bg="#f0f0f0", highlightthickness=0)
-        header_canvas.place(relx=0.5, rely=0.08, anchor="center", relwidth=0.9, height=100)
+        # Create semi-transparent overlays using PIL
+        # Header overlay
+        header_width = int(screen_width * 0.9)
+        header_height = 100
+        header_overlay = Image.new('RGBA', (header_width, header_height), (255, 255, 255, 120))  # 120/255 = ~47% opacity
+        self.header_overlay_tk = ImageTk.PhotoImage(header_overlay)
+        header_bg = tk.Label(root, image=self.header_overlay_tk, bd=0)
+        header_bg.place(relx=0.5, rely=0.08, anchor="center")
         
-        # Draw semi-transparent rectangle
-        header_canvas.create_rectangle(
-            0, 0, screen_width, 100,
-            fill="#f5f5f5",
-            stipple="gray50",  # Creates transparency effect
-            outline=""
-        )
+        # Playlist overlay
+        playlist_width = int(screen_width * 0.85)
+        playlist_height = int(screen_height * 0.7)
+        playlist_overlay = Image.new('RGBA', (playlist_width, playlist_height), (255, 255, 255, 120))  # 120/255 = ~47% opacity
+        self.playlist_overlay_tk = ImageTk.PhotoImage(playlist_overlay)
+        playlist_bg = tk.Label(root, image=self.playlist_overlay_tk, bd=0)
+        playlist_bg.place(relx=0.5, rely=0.55, anchor="center")
         
-        header_frame = tk.Frame(header_canvas, bg="#f0f0f0", highlightthickness=0)
-        header_frame.place(relx=0.5, rely=0.5, anchor="center")
+        # Header frame on top of overlay
+        header_frame = tk.Frame(root, bg="", highlightthickness=0)
+        header_frame.place(relx=0.5, rely=0.08, anchor="center")
         
         # "Now Playing" label - smaller, elegant header
         now_playing_header = tk.Label(
             header_frame,
             text="N O W   P L A Y I N G",
             font=("Helvetica Neue", 16, "bold"),
-            fg="#2c3e50",
-            bg="#f0f0f0"
+            fg="#2c3e50"
         )
         now_playing_header.pack(pady=(10, 0))
         
@@ -79,25 +83,13 @@ class ImageApp:
             text="Waiting for data...",
             font=("Helvetica Neue", 32, "bold"),
             fg="#1a1a1a",
-            bg="#f0f0f0",
             wraplength=int(screen_width * 0.85)
         )
         self.text_label.pack(pady=(5, 10))
         
-        # Playlist container frame with semi-transparent background
-        playlist_canvas_bg = tk.Canvas(root, bg="#f0f0f0", highlightthickness=0)
-        playlist_canvas_bg.place(relx=0.5, rely=0.55, anchor="center", relwidth=0.85, relheight=0.7)
-        
-        # Draw semi-transparent rectangle for playlist
-        playlist_canvas_bg.create_rectangle(
-            0, 0, int(screen_width * 0.85), int(screen_height * 0.7),
-            fill="#f5f5f5",
-            stipple="gray50",  # Creates transparency effect
-            outline=""
-        )
-        
-        playlist_frame = tk.Frame(playlist_canvas_bg, bg="#f0f0f0", highlightthickness=0)
-        playlist_frame.place(relwidth=1, relheight=1)
+        # Playlist container frame on top of overlay
+        playlist_frame = tk.Frame(root, bg="", highlightthickness=0)
+        playlist_frame.place(relx=0.5, rely=0.55, anchor="center", relwidth=0.85, relheight=0.7)
         
         # Playlist header
         playlist_header = tk.Label(
