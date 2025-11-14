@@ -13,7 +13,7 @@ PI_PORT = 4096
 class ImageApp:
     """GUI app to display the currently playing title and playlist from SOS."""
 
-    def __init__(self, root, image_path=None):
+    def __init__(self, root):
         self.root = root
         self.root.title("Science on a Sphere - Now Playing")
         
@@ -28,102 +28,121 @@ class ImageApp:
         self.root.bind('<Escape>', lambda e: self.root.attributes('-fullscreen', False))
         self.root.bind('<F11>', lambda e: self.root.attributes('-fullscreen', True))
         
-        # Background - load geo.png
-        self.bg_frame = tk.Frame(root, bg="#0a0e27")
-        self.bg_frame.place(relwidth=1, relheight=1)
-        
-        # Try to load geo.png from same directory as script
+        # Load and prepare background with transparent overlays
         bg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "geo.png")
+        
         if os.path.exists(bg_path):
             try:
-                image = Image.open(bg_path)
-                image = image.resize((screen_width, screen_height), Image.Resampling.LANCZOS)
-                self.image_tk = ImageTk.PhotoImage(image)
-                self.bg_label = tk.Label(self.bg_frame, image=self.image_tk)
-                self.bg_label.place(relwidth=1, relheight=1)
-                print(f"✅ Loaded background image: {bg_path}")
+                # Load background image
+                bg_image = Image.open(bg_path).convert('RGBA')
+                bg_image = bg_image.resize((screen_width, screen_height), Image.Resampling.LANCZOS)
+                
+                # Create a transparent overlay layer
+                overlay = Image.new('RGBA', (screen_width, screen_height), (0, 0, 0, 0))
+                draw = ImageDraw.Draw(overlay)
+                
+                # Draw semi-transparent header box with rounded corners
+                header_width = int(screen_width * 0.85)
+                header_height = 140
+                header_x = (screen_width - header_width) // 2
+                header_y = int(screen_height * 0.20) - header_height // 2
+                draw.rounded_rectangle(
+                    [header_x, header_y, header_x + header_width, header_y + header_height],
+                    radius=25,  # Corner radius
+                    fill=(255, 255, 255, 120)  # White with ~47% opacity
+                )
+                
+                # Draw semi-transparent playlist box with rounded corners
+                playlist_width = int(screen_width * 0.85)
+                playlist_height = int(screen_height * 0.53)
+                playlist_x = (screen_width - playlist_width) // 2
+                playlist_y = int(screen_height * 0.60) - playlist_height // 2
+                draw.rounded_rectangle(
+                    [playlist_x, playlist_y, playlist_x + playlist_width, playlist_y + playlist_height],
+                    radius=25,  # Corner radius
+                    fill=(255, 255, 255, 120)  # White with ~47% opacity
+                )
+                
+                # Composite overlay onto background
+                bg_with_overlay = Image.alpha_composite(bg_image, overlay)
+                self.bg_image_tk = ImageTk.PhotoImage(bg_with_overlay)
+                
+                print(f"✅ Loaded background image with overlays: {bg_path}")
+                
             except Exception as e:
                 print(f"Could not load background image: {e}")
+                # Fallback - create solid color background
+                bg_with_overlay = Image.new('RGB', (screen_width, screen_height), (10, 14, 39))
+                self.bg_image_tk = ImageTk.PhotoImage(bg_with_overlay)
         else:
             print(f"⚠️ Background image not found: {bg_path}")
+            # Fallback - create solid color background
+            bg_with_overlay = Image.new('RGB', (screen_width, screen_height), (10, 14, 39))
+            self.bg_image_tk = ImageTk.PhotoImage(bg_with_overlay)
         
-        # Create semi-transparent overlays using PIL
-        # Header overlay
-        header_width = int(screen_width * 0.9)
-        header_height = 100
-        header_overlay = Image.new('RGBA', (header_width, header_height), (255, 255, 255, 120))  # 120/255 = ~47% opacity
-        self.header_overlay_tk = ImageTk.PhotoImage(header_overlay)
-        header_bg = tk.Label(root, image=self.header_overlay_tk, bd=0)
-        header_bg.place(relx=0.5, rely=0.08, anchor="center")
+        # Create a canvas to place everything
+        canvas = tk.Canvas(root, highlightthickness=0)
+        canvas.place(relwidth=1, relheight=1)
         
-        # Playlist overlay
-        playlist_width = int(screen_width * 0.85)
-        playlist_height = int(screen_height * 0.7)
-        playlist_overlay = Image.new('RGBA', (playlist_width, playlist_height), (255, 255, 255, 120))  # 120/255 = ~47% opacity
-        self.playlist_overlay_tk = ImageTk.PhotoImage(playlist_overlay)
-        playlist_bg = tk.Label(root, image=self.playlist_overlay_tk, bd=0)
-        playlist_bg.place(relx=0.5, rely=0.55, anchor="center")
+        # Place the background image on the canvas
+        canvas.create_image(0, 0, image=self.bg_image_tk, anchor="nw")
         
-        # Header frame on top of overlay
-        header_frame = tk.Frame(root, bg="", highlightthickness=0)
-        header_frame.place(relx=0.5, rely=0.08, anchor="center")
-        
-        # "Now Playing" label - smaller, elegant header
-        now_playing_header = tk.Label(
-            header_frame,
-            text="N O W   P L A Y I N G",
+        # "Now Playing" header text
+        canvas.create_text(
+            screen_width // 2,
+            int(screen_height * 0.20) - 32,
+            text="NOW PLAYING...",
             font=("Helvetica Neue", 16, "bold"),
-            fg="#2c3e50"
+            fill="#2c3e50"
         )
-        now_playing_header.pack(pady=(10, 0))
         
-        # Current title label - large and prominent
-        self.text_label = tk.Label(
-            header_frame,
+        # Current title text
+        self.title_text_id = canvas.create_text(
+            screen_width // 2,
+            int(screen_height * 0.20) + 10,
             text="Waiting for data...",
-            font=("Helvetica Neue", 32, "bold"),
-            fg="#1a1a1a",
-            wraplength=int(screen_width * 0.85)
+            font=("Helvetica Neue", 28, "bold"),
+            fill="#1a1a1a",
+            width=int(screen_width * 0.75)
         )
-        self.text_label.pack(pady=(5, 10))
         
-        # Playlist container frame on top of overlay
-        playlist_frame = tk.Frame(root, bg="", highlightthickness=0)
-        playlist_frame.place(relx=0.5, rely=0.55, anchor="center", relwidth=0.85, relheight=0.7)
-        
-        # Playlist header
-        playlist_header = tk.Label(
-            playlist_frame,
+        # Playlist header text
+        canvas.create_text(
+            int(screen_width * 0.075) + 60,
+            int(screen_height * 0.38) + 20,
             text="UPCOMING IN PLAYLIST",
             font=("Helvetica Neue", 14, "bold"),
-            fg="#2c3e50",
-            bg="#f0f0f0",
+            fill="#2c3e50",
             anchor="w"
         )
-        playlist_header.pack(fill="x", padx=40, pady=(30, 15))
         
-        # Playlist content with scrollable frame
-        self.playlist_canvas = tk.Canvas(playlist_frame, bg="#f0f0f0", highlightthickness=0)
-        self.playlist_canvas.pack(fill="both", expand=True, padx=40, pady=(0, 30))
-        
-        # Playlist label
-        self.playlist_label = tk.Label(
-            self.playlist_canvas,
+        # Playlist content text
+        self.playlist_text_id = canvas.create_text(
+            int(screen_width * 0.075) + 60,
+            int(screen_height * 0.38) + 60,
             text="Playlist will appear here",
-            font=("Helvetica Neue", 18),
-            fg="#1a1a1a",
-            bg="#f0f0f0",
-            justify="left",
-            anchor="nw"
+            font=("Helvetica Neue", 15),
+            fill="#1a1a1a",
+            anchor="nw",
+            width=int(screen_width * 0.70)
         )
-        self.playlist_canvas.create_window(0, 0, window=self.playlist_label, anchor="nw")
+        
+        # Store canvas reference and current title for updates
+        self.canvas = canvas
+        self.current_playing_title = None
 
     def update_playing(self, current_title: str):
         """Updates the current playing label."""
-        self.text_label.config(text=current_title)
+        self.canvas.itemconfig(self.title_text_id, text=current_title)
+        self.current_playing_title = current_title
+        # Refresh playlist to bold the current item
+        if hasattr(self, 'last_playlist_items'):
+            self.update_playlist(self.last_playlist_items)
 
     def update_playlist(self, playlist_items: list):
         """Updates the playlist display with a formatted list."""
+        self.last_playlist_items = playlist_items  # Store for re-rendering
+        
         if not playlist_items:
             playlist_text = "No upcoming items"
         else:
@@ -133,11 +152,16 @@ class ImageApp:
                 # Add visual separator between items
                 if i > 0:
                     lines.append("")  # Blank line for spacing
-                lines.append(f"{i+1}.  {item}")
+                
+                # Check if this item is currently playing
+                if self.current_playing_title and item == self.current_playing_title:
+                    lines.append(f"{i+1}.  ► {item}  ◄")  # Add arrow indicators for now playing
+                else:
+                    lines.append(f"{i+1}.  {item}")
             
             playlist_text = "\n".join(lines)
         
-        self.playlist_label.config(text=playlist_text)
+        self.canvas.itemconfig(self.playlist_text_id, text=playlist_text)
 
 
 # ---------------------------
@@ -207,15 +231,14 @@ def pi_socket_server(app: ImageApp):
 
 def main():
     root = tk.Tk()
-    
-    # No need for image_path parameter anymore - uses geo.png from script directory
     app = ImageApp(root)
-
+    
     # Start socket server in background thread
     socket_thread = threading.Thread(target=pi_socket_server, args=(app,), daemon=True)
     socket_thread.start()
-
+    
     root.mainloop()
 
 if __name__ == "__main__":
     main()
+

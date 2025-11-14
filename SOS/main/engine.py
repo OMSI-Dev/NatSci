@@ -41,8 +41,7 @@ def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
 
 def parse_name_value_pairs(data: str) -> dict:
     """
-    Parse SOS name-value pair output into a dictionary.
-    Handles values in curly braces {like this} and regular values.
+    This function is called for parsing clip metadata from SOS, fetched by the get_all_name_value_pairs call. 
     """
     result = {}
     pattern = r'(\w+)\s+(?:\{([^}]+)\}|(\S+))'
@@ -52,12 +51,18 @@ def parse_name_value_pairs(data: str) -> dict:
         key = match[0]
         value = match[1] if match[1] else match[2]
         result[key] = value
-    
     return result
 
-
 class SimplePPEngine:
-    """Simplified LibreOffice Impress engine for SOS integration."""
+    """
+    Primary engine:
+    - Connects to SOS server
+    - Slide navigation for LibreOffice based on clip names 
+    - Subtitle parsing and display 
+    - Progress overlay for clip timing
+    - Clip stopwatch timer for debugging
+    - Now playing info sending to Raspberry Pi  
+    """
     
     def __init__(self, pp, pp_dictionary, sos_ip, sos_port, pi_ip="10.10.51.97", pi_port=4096):
         """
@@ -81,7 +86,6 @@ class SimplePPEngine:
         self.current_slide = -1
         self.sock = None
         
-        # GUI overlay support
         print("Initializing GUI overlay for progress bar...")
         if not QApplication.instance():
             self.qapp = QApplication(sys.argv)
@@ -93,26 +97,22 @@ class SimplePPEngine:
         self.current_clip_metadata = {}
         self.subtitle_manager = SubtitleManager(gui_overlay=self.overlay)
         self.subtitle_enabled = True
-        
-        # Create local cache directory for subtitles
         self.subtitle_cache_dir = os.path.join(os.path.dirname(__file__), 'subtitle_cache')
         os.makedirs(self.subtitle_cache_dir, exist_ok=True)
         
-        # TEMPORARY: Testing stopwatch counter for clips without duration/timer
+        # DEBUGGING : Clip stopwatch timer
         self.clip_start_time = None
         self.clip_real_start_time = None  # Track real elapsed time for progress bar
         
         # Multi-slide navigation support
-        self.current_slide_list = []  # All slides for current dataset
-        self.current_slide_index = 0  # Current position in slide list
-        self.slide_durations = []     # Duration for each slide in the list
-        self.cached_total_duration = 180.0  # Cached duration for current clip
+        self.current_slide_list = []  
+        self.current_slide_index = 0  
+        self.slide_durations = []   
+        self.cached_total_duration = 180.0  
         self.current_playlist_name = None
 
     def connect_to_sos(self, timeout=4):
         """
-        Connect to the SOS server and send enable handshake.
-        
         Args:
             timeout: Socket timeout in seconds
             
@@ -139,7 +139,7 @@ class SimplePPEngine:
                 print("[Success] SOS Handshake successful\n")
                 return True
             else:
-                print(f"⚠ Unexpected handshake response: {response}")
+                print(f"! Unexpected handshake response: {response}")
                 # Continue anyway - some SOS versions respond differently
                 return True
                 
@@ -152,6 +152,7 @@ class SimplePPEngine:
     
     def restart_current_clip(self):
         """
+        This function is used on boot. 
         Restart the currently playing clip by going to previous then next.
         This is a workaround since SOS doesn't have a direct restart command.
         
@@ -163,22 +164,17 @@ class SimplePPEngine:
         
         try:
             print("Restarting current clip...")
-            
-            # Send prev_clip command
             self.sock.sendall(b'prev_clip\n')
-            time.sleep(0.2)  # Small delay to let SOS process the command
-            
-            # Clear any response
+            time.sleep(0.2) 
+
             try:
                 self.sock.recv(1024)
             except socket.timeout:
                 pass
             
-            # Send next_clip command to return to the clip
             self.sock.sendall(b'next_clip\n')
             time.sleep(0.2)
             
-            # Clear any response
             try:
                 self.sock.recv(1024)
             except socket.timeout:
@@ -188,15 +184,15 @@ class SimplePPEngine:
             return True
             
         except socket.error as e:
-            print(f"⚠ Error restarting clip: {e}")
+            print(f"! Error restarting clip: {e}")
             return False
         except Exception as e:
-            print(f"⚠ Error restarting clip: {e}")
+            print(f"! Error restarting clip: {e}")
             return False
     
     def get_current_clip_info(self):
         """
-        Get current clip information from SOS server.
+        This function gets current clip information from SOS server via get_clip_number and get_clip_info.
         
         Returns:
             tuple: (success, clip_name)
@@ -205,21 +201,17 @@ class SimplePPEngine:
             return (False, "")
         
         try:
-            # Request current clip number
             self.sock.sendall(b'get_clip_number\n')
             
-            # Receive response
             data = self.sock.recv(1024)
             clip_number = data.decode('utf-8', 'ignore').strip()
             
             if not clip_number or not clip_number.isdigit():
                 return (False, "")
             
-            # Request clip info
             cmd = f"get_clip_info {clip_number}\n".encode('utf-8')
             self.sock.sendall(cmd)
             
-            # Receive clip info
             data = self.sock.recv(2048)
             clip_name = data.decode('utf-8', 'ignore').strip()
             
@@ -236,7 +228,7 @@ class SimplePPEngine:
     
     def fetch_clip_metadata(self, clip_number):
         """
-        Fetch all metadata for a clip from SOS server using get_all_name_value_pairs.
+        This function fetches all metadata for a clip from SOS server via get_all_name_value_pairs.
         
         Args:
             clip_number: The clip number to fetch metadata for
@@ -248,13 +240,12 @@ class SimplePPEngine:
             return {}
         
         try:
-            # Get all name-value pairs for the current clip
             command = f'get_all_name_value_pairs {clip_number}\n'.encode('utf-8')
             self.sock.sendall(command)
             data = recv_data(self.sock, timeout_idle=1.0)
             clip_data = data.decode('utf-8', 'ignore').strip()
             
-            # Parse the data into a dictionary
+            #call function to parse data into dictionary
             clip_metadata = parse_name_value_pairs(clip_data)
             clip_metadata['clip_number'] = clip_number
             
@@ -266,7 +257,7 @@ class SimplePPEngine:
     
     def get_frame_number(self):
         """
-        Get current frame number from SOS server.
+        This function gets current frame number from SOS server via get_frame_number.
         
         Returns:
             int: Current frame number, or 0 if unavailable
@@ -290,7 +281,7 @@ class SimplePPEngine:
     
     def get_frame_rate(self):
         """
-        Get frame rate from SOS server.
+        This function gets frame rate from SOS server.
         
         Returns:
             float: Frame rate in fps, defaults to 30.0
@@ -320,7 +311,7 @@ class SimplePPEngine:
     
     def fetch_subtitle_file(self, remote_path):
         """
-        Fetch subtitle file from SOS server via SSH (scp).
+        This function fetches subtitle file from SOS server via SSH (scp).
         
         Args:
             remote_path: Path to subtitle file on SOS server (e.g., /shared/sos/media/extras/...)
@@ -341,10 +332,9 @@ class SimplePPEngine:
             return local_path
 
         # SSH/SCP fetch logic
-        # You may need to adjust user and keyfile as appropriate
-        ssh_user = "sosdemo"  # Replace with actual username
+        ssh_user = "sosdemo"  
         ssh_host = self.sos_ip
-        ssh_key = None  # Optionally set path to private key file
+        ssh_key = None  #automatic key already setup on B-link
 
         scp_cmd = [
             "scp",
@@ -369,7 +359,7 @@ class SimplePPEngine:
     
     def get_slide_numbers(self, clip_name):
         """
-        Map clip name to slide number(s).
+        This function maps clip name to slide number(s) from the pp_dictionary.
         
         Args:
             clip_name: Name of the current clip
@@ -383,7 +373,7 @@ class SimplePPEngine:
     
     def get_playlist_name(self):
         """
-        Fetch the current playlist name from SOS server.
+        This function fetches the current playlist name from SOS server via get_playlist_name.
         Returns:
             str: Playlist name or None if failed
         """
@@ -400,7 +390,8 @@ class SimplePPEngine:
     
     def fetch_playlist_metadata(self):
         """
-        Fetch metadata for all clips in the current playlist using get_clip_count and get_all_name_value_pairs.
+        This function fetches metadata for all clips in the current playlist via get_clip_count and get_all_name_value_pairs.
+
         Prints duration/timer for each clip, or triggers duration tracker if missing (unless datadir is a .jpg).
         """
         if not self.sock:
@@ -450,8 +441,7 @@ class SimplePPEngine:
                 pi_sock.connect((self.pi_ip, self.pi_port))
                 msg = f"NOW_PLAYING:{clip_name}\n"
                 pi_sock.sendall(msg.encode('utf-8'))
-                # Optionally, receive acknowledgment
-                # ack = pi_sock.recv(64)
+
         except Exception as e:
             print(f"[Pi] Could not send now playing info: {e}")
 
@@ -561,7 +551,6 @@ class SimplePPEngine:
             success, clip_name = self.get_current_clip_info()
             
             if not success:
-                # Connection issue - try to reconnect
                 print("Lost connection to SOS, attempting to reconnect...")
                 if self.sock:
                     try:
@@ -635,10 +624,7 @@ class SimplePPEngine:
                     elapsed = time.time() - self.clip_start_time
                     print(f"[Stopwatch] Actual duration for '{last_clip}': {elapsed:.2f}s\n")
 
-                # Send now playing info to Pi
                 self.send_now_playing_to_pi(clip_name)
-
-                # Send clip name to Pi
                 self.send_clip_to_pi(clip_name)
 
                 # Start timer for new clip
@@ -659,14 +645,13 @@ class SimplePPEngine:
                 if playlist_name != self.current_playlist_name:
                     print(f"[Playlist] Changed: {self.current_playlist_name} -> {playlist_name}\n")
                     self.current_playlist_name = playlist_name
-                    self.current_clip_metadata = {}  # Clear previous clip metadata
-                    self.current_slide_list = []    # Clear previous slide list
-                    self.current_slide_index = 0    # Reset slide index
-                    self.clip_start_time = None     # Reset clip timing
+                    self.current_clip_metadata = {} 
+                    self.current_slide_list = []    
+                    self.current_slide_index = 0    
+                    self.clip_start_time = None     
                     self.clip_real_start_time = None
                     self.cached_total_duration = 180.0
                     self.fetch_playlist_metadata()
-                    # Send playlist info to Pi (list of clip names)
                     clip_names = self.fetch_playlist_clip_names()
                     self.send_playlist_to_pi(clip_names)
     
@@ -687,7 +672,6 @@ class SimplePPEngine:
                         self.current_slide_list = slide_nums
                         self.current_slide_index = 0                         
 
-                        # Robust duration logic
                         duration_str = self.current_clip_metadata.get('duration', None)
                         timer_str = self.current_clip_metadata.get('timer', None)
 

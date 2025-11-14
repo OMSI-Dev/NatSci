@@ -1,6 +1,6 @@
 """
-SOS Stopwatch Measurement Script
-Monitors for clip changes on the SOS server, prints clip names when detected, and prints previous clip duration using a stopwatch.
+This is a standalone script for debugging that probes the SOS server for clip changes. 
+Measures and prints the duration of each clip after it plays.
 """
 
 import socket

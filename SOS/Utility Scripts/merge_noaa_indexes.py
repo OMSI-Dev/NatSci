@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
 """
-Script to merge noaa_server_index.csv with noaa_042013.csv
-Takes precedence from noaa_server_index.csv and attempts to match
-names to assign slide numbers from noaa_042013.csv
+This is a legacy script used to merge existing noaa_042013.csv with the new index generated from sos-index_generator.py
 
-noaa_server_index.csv generated from generate_server_index.py
+- The index takes precendence in the merging. 
+- Fuzzy matching is used to assign existing slide numbers 
+- Fuzzy accuracy is reported in new columns for review
 """
 
 import csv
@@ -245,7 +244,7 @@ def merge_csv_files(server_index_path, legacy_path, output_path):
 
 if __name__ == "__main__":
     # File paths (assumes they're in the same directory as the script)
-    server_index = "noaa_server_index.csv"
+    server_index = "noaa_server-index.csv"
     legacy_file = "noaa_042013.csv"
     output_file = "noaa_merged.csv"
     

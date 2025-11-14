@@ -1,3 +1,7 @@
+"""
+Simple socket client to test connection to Raspberry Pi from B-link.
+Runs with connect.py on the Pi.
+"""
 import socket
 import time
 
