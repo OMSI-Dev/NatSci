@@ -4,8 +4,8 @@
 #include <FastLED.h>
 
 #define numLed 60*4
-#define ledPin 4
-#define swPin 2
+#define ledPin 2
+#define swPin 3
 
 MoToTimer blockTimer,hueTimer;
 
