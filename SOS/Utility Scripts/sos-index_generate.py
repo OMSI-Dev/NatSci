@@ -1,21 +1,16 @@
 """
-Script to run on the B-link.
+Executes on the B-link device in the SOS network.
 
 Generates a CSV index of all media (clip) files on SOS server.
 
-1. Scans playlist.sos files via SSH to get organizational metadata (category, majorcategory)
-2. Uses SOS API (load + get_all_name_value_pairs) to fetch computed metadata from actual media files
-3. Merges both datasets into a comprehensive CSV output
-
-* ag Note: This only actually fetches metadata for all clip names, other metadata fetching is broken and not needed anyway.
-    Metadata is best obtained from get_all_name_value_pairs SOS API call.
+1. Scans playlist.sos files via SSH 
+2. Extracts clip names and slide numbers
+3. Outputs to CSV with name and slide_numbers columns
 """
 
 import subprocess
 import os
 import csv
-import socket
-import time
 import re
 from datetime import datetime
 
@@ -210,15 +205,18 @@ def fetch_metadata_from_sos(sock, timeout=5.0, debug=False):
 
 def parse_playlist_file(playlist_content):
     """
-    Parse playlist.sos file content to extract organizational metadata.
+    Parse playlist.sos file content to extract name and slide numbers.
     
     Args:
         playlist_content: Content of playlist.sos file as string
         
     Returns:
-        dict: Dictionary with name, category, majorcategory, and data path
+        dict: Dictionary with name and slide_numbers
     """
-    result = {}
+    result = {
+        'name': '',
+        'slide_numbers': ''
+    }
     
     for line in playlist_content.split('\n'):
         line = line.strip()
@@ -231,15 +229,11 @@ def parse_playlist_file(playlist_content):
             key = key.strip()
             value = value.strip()
             
-            # Extract fields we need from playlist
+            # Extract only name and slide_numbers
             if key == 'name':
                 result['name'] = value
-            elif key == 'category':
-                result['category'] = value
-            elif key == 'majorcategory':
-                result['majorcategory'] = value
-            elif key == 'data':
-                result['data'] = value
+            elif key == 'slide_numbers':
+                result['slide_numbers'] = value
     
     return result
 
@@ -313,23 +307,17 @@ def read_remote_file(file_path, ssh_user='sosdemo', ssh_host='10.10.51.87', time
         return None
 
 
-def generate_server_index_sos_api(output_file='noaa_server_index_sos_api.csv'):
+def generate_server_index_sos_api(output_file='noaa_server_index.csv'):
     """
-    Generate comprehensive server index using SOS API for metadata.
+    Generate simple server index with names and slide numbers.
     
     Workflow:
     1. Find all playlist.sos files via SSH
-    2. Parse each playlist for organizational metadata
-    3. Extract unique media file paths
-    4. Connect to SOS server
-    5. For each unique media file:
-       - Load it in SOS (creates temporary clip 0)
-       - Fetch all metadata via get_all_name_value_pairs
-       - Merge with playlist metadata
-    6. Write to CSV
+    2. Parse each playlist for name and slide_numbers
+    3. Write to CSV
     """
     print("="*70)
-    print("SOS Server Index Generator (SOS API Method)")
+    print("SOS Server Index Generator")
     print("="*70)
     print()
     
@@ -339,14 +327,14 @@ def generate_server_index_sos_api(output_file='noaa_server_index_sos_api.csv'):
         print("No playlist files found. Exiting.")
         return
     
-    # Step 2: Parse all playlists and collect media files
+    # Step 2: Parse all playlists and collect names
     print("Parsing playlist files...")
-    media_files = {}  # {data_path: {name, category, majorcategory, directory}}
+    all_data = []
     failed_reads = 0
     
     for i, playlist_path in enumerate(playlist_files, 1):
         if i % 50 == 0:
-            print(f"  Processed {i}/{len(playlist_files)} playlists... ({len(media_files)} unique files found)")
+            print(f"  Processed {i}/{len(playlist_files)} playlists... ({len(all_data)} entries collected)")
         
         try:
             # Read playlist content
@@ -360,161 +348,41 @@ def generate_server_index_sos_api(output_file='noaa_server_index_sos_api.csv'):
             # Parse playlist
             playlist_data = parse_playlist_file(content)
             
-            # Get data path (media file)
-            data_path = playlist_data.get('data', '')
-            if not data_path:
+            # Get name
+            name = playlist_data.get('name', '')
+            if not name:
                 continue
             
-            # Store organizational metadata with this media file
-            # Extract directory from playlist path
-            directory = os.path.dirname(playlist_path).replace('/shared/sos/media/', '')
+            # Get slide numbers
+            slide_numbers = playlist_data.get('slide_numbers', '')
             
-            # If we've already seen this media file, keep the first one's metadata
-            if data_path not in media_files:
-                media_files[data_path] = {
-                    'name': playlist_data.get('name', ''),
-                    'category': playlist_data.get('category', ''),
-                    'majorcategory': playlist_data.get('majorcategory', ''),
-                    'directory': directory
-                }
+            entry = {
+                'name': name,
+                'slide_numbers': slide_numbers
+            }
+            
+            all_data.append(entry)
+            
         except KeyboardInterrupt:
-            print("\n\n⚠ Interrupted during playlist parsing. Continuing with files found so far...")
+            print("\n\n⚠ Interrupted during playlist parsing. Saving progress...")
             break
         except Exception as e:
             failed_reads += 1
             continue
     
-    print(f"✓ Found {len(media_files)} unique media files")
+    print(f"✓ Found {len(all_data)} entries")
     if failed_reads > 0:
         print(f"⚠ Skipped {failed_reads} playlists due to read failures/timeouts")
     print()
     
-    # Step 3: Connect to SOS server
-    sos_sock = connect_to_sos()
-    if not sos_sock:
-        print("Cannot connect to SOS server. Exiting.")
-        return
-    
-    # Step 4: Process each media file through SOS API
-    print("Fetching metadata via SOS API...")
-    print("This may take a while for large collections...")
-    print("(Enable debug mode on first 5 files)\n")
-    
-    all_data = []
-    failed_files = []
-    reconnect_count = 0
-    
-    media_file_list = list(media_files.items())
-    start_time = time.time()
-    
-    for i, (data_path, playlist_meta) in enumerate(media_file_list, 1):
-        # Debug mode for first few files
-        debug = (i <= 5)
-        # Progress indicator with timing
-        if i % 10 == 0 or i == 1:
-            elapsed = time.time() - start_time
-            rate = i / elapsed if elapsed > 0 else 0
-            eta = (len(media_file_list) - i) / rate if rate > 0 else 0
-            print(f"[{i}/{len(media_file_list)}] Processing... ({rate:.1f} files/sec, ETA: {eta/60:.1f} min)")
-        
-        # Show current file being processed (every 50 files or on failures)
-        if i % 50 == 0 or (failed_files and len(failed_files) % 10 == 0):
-            print(f"  Current: {os.path.basename(data_path)}")
-        
-        try:
-            # Load file in SOS with timeout
-            if not load_file_in_sos(sos_sock, data_path, timeout=8.0, debug=debug):
-                print(f"  ✗ Failed to load: {os.path.basename(data_path)}")
-                failed_files.append(data_path)
-                
-                # Check if we need to reconnect after failures
-                if len(failed_files) % 5 == 0:
-                    print("  Checking SOS connection health...")
-                    try:
-                        sos_sock.sendall(b'get_frame_number\n')
-                        sos_sock.recv(1024)
-                    except:
-                        print("  Connection lost, reconnecting...")
-                        try:
-                            sos_sock.close()
-                        except:
-                            pass
-                        sos_sock = connect_to_sos()
-                        if not sos_sock:
-                            print("  ✗ Reconnection failed. Saving progress and exiting.")
-                            break
-                        reconnect_count += 1
-                continue
-            
-            # Fetch metadata from SOS with timeout
-            sos_metadata = fetch_metadata_from_sos(sos_sock, timeout=8.0, debug=debug)
-            
-            if not sos_metadata:
-                print(f"  ✗ No metadata: {os.path.basename(data_path)}")
-                failed_files.append(data_path)
-                continue
-            
-            if debug:
-                print(f"  [DEBUG] Metadata keys: {list(sos_metadata.keys())}")
-            
-            # Merge playlist metadata with SOS metadata
-            merged_data = {
-                'directory': playlist_meta['directory'],
-                'name': playlist_meta['name'] or sos_metadata.get('name', ''),
-                'category': playlist_meta['category'],
-                'majorcategory': playlist_meta['majorcategory'],
-                'data': data_path,
-                'caption': sos_metadata.get('caption', ''),
-                'duration': sos_metadata.get('duration', ''),
-                'timer': sos_metadata.get('timer', ''),
-                'fps': sos_metadata.get('fps', ''),
-                'startframe': sos_metadata.get('startframe', ''),
-                'endframe': sos_metadata.get('endframe', ''),
-                'firstdwell': sos_metadata.get('firstdwell', ''),
-                'lastdwell': sos_metadata.get('lastdwell', '')
-            }
-            
-            all_data.append(merged_data)
-            
-            # Small delay to avoid overwhelming SOS
-            time.sleep(0.05)
-            
-        except KeyboardInterrupt:
-            print("\n\n⚠ Interrupted by user. Saving progress...")
-            break
-        except Exception as e:
-            print(f"  ✗ Unexpected error processing {os.path.basename(data_path)}: {e}")
-            failed_files.append(data_path)
-            continue
-    
-    # Close SOS connection
-    try:
-        if sos_sock:
-            sos_sock.close()
-    except:
-        pass
-    
-    total_time = time.time() - start_time
-    print(f"\n✓ Successfully processed {len(all_data)} files in {total_time/60:.1f} minutes")
-    if failed_files:
-        print(f"⚠ Failed to process {len(failed_files)} files")
-        print(f"  (Check console output above for details)")
-    if reconnect_count > 0:
-        print(f"ℹ Reconnected to SOS {reconnect_count} times")
-    print()
-    
-    # Step 5: Write to CSV
+    # Step 3: Write to CSV
     if not all_data:
         print("No data to write. Exiting.")
         return
     
     print(f"Writing data to {output_file}...")
     
-    fieldnames = [
-        'directory', 'name', 'category', 'majorcategory', 'data',
-        'caption', 'duration', 'timer', 'fps', 'startframe', 'endframe',
-        'firstdwell', 'lastdwell'
-    ]
+    fieldnames = ['name', 'slide_numbers']
     
     with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)

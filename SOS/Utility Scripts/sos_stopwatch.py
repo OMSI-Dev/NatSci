@@ -1,4 +1,5 @@
 """
+Executes on the B-link device in the SOS network.
 This is a standalone script for debugging that probes the SOS server for clip changes. 
 Measures and prints the duration of each clip after it plays.
 """

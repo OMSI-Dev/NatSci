@@ -1,5 +1,6 @@
 """
-Simple socket client to test connection to Raspberry Pi from B-link.
+Executes on the B-link device in the SOS network.
+Simple socket client to test connection to Raspberry Pi.
 Runs with connect.py on the Pi.
 """
 import socket

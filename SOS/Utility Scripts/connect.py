@@ -1,4 +1,5 @@
 """
+Executes on the Raspberry Pi in the SOS network.
 Simple socket server for Raspberry Pi communication, to run on the Pi side.
 Runs with blink_test.py on the B-link.
 """
