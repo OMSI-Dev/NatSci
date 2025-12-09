@@ -3,7 +3,7 @@ Executes on the B-link device in the SOS network.
 This is a standalone script for connecting to the SOS server. 
 Returns current clip information if a playlist is loaded. 
 
-IMPORTANT: The OS app must be running for the connection to succeed. 
+IMPORTANT: The SOS app must be running for the connection to succeed. 
 """
 
 import socket
