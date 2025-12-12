@@ -1,75 +1,62 @@
-#include <Wire.h>
-#include <Adafruit_NeoPixel.h>
+/*
+  LED strip test with Trinker M0 connected to the Teensy with the OLED_buttons_test pinout
+*/
 
-// I2C address for this device
-#define I2C_ADDRESS 0x10
+#include <Adafruit_NeoPixel.h>
 
 // LED setup
 #define LED_PIN 4
-#define NUM_LEDS 1  // Change if using a strip
+#define NUM_LEDS 6  // Change if using a strip
 Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-// Storage for incoming RGB data
-uint8_t rgbData[3] = {0, 0, 0};
-volatile bool newDataReceived = false;
-
-
-
-// I2C receive interrupt handler
-void receiveEvent(int numBytes) {
-  if (numBytes >= 3) {
-    rgbData[0] = Wire.read();  // Red
-    rgbData[1] = Wire.read();  // Green
-    rgbData[2] = Wire.read();  // Blue
-    
-    // Set flag for main loop to process
-    newDataReceived = true;
-  }
-  
-  // Clear any extra bytes
-  while (Wire.available()) {
-    Wire.read();
-  }
-}
-
 void setup() {
-  // Initialize I2C as slave
-  Wire.begin(I2C_ADDRESS);
-  Wire.onReceive(receiveEvent);  // Register receive callback
+  Serial.begin(115200);
   
   // Initialize LED strip
   strip.begin();
-  strip.setBrightness(255);  // Full brightness
-  strip.show(); // Initialize all pixels to 'off'
+  strip.show();  // Turn off all LEDs
   
-  // Optional: Flash LED to show it's ready
-  strip.setPixelColor(0, strip.Color(50, 50, 50));
-  strip.show();
-  delay(500);
-  strip.setPixelColor(0, strip.Color(0, 0, 0));
-  strip.show();
-}
-
-
-
-void updateLED() {
-  // Set all LEDs to the received color
-  uint32_t color = strip.Color(rgbData[0], rgbData[1], rgbData[2]);
-  
-  for(int i = 0; i < NUM_LEDS; i++) {
-    strip.setPixelColor(i, color);
-  }
-  
-  strip.show();
+  Serial.println("Trinket M0 LED Test Started");
 }
 
 void loop() {
-  // If new data was received via I2C, update the LED
-  if (newDataReceived) {
-    updateLED();
-    newDataReceived = false;
+  // Red - all LEDs on
+  Serial.println("RED");
+  for(int i = 0; i < NUM_LEDS; i++) {
+    strip.setPixelColor(i, strip.Color(255, 0, 0));
   }
+  strip.show();
+  delay(1000);
   
-  // Main loop can do other things here
-  delay(10);
+  // Green - all LEDs on
+  Serial.println("GREEN");
+  for(int i = 0; i < NUM_LEDS; i++) {
+    strip.setPixelColor(i, strip.Color(0, 255, 0));
+  }
+  strip.show();
+  delay(1000);
+  
+  // Blue - all LEDs on
+  Serial.println("BLUE");
+  for(int i = 0; i < NUM_LEDS; i++) {
+    strip.setPixelColor(i, strip.Color(0, 0, 255));
+  }
+  strip.show();
+  delay(1000);
+  
+  // White - all LEDs on
+  Serial.println("WHITE");
+  for(int i = 0; i < NUM_LEDS; i++) {
+    strip.setPixelColor(i, strip.Color(255, 255, 255));
+  }
+  strip.show();
+  delay(1000);
+  
+  // Off
+  Serial.println("OFF");
+  for(int i = 0; i < NUM_LEDS; i++) {
+    strip.setPixelColor(i, strip.Color(0, 0, 0));
+  }
+  strip.show();
+  delay(1000);
 }

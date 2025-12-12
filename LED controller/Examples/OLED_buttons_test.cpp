@@ -1,9 +1,13 @@
-/* Button input test for OLED display on Teensy 4.0
+/* For Teensy 4.0
+
+OLED display:
 SDA > pin 18 
 SCL > pin 19
 VCC > 3.3V
 GND > GND
-Buttons > pins 2-8
+
+Button legs 1 > pins 2-8
+Button legs 2 > GND
 */
 
 
@@ -38,17 +42,27 @@ void checkButtons() {
   int buttonPins[] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4, BUTTON_5, BUTTON_6, BUTTON_7};
   
   for(int i = 0; i < 7; i++) {
-    if(digitalRead(buttonPins[i]) == LOW) {  // Button pressed (LOW)
+    int pinState = digitalRead(buttonPins[i]);
+    
+    // Debug: print all pin states
+    Serial.print("Pin ");
+    Serial.print(buttonPins[i]);
+    Serial.print(": ");
+    Serial.print(pinState);
+    Serial.print("  ");
+    
+    if(pinState == LOW) {  // Button pressed (LOW)
       unsigned long currentTime = millis();
       if(currentTime - lastPressTime > DEBOUNCE_DELAY) {
         lastButtonPressed = i + 1;  // Button number 1-7
         lastPressTime = currentTime;
-        Serial.print("Button ");
+        Serial.print("*** BUTTON ");
         Serial.print(lastButtonPressed);
-        Serial.println(" pressed");
+        Serial.println(" PRESSED ***");
       }
     }
   }
+  Serial.println();
 }
 
 void setup() {
@@ -115,8 +129,32 @@ void loop() {
   // Check for button presses
   checkButtons();
   
-  // Display feedback
-  displayButtonFeedback();
+  // Display feedback on OLED
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println("Button Test - Raw Pins");
+  display.println("Pin 2-8 States:");
+  display.println();
   
-  delay(50);
+  // Display each pin state on OLED
+  int buttonPins[] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4, BUTTON_5, BUTTON_6, BUTTON_7};
+  for(int i = 0; i < 7; i++) {
+    display.print("Pin ");
+    display.print(buttonPins[i]);
+    display.print(": ");
+    display.println(digitalRead(buttonPins[i]) == LOW ? "PRESS" : "HIGH");
+  }
+  
+  if(lastButtonPressed > 0) {
+    display.println();
+    display.setTextSize(2);
+    display.print("Button: ");
+    display.println(lastButtonPressed);
+  }
+  
+  display.display();
+  
+  delay(200);  // Update less frequently for readability
 }
