@@ -9,8 +9,8 @@
  * 
  * Button Functions:
  * - Buttons 1-4: Select preset slots (load from Teensy EEPROM)
- * - Button 5 (SAVE PRESET): Save current RGB to Teensy EEPROM preset slot
- * - Button 6 (SAVE TRINKET): Save current RGB to Trinket EEPROM (persistent)
+ * - Button 5 (SEND): Send current RGB value to Trinket (live update only)
+ * - Button 6 (SAVE): Save current RGB value to Trinket EEPROM (persistent)
  * - Button 7 (EDIT): Cycle through R→G→B→Neutral edit modes
  * 
  * Edit Mode:
@@ -38,8 +38,8 @@
 #define BUTTON_2 3
 #define BUTTON_3 4
 #define BUTTON_4 5
-#define BUTTON_5 6  // SAVE PRESET button (Teensy EEPROM)
-#define BUTTON_6 7  // SAVE TRINKET button (Trinket EEPROM)
+#define BUTTON_5 6  // SEND button
+#define BUTTON_6 7  // SAVE button
 #define BUTTON_7 8  // EDIT button
 
 // Potentiometer pin
@@ -311,29 +311,22 @@ void checkButtons() {
           // Display preset on LED strip immediately
           sendRGBToLED(currentColor);
         }
-        // Button 5 (SAVE PRESET): Save to Teensy EEPROM preset slot
+        // Button 5 (SEND): Send to LED (temporary display)
         else if(i == 4) {
-          if(selectedPreset >= 0) {  // Works from any mode
+          if(selectedPreset >= 0 && editMode == 0) {  // Only in neutral mode
+            sendRGBToLED(currentColor);
+            Serial.println("Sent RGB to LED strip");
+          }
+        }
+        // Button 6 (SAVE): Save to Trinket EEPROM (persistent)
+        else if(i == 5) {
+          if(selectedPreset >= 0 && editMode == 0) {  // Only in neutral mode
             // Update Teensy EEPROM preset
             presetColors[selectedPreset] = currentColor;
             savePresetToEEPROM(selectedPreset);
             
-            // Also send to LED for visual confirmation
-            sendRGBToLED(currentColor);
-            
-            // Return to neutral mode after saving
-            editMode = 0;
-            Serial.println("Saved preset to Teensy EEPROM");
-          }
-        }
-        // Button 6 (SAVE TRINKET): Save to Trinket EEPROM (persistent)
-        else if(i == 5) {
-          if(selectedPreset >= 0) {  // Works from any mode
-            // Save to Trinket EEPROM only
+            // Save to Trinket EEPROM
             saveRGBToTrinket(currentColor);
-            
-            // Return to neutral mode after saving
-            editMode = 0;
           }
         }
         // Button 7 (EDIT): Cycle through edit modes (R → G → B → Neutral)
