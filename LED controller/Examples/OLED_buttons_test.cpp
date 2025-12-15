@@ -1,4 +1,5 @@
 /* For Teensy 4.0
+Displays a console on OLED display showing button presses from buttons connected to pins 2-8.
 
 OLED display:
 SDA > pin 18 
