@@ -83,7 +83,7 @@ def parseSlideNames(slide_file):
     All other metadata (captions, duration, fps, etc.) is fetched from SOS dynamically.
     
     Supports two CSV formats:
-    1. Headers format: name,slide_numbers (or pretty_name,slide_numbers)
+    1. Headers format: name,slide_numbers
     2. Legacy format: clip_name,slide_numbers (comma or semicolon separated)
     
     Args:
@@ -108,10 +108,8 @@ def parseSlideNames(slide_file):
                 reader = csv.DictReader(f)
                 for line_num, row in enumerate(reader, start=2):  # Start at 2 because of header
                     try:
-                        # Get clip name (prefer 'name', fallback to 'pretty_name')
+                        # Get clip name from 'name' column
                         clip_name = row.get('name', '').strip()
-                        if not clip_name:
-                            clip_name = row.get('pretty_name', '').strip()
                         
                         if not clip_name:
                             continue

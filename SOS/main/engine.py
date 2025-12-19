@@ -606,16 +606,18 @@ class SimplePPEngine:
                         self.pp.goto(target_slide)
                         self.current_slide = target_slide
                 
-                # Get current subtitle text
-                subtitle_text = ""
+                # Update subtitles via SubtitleManager (handles both primary and secondary)
                 if self.subtitle_enabled and self.subtitle_manager.has_subtitles():
                     if self.subtitle_manager.current_clip == clip_name:
-                        from subtitles import find_subtitle_at_time
-                        subtitle_text = find_subtitle_at_time(self.subtitle_manager.subtitles, current_time)
-                
-                # Update progress overlay with slide transition markers
-                self.overlay.update_progress(current_time, total_duration, subtitle_text, 
-                                            slide_count=len(self.current_slide_list))
+                        # SubtitleManager.update() will call overlay.update_progress with subtitle texts
+                        # We need to update the total duration separately
+                        self.subtitle_manager.update(current_frame, fps)
+                        # Also update slide count for tick marks
+                        self.overlay.slide_count = len(self.current_slide_list)
+                else:
+                    # No subtitles, update progress without them
+                    self.overlay.update_progress(current_time, total_duration, "", 
+                                                slide_count=len(self.current_slide_list))
                 
 
             if clip_name and clip_name != last_clip:
@@ -712,14 +714,35 @@ class SimplePPEngine:
                             self.pp.goto(target_slide)
                             self.current_slide = target_slide
                         
-                        # Load subtitles when clip changes
+                        # Load subtitles when clip changes, check if subtitles
                         print()
                         if self.subtitle_enabled:
                             caption_path = self.current_clip_metadata.get('caption', '')
+                            caption2_path = self.current_clip_metadata.get('caption2', '')  # Secondary subtitles (Spanish)
+                            
                             if caption_path:
+                                caption_path = caption_path.strip()
                                 print(f"[Subtitles]: {clip_name}")
                                 
-                                # Try to fetch from SOS server if path looks like a server path
+                                # Handle caption2 - might be relative path or have space before filename
+                                if caption2_path:
+                                    caption2_path = caption2_path.strip()
+                                    print(f"[Debug] Raw caption2_path: '{caption2_path}'")
+                                    
+                                    # Handle case where there's a space before the filename
+                                    # e.g., ".../directory /filename.srt" should become ".../directory/filename.srt"
+                                    if ' /' in caption2_path:
+                                        caption2_path = caption2_path.replace(' /', '/')
+                                    
+                                    # If it starts with /, it's already a full path
+                                    # Otherwise, construct full path from caption directory
+                                    if not caption2_path.startswith('/'):
+                                        caption_dir = os.path.dirname(caption_path)
+                                        caption2_path = f"{caption_dir}/{caption2_path}"
+                                    
+                                    print(f"[Debug] caption2_path after processing: '{caption2_path}'")
+                                
+                                # Try to fetch primary caption from SOS server if path looks like a server path
                                 local_subtitle_path = None
                                 if caption_path.startswith('/shared/sos/') or caption_path.startswith('/'):
                                     # This is a server path - try to fetch it
@@ -733,8 +756,21 @@ class SimplePPEngine:
                                     if os.path.exists(relative_path):
                                         local_subtitle_path = relative_path
                                 
+                                # Try to fetch secondary caption (caption2) if available
+                                local_subtitle2_path = None
+                                if caption2_path:
+                                    if caption2_path.startswith('/shared/sos/') or caption2_path.startswith('/'):
+                                        local_subtitle2_path = self.fetch_subtitle_file(caption2_path)
+                                    elif os.path.exists(caption2_path):
+                                        local_subtitle2_path = caption2_path
+                                    else:
+                                        relative_path2 = os.path.join(os.path.dirname(__file__), caption2_path)
+                                        if os.path.exists(relative_path2):
+                                            local_subtitle2_path = relative_path2
+                                
                                 if local_subtitle_path:
-                                    self.subtitle_manager.load_subtitles_for_clip(clip_name, local_subtitle_path)
+                                    # Load with dual subtitle support
+                                    self.subtitle_manager.load_subtitles_for_clip(clip_name, local_subtitle_path, local_subtitle2_path)
                                     print(f"[Subtitles] Ready for display\n")
                                 else:
                                     print(f"[Subtitles-error] Could not load subtitle file\n")
@@ -754,6 +790,46 @@ class SimplePPEngine:
         print("Engine stopped")
     
     def stop(self):
-        """Stop the engine."""
+        """Stop the engine forcefully."""
+        print("\nInitiating shutdown...")
         self.running = False
-        self.overlay.stop()
+        
+        # Force close socket
+        if self.sock:
+            try:
+                self.sock.shutdown(socket.SHUT_RDWR)
+            except:
+                pass
+            try:
+                self.sock.close()
+            except:
+                pass
+            self.sock = None
+        
+        # Force stop GUI overlay
+        try:
+            if self.overlay:
+                self.overlay.stop()
+                self.overlay.close()
+        except:
+            pass
+        
+        # Force close presentation
+        try:
+            if self.pp:
+                self.pp.close()
+        except:
+            pass
+        
+        # Force quit Qt application
+        try:
+            if self.qapp:
+                self.qapp.quit()
+        except:
+            pass
+        
+        print("Engine stopped - exit complete")
+        
+        # Force exit process
+        import sys
+        sys.exit(0)

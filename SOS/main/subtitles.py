@@ -234,6 +234,7 @@ def display_progress(current_time, total_duration, subtitle_text="", current_fra
 class SubtitleManager:
     """
     Manages subtitle loading and synchronization for clips.
+    Supports dual subtitles (e.g., Spanish and English).
     """
     
     def __init__(self, gui_overlay=None):
@@ -244,25 +245,86 @@ class SubtitleManager:
             gui_overlay: Optional ProgressOverlay instance for GUI display
         """
         self.current_clip = None
-        self.subtitles = []
+        self.subtitles = []  # Primary subtitles (English)
+        self.subtitles2 = []  # Secondary subtitles (Spanish)
         self.duration = 0.0
         self.last_frame = -1
         self.gui_overlay = gui_overlay
         self.use_gui = gui_overlay is not None
+        
+        # Separate accumulators for each subtitle track
+        self.accumulator = []
+        self.last_index = -1
+        self.accumulator2 = []
+        self.last_index2 = -1
     
-    def load_subtitles_for_clip(self, clip_name, caption_path):
+    def _find_subtitle_at_time(self, subtitles, time_seconds, accumulator, last_index, max_chars=200):
         """
-        Load subtitles for a new clip.
+        Find and accumulate subtitles over time until line is full, then clear and continue.
+        Instance-based version to avoid global state conflicts.
+        
+        Args:
+            subtitles: List of subtitle dictionaries from parse_srt_file()
+            time_seconds: Current playback time in seconds
+            accumulator: List to accumulate subtitle text
+            last_index: Last subtitle index seen
+            max_chars: Maximum characters before clearing (roughly screen width)
+            
+        Returns:
+            tuple: (subtitle_text, updated_accumulator, updated_last_index)
+        """
+        # Find current active subtitle
+        current_sub = None
+        for sub in subtitles:
+            if sub['start_time'] <= time_seconds <= sub['end_time']:
+                current_sub = sub
+                break
+        
+        # If no subtitle is active, keep showing accumulated text
+        if not current_sub:
+            return (" ".join(accumulator), accumulator, last_index)
+        
+        # If this is a new subtitle we haven't seen yet
+        if current_sub['index'] != last_index:
+            last_index = current_sub['index']
+            
+            # Clean subtitle text (remove newlines)
+            new_text = current_sub['text'].replace('\n', ' ')
+            
+            # Check if adding this would exceed max_chars
+            current_length = sum(len(text) for text in accumulator)
+            
+            if current_length + len(new_text) > max_chars:
+                # Clear and start fresh with new subtitle
+                accumulator = [new_text]
+            else:
+                # Add to accumulator
+                accumulator.append(new_text)
+        
+        # Return accumulated text joined with spaces
+        return (" ".join(accumulator), accumulator, last_index)
+    
+    def load_subtitles_for_clip(self, clip_name, caption_path, caption2_path=None):
+        """
+        Load subtitles for a new clip. Supports dual subtitles.
         
         Args:
             clip_name: Name of the current clip
-            caption_path: Path to the .srt file (can be None)
+            caption_path: Path to the primary .srt file (can be None)
+            caption2_path: Path to the secondary .srt file (can be None)
             
         Returns:
             bool: True if subtitles loaded, False otherwise
         """
         self.current_clip = clip_name
         self.last_frame = -1
+        self.subtitles2 = []  # Reset secondary subtitles
+        
+        # Reset accumulators for new clip
+        self.accumulator = []
+        self.last_index = -1
+        self.accumulator2 = []
+        self.last_index2 = -1
         
         if not caption_path or not caption_path.strip():
             print(f"No captions for clip: {clip_name}")
@@ -270,13 +332,24 @@ class SubtitleManager:
             self.duration = 0.0
             return False
         
-        print(f"  → Filepath on server: {caption_path} \n")
+        print(f"  → Primary filepath: {caption_path} \n")
         
         self.subtitles = parse_srt_file(caption_path)
         self.duration = get_duration_from_subtitles(self.subtitles)
         
+        # Load secondary subtitles if provided
+        if caption2_path and caption2_path.strip():
+            print(f"  → Secondary filepath: {caption2_path} \n")
+            self.subtitles2 = parse_srt_file(caption2_path)
+            # Update duration if secondary subtitles are longer
+            duration2 = get_duration_from_subtitles(self.subtitles2)
+            if duration2 > self.duration:
+                self.duration = duration2
+        
         if self.subtitles:
             print(f"  → Duration: {format_time(self.duration)}")
+            if self.subtitles2:
+                print(f"  → Dual subtitles loaded (primary + secondary)")
             return True
         else:
             print(f"  No subtitles loaded")
@@ -296,18 +369,33 @@ class SubtitleManager:
                 print("\n[Clip looped]")  # Still print to console
             else:
                 print("\n[Clip looped]")
+            # Reset accumulators on loop
+            self.accumulator = []
+            self.last_index = -1
+            self.accumulator2 = []
+            self.last_index2 = -1
         
         self.last_frame = current_frame
         
         # Convert frame to time
         current_time = current_frame / fps if fps > 0 else 0
         
-        # Find current subtitle
-        subtitle_text = find_subtitle_at_time(self.subtitles, current_time)
+        # Find current subtitle (primary - English)
+        subtitle_text, self.accumulator, self.last_index = self._find_subtitle_at_time(
+            self.subtitles, current_time, self.accumulator, self.last_index
+        )
+        
+        # Find secondary subtitle if available (Spanish)
+        subtitle_text2 = ""
+        if self.subtitles2:
+            subtitle_text2, self.accumulator2, self.last_index2 = self._find_subtitle_at_time(
+                self.subtitles2, current_time, self.accumulator2, self.last_index2
+            )
         
         # Display progress - use GUI if available, otherwise terminal
         if self.use_gui and self.gui_overlay and self.gui_overlay.is_active():
-            self.gui_overlay.update_progress(current_time, self.duration, subtitle_text, current_frame)
+            # Note: slide_count is managed by the engine, we just pass 1 here
+            self.gui_overlay.update_progress(current_time, self.duration, subtitle_text, 1, subtitle_text2)
         else:
             display_progress(current_time, self.duration, subtitle_text, current_frame)
     

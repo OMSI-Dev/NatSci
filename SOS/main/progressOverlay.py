@@ -64,7 +64,7 @@ class ProgressOverlay(QWidget):
     A transparent/semi-transparent overlay window that shows playback progress.
     """
     
-    def __init__(self, position='bottom', opacity=0.85, y_offset=35):
+    def __init__(self, position='bottom', opacity=0.85, y_offset=0):
         """
         Initialize the progress overlay.
         
@@ -82,6 +82,7 @@ class ProgressOverlay(QWidget):
         self.current_time = 0.0
         self.total_duration = 0.0
         self.current_subtitle = ""
+        self.current_subtitle2 = ""  # Secondary subtitle (Spanish)
         self.current_frame = 0
         self.slide_count = 1  # Number of slides in current dataset
         
@@ -101,48 +102,59 @@ class ProgressOverlay(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground)
         
         screen = QApplication.primaryScreen().geometry()
-        self.setFixedSize(screen.width(), 180)
+        self.setFixedSize(screen.width(), 130)
     
     def _create_widgets(self):
         """Create the UI widgets for the overlay."""
         # Main layout for content
         layout = QVBoxLayout()
-        layout.setContentsMargins(30, 15, 30, 15)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 5, 0, 0)
+        layout.setSpacing(5)
         
         # Time display (current / total) - right aligned
         self.time_label = QLabel("0:00 / 0:00")
-        self.time_label.setFont(QFont('Arial', 14, QFont.Bold))
+        self.time_label.setFont(QFont('Arial', 12, QFont.Bold))
         self.time_label.setStyleSheet("color: #ffffff; background: transparent;")
         self.time_label.setAlignment(Qt.AlignRight)
+        self.time_label.setContentsMargins(10, 0, 10, 0)
         layout.addWidget(self.time_label)
         
-        # Progress bar with tick marks - desaturated purple/magenta color
+        # Secondary subtitle display (Spanish) - shown on top
+        self.subtitle_label2 = QLabel("")
+        self.subtitle_label2.setFont(QFont('Arial', 12, QFont.Bold))
+        self.subtitle_label2.setStyleSheet("color: #ffffff; background: rgba(0, 0, 0, 150); padding: 2px;")
+        self.subtitle_label2.setWordWrap(True)
+        self.subtitle_label2.setMinimumHeight(25)
+        self.subtitle_label2.setContentsMargins(10, 0, 10, 0)
+        layout.addWidget(self.subtitle_label2)
+        
+        # Primary subtitle display (English) - shown below Spanish
+        self.subtitle_label = QLabel("")
+        self.subtitle_label.setFont(QFont('Arial', 12))
+        self.subtitle_label.setStyleSheet("color: #ffff00; background: rgba(0, 0, 0, 150); padding: 2px;")
+        self.subtitle_label.setWordWrap(True)
+        self.subtitle_label.setMinimumHeight(25)
+        self.subtitle_label.setContentsMargins(10, 0, 10, 0)
+        layout.addWidget(self.subtitle_label)
+        
+        # Progress bar with tick marks - RED color, half height, at bottom
         self.progress_bar = TickedProgressBar()
         self.progress_bar.setMinimum(0)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setFixedHeight(25)
+        self.progress_bar.setFixedHeight(12)
         self.progress_bar.setStyleSheet("""
             QProgressBar {
-                border: 1px solid #210dff;
-                border-radius: 2px;
+                border: none;
+                border-radius: 0px;
                 background-color: rgba(0, 0, 0, 200);
             }
             QProgressBar::chunk {
-                background-color: #210dff;
-                border-radius: 3px;
+                background-color: #ff0000;
+                border-radius: 0px;
             }
         """)
         layout.addWidget(self.progress_bar)
-        
-        # Subtitle display - allow more height for wrapping
-        self.subtitle_label = QLabel("")
-        self.subtitle_label.setFont(QFont('Arial', 12))
-        self.subtitle_label.setStyleSheet("color: #ffff00; background: transparent;")
-        self.subtitle_label.setWordWrap(True)
-        self.subtitle_label.setMinimumHeight(50)  # Allow space for multiple lines
-        layout.addWidget(self.subtitle_label)
         
         # # Frame counter (smaller, for debugging)
         # self.frame_label = QLabel("Frame: 0")
@@ -177,19 +189,21 @@ class ProgressOverlay(QWidget):
         y = max(0, min(screen.height() - window_rect.height(), y - self.y_offset))
         self.move(x, y)
     
-    def update_progress(self, current_time, total_duration, subtitle_text="", slide_count=1):
+    def update_progress(self, current_time, total_duration, subtitle_text="", slide_count=1, subtitle_text2=""):
         """
         Update the progress display.
         
         Args:
             current_time: Current playback time in seconds
             total_duration: Total duration in seconds
-            subtitle_text: Current subtitle text to display
+            subtitle_text: Current subtitle text to display (primary/English)
             slide_count: Number of slides in the dataset (for tick marks)
+            subtitle_text2: Secondary subtitle text to display (Spanish)
         """
         self.current_time = current_time
         self.total_duration = total_duration
         self.current_subtitle = subtitle_text
+        self.current_subtitle2 = subtitle_text2
         self.slide_count = slide_count
         
         self._update_ui()
@@ -211,6 +225,13 @@ class ProgressOverlay(QWidget):
         self.progress_bar.setValue(progress)
         self.progress_bar.set_tick_count(self.slide_count) #multiple slides
         
+        # Update secondary subtitle (Spanish) - shown on top
+        if self.current_subtitle2:
+            self.subtitle_label2.setText(f"► {self.current_subtitle2}")
+        else:
+            self.subtitle_label2.setText("")
+        
+        # Update primary subtitle (English) - shown below
         if self.current_subtitle:
             self.subtitle_label.setText(f"► {self.current_subtitle}")
         else:

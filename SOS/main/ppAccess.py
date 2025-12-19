@@ -40,6 +40,7 @@ class PowerPointShowController:
         try:
             from win32com.client import Dispatch
             import time
+            import subprocess
             
             if self.is_powerpoint:
                 # Use PowerPoint
@@ -55,11 +56,41 @@ class PowerPointShowController:
                 print(f"[Success] PowerPoint launched: {self.count} slides")
                 
             elif self.is_libreoffice:
-                # Use LibreOffice via COM
+                # Launch LibreOffice with --norestore parameter to disable crash recovery
+                file_url = "file:///" + self.slideshow.replace("\\", "/")
+                
+                # Find LibreOffice installation path
+                libreoffice_paths = [
+                    r"C:\Program Files\LibreOffice\program\soffice.exe",
+                    r"C:\Program Files (x86)\LibreOffice\program\soffice.exe"
+                ]
+                
+                soffice_path = None
+                for path in libreoffice_paths:
+                    if os.path.exists(path):
+                        soffice_path = path
+                        break
+                
+                if not soffice_path:
+                    print("Warning: Could not find LibreOffice installation, attempting COM connection only")
+                else:
+                    # Start LibreOffice process with --norestore flag AND the file to open
+                    # This prevents LibreOffice from creating a blank presentation
+                    subprocess.Popen([
+                        soffice_path,
+                        "--norestore",
+                        "--nologo",
+                        self.slideshow  # Open the file directly
+                    ])
+                    
+                    # Wait for LibreOffice to initialize
+                    time.sleep(3)
+                
+                # Connect via COM
                 self.app = Dispatch('com.sun.star.ServiceManager')
                 desktop = self.app.createInstance('com.sun.star.frame.Desktop')
                 
-                file_url = "file:///" + self.slideshow.replace("\\", "/")
+                # Open the presentation
                 self.show = desktop.loadComponentFromURL(file_url, "_blank", 0, ())
                 
                 if RunShow:
