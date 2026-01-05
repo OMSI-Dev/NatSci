@@ -1,22 +1,33 @@
-/* Teensy 4.0 RGB LED Controller with EEPROM Storage
+/* Teensy 4.0 RGB LED Controller with EEPROM Storage and Animation Mode
  * 
  * Hardware connections:
- * - OLED Display (128x64): SDA > pin 18, SCL > pin 19, VCC > 3.3V, GND > GND
- * - Buttons 1-7: One leg > pins 2-8, Other leg > GND
- * - Potentiometer: Wiper > pin A0 (pin 14), VCC > 3.3V, GND > GND
- * - I2C to Trinket: Wire1 on pins 16/17 (3.3V bus)
+ * - OLED Display (128x64): SDA > pin 18, SCL > pin 19, VCC > 5V, GND > GND
+ * - Rotary Encoder: A1 > pin 15, B1 > pin 14, GND > GND
+ * - Buttons S1-S4: pins 2-5 (Presets 1-4)
+ * - Button S5 (EDIT): pin 6
+ * - Button S6 (SAVE): pin 7
+ * - Button S7 (WRITE): pin 8
+ * - Button S8 (EXPORT/Animation Toggle): pin 9
+ * - LED Indicator: pin 10 (for S8 button)
+ * - I2C to ItsyBitsy: Wire1 on pins 16/17 (3.3V bus)
  * - I2C to OLED: Wire on pins 18/19 (3.3V bus)
  * 
  * Button Functions:
- * - Buttons 1-4: Select preset slots (load from Teensy EEPROM)
- * - Button 5 (SAVE PRESET): Save current RGB to Teensy EEPROM preset slot
- * - Button 6 (SAVE TRINKET): Save current RGB to Trinket EEPROM (persistent)
- * - Button 7 (EDIT): Cycle through R→G→B→Neutral edit modes
+ * - S1-S4: Select preset slots (Static RGB or Animation based on mode)
+ * - S5 (EDIT): Cycle through R→G→B→Neutral edit modes
+ * - S6 (WRITE): Save current RGB to ItsyBitsy EEPROM (persistent)
+ * - S7 (EXPORT): Save current RGB to Teensy EEPROM preset slot
+ * - S8 (ANIM): Toggle Animation Mode ON/OFF
  * 
  * Edit Mode:
- * - Press EDIT to cycle: R (red blinks) → G (green blinks) → B (blue blinks) → Neutral (no blink)
- * - In R/G/B mode: potentiometer edits that color channel (0-255)
+ * - Press EDIT to cycle: Neutral → R (red blinks) → G (green blinks) → B (blue blinks) → Neutral
+ * - In R/G/B mode: rotary encoder edits that color channel (0-255)
  * - In Neutral mode: no editing, can send to LED or save to presets
+ * 
+ * Animation Mode:
+ * - When toggled ON: LED indicator lights up, presets become animation slots
+ * - OLED displays "Animation Preset X" instead of "Preset X"
+ * - Animation sequences not yet implemented
  */
 
 #include <Wire.h>
@@ -25,7 +36,7 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 
-#define TRINKET_ADDRESS 0x10
+#define ITSYBITSY_ADDRESS 0x10
 
 // OLED display settings
 #define SCREEN_WIDTH 128
@@ -33,21 +44,24 @@
 #define OLED_RESET -1
 #define SCREEN_ADDRESS 0x3C
 
-// Button pins (2-8)
-#define BUTTON_1 2
-#define BUTTON_2 3
-#define BUTTON_3 4
-#define BUTTON_4 5
-#define BUTTON_5 6  // SAVE PRESET button (Teensy EEPROM)
-#define BUTTON_6 7  // SAVE TRINKET button (Trinket EEPROM)
-#define BUTTON_7 8  // EDIT button
+// Button pins
+#define BUTTON_S1 2      // Preset 1
+#define BUTTON_S2 3      // Preset 2
+#define BUTTON_S3 4      // Preset 3
+#define BUTTON_S4 5      // Preset 4
+#define BUTTON_S5 6      // EDIT button
+#define BUTTON_S6 7      // WRITE button
+#define BUTTON_S7 8      // EXPORT button
+#define BUTTON_S8 9      // ANIM/Animation Toggle button
+#define LED_S8 10        // LED indicator for S8 button
 
-// Potentiometer pin
-#define POT_PIN A0  // Pin 14
+// Rotary encoder pins
+#define ENCODER_A 15     // A1
+#define ENCODER_B 14     // B1
 
 // I2C Commands
 #define CMD_SEND_LED 0x30      // Send RGB to LED (3 bytes: R, G, B)
-#define CMD_SAVE_LED 0x40      // Save RGB to Trinket EEPROM (3 bytes: R, G, B)
+#define CMD_SAVE_LED 0x40      // Save RGB to ItsyBitsy EEPROM (3 bytes: R, G, B)
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -70,13 +84,16 @@ RGBColor currentColor = {0, 0, 0};
 // Edit mode: 0 = Neutral, 1 = Edit R, 2 = Edit G, 3 = Edit B
 int editMode = 0;
 
+// Animation mode
+bool animationMode = false;  // false = Static RGB mode, true = Animation mode
+
+// Rotary encoder state
+volatile int lastEncoderA = HIGH;
+volatile int lastEncoderB = HIGH;
+
 // Button state tracking
 unsigned long lastPressTime = 0;
 const unsigned long DEBOUNCE_DELAY = 200;
-
-// Potentiometer value (0-255)
-uint8_t potValue = 0;
-uint8_t lastPotValue = 0;
 
 // Blink state for editing indicator
 unsigned long lastBlinkTime = 0;
@@ -130,9 +147,9 @@ void savePresetToEEPROM(uint8_t presetIndex) {
   Serial.println(presetColors[presetIndex].b);
 }
 
-// Send RGB to Trinket LED strip (temporary display)
+// Send RGB to ItsyBitsy LED strip (temporary display)
 void sendRGBToLED(RGBColor color) {
-  Wire1.beginTransmission(TRINKET_ADDRESS);
+  Wire1.beginTransmission(ITSYBITSY_ADDRESS);
   Wire1.write(CMD_SEND_LED);
   Wire1.write(color.r);
   Wire1.write(color.g);
@@ -140,16 +157,16 @@ void sendRGBToLED(RGBColor color) {
   Wire1.endTransmission();
 }
 
-// Save RGB to Trinket EEPROM (persistent storage)
-void saveRGBToTrinket(RGBColor color) {
-  Wire1.beginTransmission(TRINKET_ADDRESS);
+// Save RGB to ItsyBitsy EEPROM (persistent storage)
+void saveRGBToItsyBitsy(RGBColor color) {
+  Wire1.beginTransmission(ITSYBITSY_ADDRESS);
   Wire1.write(CMD_SAVE_LED);
   Wire1.write(color.r);
   Wire1.write(color.g);
   Wire1.write(color.b);
   Wire1.endTransmission();
   
-  Serial.print("✓ Saved to Trinket EEPROM: R=");
+  Serial.print("✓ Saved to ItsyBitsy EEPROM: R=");
   Serial.print(color.r);
   Serial.print(" G=");
   Serial.print(color.g);
@@ -204,7 +221,11 @@ void updateDisplay() {
   if(selectedPreset >= 0) {
     display.setTextSize(1);
     display.setCursor(0, 12);
-    display.print("Preset ");
+    if(animationMode) {
+      display.print("Animation Preset ");
+    } else {
+      display.print("Preset ");
+    }
     display.print(selectedPreset + 1);
     
     // Display RGB values with blinking for active channel
@@ -245,21 +266,18 @@ void updateDisplay() {
     if(brightness > 128) {
       display.fillRect(62, 26, 56, 20, SSD1306_WHITE);
     }
-    
-    // Pot value if editing
-    if(editMode > 0) {
-      display.setCursor(60, 50);
-      display.print("Pot:");
-      display.print(potValue);
-    }
   } else {
     display.setTextSize(1);
     display.setCursor(5, 16);
     display.println("Select Preset 1-4");
-    display.setCursor(5, 30);
-    display.println("5:SEND  6:SAVE");
-    display.setCursor(5, 40);
-    display.println("7:EDIT(Cycle R/G/B)");
+    display.setCursor(5, 28);
+    display.println("S5:EDIT S6:WRITE");
+    display.setCursor(5, 38);
+    display.println("S7:EXPORT S8:ANIM");
+    if(animationMode) {
+      display.setCursor(5, 50);
+      display.println("[ANIMATION MODE]");
+    }
   }
   
   // Show all preset colors at bottom
@@ -275,31 +293,61 @@ void updateDisplay() {
   display.display();
 }
 
-uint8_t readPotentiometer() {
-  // Read analog value (0-1023 on Teensy 4.0, 10-bit ADC)
-  int rawValue = analogRead(POT_PIN);
-  // Map to 0-255 for RGB value
-  return map(rawValue, 0, 1023, 0, 255);
+void readEncoder() {
+  int encoderA = digitalRead(ENCODER_A);
+  int encoderB = digitalRead(ENCODER_B);
+  
+  if (encoderA != lastEncoderA) {
+    if (encoderA == LOW) {
+      int direction = (encoderB == HIGH) ? 1 : -1;
+      int stepSize = 5;  // Adjust values by ±5 instead of ±1 for faster changes
+      
+      // Update current color channel based on edit mode
+      switch(editMode) {
+        case 1:  // Edit Red
+          currentColor.r = constrain(currentColor.r + (direction * stepSize), 0, 255);
+          sendRGBToLED(currentColor);
+          updateDisplay();
+          break;
+        case 2:  // Edit Green
+          currentColor.g = constrain(currentColor.g + (direction * stepSize), 0, 255);
+          sendRGBToLED(currentColor);
+          updateDisplay();
+          break;
+        case 3:  // Edit Blue
+          currentColor.b = constrain(currentColor.b + (direction * stepSize), 0, 255);
+          sendRGBToLED(currentColor);
+          updateDisplay();
+          break;
+      }
+    }
+  }
+  
+  lastEncoderA = encoderA;
+  lastEncoderB = encoderB;
 }
 
 void checkButtons() {
-  int buttonPins[] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4, BUTTON_5, BUTTON_6, BUTTON_7};
+  int buttonPins[] = {BUTTON_S1, BUTTON_S2, BUTTON_S3, BUTTON_S4, BUTTON_S5, BUTTON_S6, BUTTON_S7, BUTTON_S8};
   
-  for(int i = 0; i < 7; i++) {
-    if(digitalRead(buttonPins[i]) == LOW) {  // Button pressed (active LOW)
+  for(int i = 0; i < 8; i++) {
+    if(digitalRead(buttonPins[i]) == LOW) {
       unsigned long currentTime = millis();
       if(currentTime - lastPressTime > DEBOUNCE_DELAY) {
         lastPressTime = currentTime;
         
-        // Buttons 1-4: Select preset from Teensy EEPROM
+        // Buttons S1-S4: Select preset from Teensy EEPROM
         if(i >= 0 && i <= 3) {
           selectedPreset = i;
-          editMode = 0;  // Reset to neutral mode
+          editMode = 0;
           
-          // Load RGB from Teensy EEPROM
           currentColor = presetColors[selectedPreset];
           
-          Serial.print("Selected Preset ");
+          Serial.print("Selected ");
+          if(animationMode) {
+            Serial.print("Animation ");
+          }
+          Serial.print("Preset ");
           Serial.print(selectedPreset + 1);
           Serial.print(": R=");
           Serial.print(currentColor.r);
@@ -308,47 +356,45 @@ void checkButtons() {
           Serial.print(" B=");
           Serial.println(currentColor.b);
           
-          // Display preset on LED strip immediately
           sendRGBToLED(currentColor);
         }
-        // Button 5 (SAVE PRESET): Save to Teensy EEPROM preset slot
+        // Button S5 (EDIT): Cycle through edit modes
         else if(i == 4) {
-          if(selectedPreset >= 0) {  // Works from any mode
-            // Update Teensy EEPROM preset
-            presetColors[selectedPreset] = currentColor;
-            savePresetToEEPROM(selectedPreset);
-            
-            // Also send to LED for visual confirmation
-            sendRGBToLED(currentColor);
-            
-            // Return to neutral mode after saving
-            editMode = 0;
-            Serial.println("Saved preset to Teensy EEPROM");
-          }
-        }
-        // Button 6 (SAVE TRINKET): Save to Trinket EEPROM (persistent)
-        else if(i == 5) {
-          if(selectedPreset >= 0) {  // Works from any mode
-            // Save to Trinket EEPROM only
-            saveRGBToTrinket(currentColor);
-            
-            // Return to neutral mode after saving
-            editMode = 0;
-          }
-        }
-        // Button 7 (EDIT): Cycle through edit modes (R → G → B → Neutral)
-        else if(i == 6) {
           if(selectedPreset >= 0) {
-            editMode = (editMode + 1) % 4;  // Cycle: 0→1→2→3→0
+            editMode = (editMode + 1) % 4;
             Serial.print("Edit mode: ");
             const char* modes[] = {"NEUTRAL", "R", "G", "B"};
             Serial.println(modes[editMode]);
           }
         }
+        // Button S6 (WRITE): Save to ItsyBitsy EEPROM
+        else if(i == 5) {
+          if(selectedPreset >= 0) {
+            saveRGBToItsyBitsy(currentColor);
+            editMode = 0;
+          }
+        }
+        // Button S7 (EXPORT): Save to Teensy EEPROM preset slot
+        else if(i == 6) {
+          if(selectedPreset >= 0) {
+            presetColors[selectedPreset] = currentColor;
+            savePresetToEEPROM(selectedPreset);
+            sendRGBToLED(currentColor);
+            editMode = 0;
+            Serial.println("Saved preset to Teensy EEPROM");
+          }
+        }
+        // Button S8 (ANIM): Toggle Animation Mode
+        else if(i == 7) {
+          animationMode = !animationMode;
+          digitalWrite(LED_S8, animationMode ? HIGH : LOW);
+          Serial.print("Animation Mode: ");
+          Serial.println(animationMode ? "ON" : "OFF");
+        }
         
         updateDisplay();
       }
-      break;  // Only process one button at a time
+      break;
     }
   }
 }
@@ -359,25 +405,32 @@ void setup() {
   delay(100);
   Serial.println("=== RGB LED Controller Starting ===");
   
-  // Initialize potentiometer pin
-  pinMode(POT_PIN, INPUT);
-  analogReadResolution(10);  // 10-bit ADC (0-1023)
+  // Initialize rotary encoder pins
+  pinMode(ENCODER_A, INPUT_PULLUP);
+  pinMode(ENCODER_B, INPUT_PULLUP);
+  lastEncoderA = digitalRead(ENCODER_A);
+  lastEncoderB = digitalRead(ENCODER_B);
+  
+  // Initialize LED indicator pin
+  pinMode(LED_S8, OUTPUT);
+  digitalWrite(LED_S8, LOW);
   
   // Initialize button pins with internal pull-up resistors
-  pinMode(BUTTON_1, INPUT_PULLUP);
-  pinMode(BUTTON_2, INPUT_PULLUP);
-  pinMode(BUTTON_3, INPUT_PULLUP);
-  pinMode(BUTTON_4, INPUT_PULLUP);
-  pinMode(BUTTON_5, INPUT_PULLUP);
-  pinMode(BUTTON_6, INPUT_PULLUP);
-  pinMode(BUTTON_7, INPUT_PULLUP);
+  pinMode(BUTTON_S1, INPUT_PULLUP);
+  pinMode(BUTTON_S2, INPUT_PULLUP);
+  pinMode(BUTTON_S3, INPUT_PULLUP);
+  pinMode(BUTTON_S4, INPUT_PULLUP);
+  pinMode(BUTTON_S5, INPUT_PULLUP);
+  pinMode(BUTTON_S6, INPUT_PULLUP);
+  pinMode(BUTTON_S7, INPUT_PULLUP);
+  pinMode(BUTTON_S8, INPUT_PULLUP);
   
   // Initialize I2C for OLED (Wire on pins 18/19)
   Wire.setSDA(18);
   Wire.setSCL(19);
   Wire.begin();
   
-  // Initialize I2C for Trinket (Wire1 on pins 16/17)
+  // Initialize I2C for ItsyBitsy (Wire1 on pins 16/17)
   Wire1.begin();
   
   delay(100);
@@ -423,44 +476,24 @@ void setup() {
 }
 
 void loop() {
-  // Read potentiometer value
-  potValue = readPotentiometer();
+  // Read rotary encoder
+  if(editMode > 0) {
+    readEncoder();
+  }
   
   // Handle blinking for active edit channel
   unsigned long currentTime = millis();
   if(currentTime - lastBlinkTime > BLINK_INTERVAL) {
     lastBlinkTime = currentTime;
     blinkState = !blinkState;
-    if(editMode > 0) {  // Only update display if actively editing
+    if(editMode > 0) {
       updateDisplay();
     }
   }
   
-  // If in edit mode (1=R, 2=G, 3=B) and pot changed, update the active channel
-  if(editMode > 0 && abs(potValue - lastPotValue) > 1) {
-    lastPotValue = potValue;
-    
-    // Update the appropriate color channel
-    switch(editMode) {
-      case 1:  // Edit Red
-        currentColor.r = potValue;
-        break;
-      case 2:  // Edit Green
-        currentColor.g = potValue;
-        break;
-      case 3:  // Edit Blue
-        currentColor.b = potValue;
-        break;
-    }
-    
-    // Live update LED strip
-    sendRGBToLED(currentColor);
-    updateDisplay();
-  }
-  
   checkButtons();
   
-  delay(10);  // Small delay to prevent excessive polling
+  delay(10);
 }
 
 

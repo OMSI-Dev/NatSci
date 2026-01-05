@@ -1,10 +1,10 @@
-/* Trinket M0 RGB LED Unit with EEPROM Storage
+/* ItsyBitsy Express RGB LED Unit with EEPROM Storage
  * 
  * Stores a single RGB color in EEPROM and displays it on LED strip
  * I2C Address: 0x10
  * 
  * Hardware:
- * - LED Strip: Data pin connected to Pin 4
+ * - LED Strip (SK6812 RGBW): Data pin connected to Pin 5, 5V power
  * - I2C: SDA/SCL for communication with Teensy
  * 
  * Commands from Teensy:
@@ -20,7 +20,7 @@
 #include <FlashStorage.h>
 
 #define I2C_ADDRESS 0x10
-#define LED_PIN 4
+#define LED_PIN 5
 #define NUM_LEDS 30  // Adjust this to match your LED strip length
 
 // RGB Color structure
@@ -33,7 +33,7 @@ typedef struct {
 
 FlashStorage(rgb_storage, RGBData);
 
-// LED strip object
+// LED strip object - using GRB order (WS2812B/SK6812 RGB)
 Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // I2C Commands
@@ -45,8 +45,10 @@ RGBData currentRGB;
 
 // Display RGB color on LED strip
 void displayRGB(uint8_t r, uint8_t g, uint8_t b) {
-  uint32_t color = strip.Color(r, g, b);
-  strip.fill(color);
+  // Explicitly set each LED to ensure all are the same color
+  for(int i = 0; i < NUM_LEDS; i++) {
+    strip.setPixelColor(i, r, g, b);
+  }
   strip.show();
 }
 
@@ -104,9 +106,14 @@ void setup() {
   
   // Initialize LED strip
   strip.begin();
-  strip.clear();
-  strip.show();  // Initialize all pixels to 'off'
   strip.setBrightness(255);  // Full brightness (0-255)
+  
+  // Clear all LEDs explicitly
+  for(int i = 0; i < NUM_LEDS; i++) {
+    strip.setPixelColor(i, 0, 0, 0, 0);
+  }
+  strip.show();
+  delay(200);
   
   // Read RGB data from EEPROM
   currentRGB = rgb_storage.read();
