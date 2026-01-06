@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
+  "name": "SusanHaxx",
+  "version": "1.1",
+  "description": "A class to create a simple code implamentation for the OMSI SusanHaxx buttons. This class uses the FastLED Library & MobaTools Timer as the backbone.",
+  "keywords": "SusanHaxx, OMSI",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/OMSI-Dev/SusanHaxx_Lib.git"
+  },
+  "authors":
+  [
+    {
+      "name": "Aaron De Lanty",
+      "email": "aDelanty@omsi.edu",
+	  "maintainer": true      
+    }
+  ],
+  "license": "GPL-3.0-or-later",  
+  "frameworks": "Arduino",
+  "platforms":  [
+    "teensy",
+    "atmelavr"
+  ],
+  "dependencies": [
+    {
+      "owner": "FastLED",
+      "name": "FastLED",
+      "external-repo": "https://github.com/FastLED/FastLED.git"      
+    },
+    {
+      "name": "OMSI_Timer",
+      "version": "*"
+    }
+  ]
+}
