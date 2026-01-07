@@ -4,11 +4,10 @@ To Controller:
 
 Rows = A-F
 Buttons = 1-5
-Colors:
-	R = Red
-	G = Green
-	X = Off
+Colors sent throug RGB
  
-Ex. A1:R
+Ex.
+Red = A1:255:0:0
+Off = A1:0:0:0
 
 Light Sequence:
