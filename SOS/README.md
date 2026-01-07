@@ -6,7 +6,7 @@ Science On a Sphere (SOS) is a globe-based data visualization system. These scri
 
 A central server coordinates two computers: one displays the daily dataset ‘playlist’ while the other drives the perimeter displays. 
 
-## ## Updating software
+## Updating software
 
 This software is built using Python 3.14. 
 
@@ -33,7 +33,7 @@ source venv/bin/activate
 python nowPlaying.py
 ```
 
-## ##Project File Organization
+##Project File Organization
 
 ### >> Hardware
 
