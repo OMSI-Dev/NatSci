@@ -1,36 +1,22 @@
 # Where is the Water Details
 ## Theory of Operation
-[Two - three small paragraphs describing the details of the gameplay for someone who has never seen it before. List the contents of the component and how they interact with each other and the software while explaining the way that it works and it's objective / outcome.]
 
-EXAMPLE:
-The basic gameplay is to open a sliding door, add cushioning materials, close the door and a ‘hammer’ drops to update data on a monitor. An accelerometer is attached to the center of the falling ‘hammer.’ During the fall acceleration & deceleration is recorded to an array and sent to the processing app via serial. Processing parses the data and plots it to the graph. Based on success levels processing will update images, colors, and play a sound. 
+Where is the Water is an augmented reality sandbox that projects depth data onto the sandbox's surface. The Kinect v2 and the projector are stationed above the sandbox. The Kinect detects the depth of the sandbox in real time as visitors interact with it and the projector displays the live, textured feed over the sandbox to mimic mountains and rivers / valleys that are created by the visitors.
 
-Processing controls the timing for the gameplay while the uController waits to receive signals via serial. The uController has several sensors to ensure safety and proper alignment. To sense the door’s close/open state it uses both a reed (NO) & a button trigger(NO). The reed confirms if the door has been reopened allowing for the next attempt.  
+There is a wooden tool with a circular graphic on the end. When held over the sandbox, the program will create rain where the tool is held over. The rain flows based on the depth of the sandbox and creates lakes where defined by the levels in the physical sandbox. There is a button to clear the water, mimicking a drought. When the button is pushed, all the water that was projected over the sandbox at the time that the button is pushed will dissipate. Any rain that is created after the button is pushed will not be cleared until the button is pushed again, ie if a visitor is creating rain at the moment that someone pushes the button to clear it, the rain that the visitor is currently creating will remain as the rest of the water that was built up will dissipate.
 
-Once the door is closed a maglock engages preventing the door to be opened during the hammer drop. Indicating LEDs show if the lock is engaged or not. During startup the uController uses an IR sensor to find the ‘home’ location of the hammer. This is done to ensure repeatability and easy setup. 
+The software was built in Unity and will be run just by downloading the game application and running it. Callibration will be necessary if it is set up in a new area. While the game is running, hit "c" to show the sphere that adjusts the bounding circle (defining where the rain can be created / the edges of the boxes). Hit "m" to enable movement of the sphere, which will then follow the position of the mouse translated into the world position (ie, it will move not as usually expected). Hit "s" to enable changing the size of the sphere / ellipse. Change the size with the up, down, left, and right arrows. Hit "s" again to lock the size of the circle / ellipse. Hit "m" again to lock the position, and hit "c" again to hide the bounding circle.
 
 ## Updating software
 
-[One small, detailed paragraph on how to get the software running on any computer and how to make changes.]
-
-EXAMPLE:
-The software is built using platform.io. You can use Arduino IDE by copying the src folder and renaming it to Helmet and renaming the main.cpp file to ‘Helmet.ino’. This will allow you to use Arduino to make modifications. You will need to install any missing libraries through the Arduino Library manager.
+All updates of the software must be done in Unity, where the project was built. It was created using editor version 2021.3.45f1. Open the project in Unity and update the scripts as needed in Visual Studio. Visual Studio 2022 was used for creating the game.
 
 ## Project File Organization
+README.md : the file you're currently reading
+Hardware : contains the .zip output of the circuit board from Fusion
+OMSI AR Sandbox : the Unity file and all of it's contents, including the scripts for the program
 
 [A list providing the contents of the files and their organization.]
-
-EXAMPLE:
-	docs : documentation and pictures
-	src : source code
-	fusion : pdf of schematic
-	examples_tests : N/A
-	processing: save folder to C:\OMSI\APP\
-	processing/data: assets used for the processing app
-	readme.md : basic project info its the file you are reading
-	resources: Helmet_Drop BOM.xls
-	
-	some other directories are used by platformio and vscode
 
 #### Hardware
 
@@ -84,30 +70,4 @@ IR sensor board - used to set IR with resistors as well as a troubleshooting boa
 
 ## Audio
 
-[If any audio, describe where they are located in the file organization and how to replace if needed. Include the naming scheme of the files and what part of the exhibit/component they affect.]
-EXAMPLE:
-They are Mp3 files stored /data/sound/ and can be updated simply by following the naming scheme and replacing old files. It is recommended making a backup before replacing any files. 
-Capitalization matters. 
-
-##### Naming scheme:
-
-	Failure: red.mp3
-	Average: orange.mp3
-	Success: green.mp3
-
-## Images/video
-
-[If any images or videos, describe where they are located in the file organization and how to replace if needed. Include the naming scheme and what part of the exhibit/component they affect.]
-
-EXAMPLE:
-The images are saved as PNG and the video is MP4, both are stored /data/images.  by following the naming scheme and replacing old files. It is recommended making a backup before replacing any files. Capitalization matters. 
-
-
-##### Naming scheme:
-
-	Arrow Failure: redArrow.gif
-	Arrow Average: yellowArrow.gif
-	Arrow Success: greenArrow.gif
-	Head Failure: 3_en.png
-	Head Average:  2_en.png
-	Head Success:  1_en.png
+Water / rain audio is used in the WaterSimulation.cs script with the game object AudioClip rainAudio, referenced in the OnGesturesRead() function. The audio file used is called RainLoop in the Assets/Sandbox/Testing Stuff folder. If this file is changed, it will need to be updated / reattached to the WaterSimulation.cs file on the Modes/WaterSimulation game object.
