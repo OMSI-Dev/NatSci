@@ -2,7 +2,9 @@
  * Keeping Carbon Stored
  * Calico Rose
  * January 7, 2025
- * Communication with the stomp buttons
+ * Communication with the stomp buttons and the computer.
+ * Essentially a communication hub or "router", sending and recieving
+ * signals from the buttons and to the computer.
  * References:
  */
 
@@ -19,6 +21,7 @@ void setup()
 
 void loop()
 {
+
   if (Serial.available() > 0)
   {
     char incomingByte = Serial.read();
