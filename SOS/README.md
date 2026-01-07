@@ -1,4 +1,4 @@
-# SOS (Science on a Sphere) 
+# SOS (Science on a Sphere) Details
 
 ## Theory of Operation
 
