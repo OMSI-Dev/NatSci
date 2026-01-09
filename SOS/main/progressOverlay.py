@@ -201,6 +201,17 @@ class ProgressOverlay(QWidget):
         if not self.is_custom_movie_mode:
             return  # Nothing to restore
         
+        # Check current window size - if still in custom movie size, don't restore yet
+        # (this handles cases where engine calls wrong method during loop)
+        screen = QApplication.primaryScreen().geometry()
+        current_height = self.size().height()
+        custom_movie_height = int(screen.height() * 0.85)
+        
+        if abs(current_height - custom_movie_height) < 50:
+            # Window is still custom movie sized - don't restore
+            # This means we're still playing custom movies (likely looped)
+            return
+        
         current_layout = self.layout()
         
         # Check if we need to restore layout (it was emptied by custom movie mode)
@@ -212,8 +223,7 @@ class ProgressOverlay(QWidget):
             current_layout.addStretch()  # Push progress bar to bottom
             current_layout.addWidget(self.progress_bar)
         
-        # Reset window size to standard
-        screen = QApplication.primaryScreen().geometry()
+        # Reset window size to standard only if it's not already standard
         current_size = self.size()
         if current_size.width() != screen.width() or current_size.height() != 130:
             self.setFixedSize(screen.width(), 130)
