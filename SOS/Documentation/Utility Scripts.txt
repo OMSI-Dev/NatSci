@@ -1,0 +1,14 @@
+1_sos-test_connect
+Connects to the SOS server and returns the metadata of the currently playing clip. 
+
+2_sos-index_generator
+Creates an index of all SOS dataset names via SSH, extracts clip names from metadata and organizes them into a CSV file, saved locally. 
+
+3_sos-query_metadata.py
+Prompts for a metadata type, then retrieves that metadata value for all clips in the currently playing playlist. Returns a list f clip name with their corresponding metadata values. 
+
+4_sos-playlist_all_metadata
+Retrieves complete metadata for all clips in the current playlist. 
+
+5_sos-download_playlist_file
+Displays all clips in the currently playing playlist, allows user to download associated playlist.sos dataset files (containing metadata) locally from the SOS server. 

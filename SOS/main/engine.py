@@ -150,6 +150,66 @@ class SimplePPEngine:
             print(f"✗ Error during SOS connection: {e}")
             return False
     
+    def next_clip(self):
+        """
+        Skip to the next clip in the playlist.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.sock:
+            print("! No SOS connection")
+            return False
+        
+        try:
+            print("[Command] Next clip")
+            self.sock.sendall(b'next_clip\n')
+            time.sleep(0.2)
+            
+            try:
+                self.sock.recv(1024)
+            except socket.timeout:
+                pass
+            
+            return True
+            
+        except socket.error as e:
+            print(f"! Error sending next_clip: {e}")
+            return False
+        except Exception as e:
+            print(f"! Error sending next_clip: {e}")
+            return False
+    
+    def prev_clip(self):
+        """
+        Go back to the previous clip in the playlist.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.sock:
+            print("! No SOS connection")
+            return False
+        
+        try:
+            print("[Command] Previous clip")
+            self.sock.sendall(b'prev_clip\n')
+            time.sleep(0.2)
+            
+            try:
+                self.sock.recv(1024)
+            except socket.timeout:
+                pass
+            
+            return True
+            
+        except socket.error as e:
+            print(f"! Error sending prev_clip: {e}")
+            return False
+        except Exception as e:
+            print(f"! Error sending prev_clip: {e}")
+            return False
+    
     def restart_current_clip(self):
         """
         This function is used on boot. 
@@ -770,7 +830,9 @@ class SimplePPEngine:
                                 
                                 if local_subtitle_path:
                                     # Load with dual subtitle support
-                                    self.subtitle_manager.load_subtitles_for_clip(clip_name, local_subtitle_path, local_subtitle2_path)
+                                    # Pass datadir to detect site-custom movies
+                                    datadir = self.current_clip_metadata.get('datadir', '')
+                                    self.subtitle_manager.load_subtitles_for_clip(clip_name, local_subtitle_path, local_subtitle2_path, datadir)
                                     print(f"[Subtitles] Ready for display\n")
                                 else:
                                     print(f"[Subtitles-error] Could not load subtitle file\n")

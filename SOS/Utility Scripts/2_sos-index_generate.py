@@ -1,11 +1,5 @@
 """
 Executes on the B-link device in the SOS network.
-
-Generates a CSV index of all media (clip) files on SOS server.
-
-1. Scans playlist.sos files via SSH 
-2. Extracts clip names and slide numbers
-3. Outputs to CSV with name and slide_numbers columns
 """
 
 import subprocess

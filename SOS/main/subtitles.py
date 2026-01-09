@@ -47,7 +47,7 @@ def parse_srt_file(filepath):
     subtitles = []
     
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, 'r', encoding='utf-8-sig') as f:
             content = f.read()
         
         # Split by double newlines to separate subtitle blocks
@@ -251,12 +251,17 @@ class SubtitleManager:
         self.last_frame = -1
         self.gui_overlay = gui_overlay
         self.use_gui = gui_overlay is not None
+        self.is_custom_movie = False  # Track if this is a site-custom movie
         
         # Separate accumulators for each subtitle track
         self.accumulator = []
         self.last_index = -1
         self.accumulator2 = []
         self.last_index2 = -1
+        
+        # Special layout handling for Nature's Harmonious Relationships
+        self.is_harmonious = False
+        self.layout_mode = None  # 'vertical' or 'horizontal'
     
     def _find_subtitle_at_time(self, subtitles, time_seconds, accumulator, last_index, max_chars=200):
         """
@@ -304,7 +309,7 @@ class SubtitleManager:
         # Return accumulated text joined with spaces
         return (" ".join(accumulator), accumulator, last_index)
     
-    def load_subtitles_for_clip(self, clip_name, caption_path, caption2_path=None):
+    def load_subtitles_for_clip(self, clip_name, caption_path, caption2_path=None, datadir=None):
         """
         Load subtitles for a new clip. Supports dual subtitles.
         
@@ -312,6 +317,7 @@ class SubtitleManager:
             clip_name: Name of the current clip
             caption_path: Path to the primary .srt file (can be None)
             caption2_path: Path to the secondary .srt file (can be None)
+            datadir: Data directory path from metadata (for detecting site-custom movies)
             
         Returns:
             bool: True if subtitles loaded, False otherwise
@@ -319,6 +325,16 @@ class SubtitleManager:
         self.current_clip = clip_name
         self.last_frame = -1
         self.subtitles2 = []  # Reset secondary subtitles
+        
+        # Detect if this is a site-custom movie
+        # Check if datadir contains 'site-custom' - indicates custom movie content
+        self.is_custom_movie = False
+        if datadir:
+            datadir_lower = datadir.lower()
+            if 'site-custom' in datadir_lower:
+                self.is_custom_movie = True
+                print(f"[Custom Movie] Detected site-custom movie (datadir: {datadir})")
+                print(f"  → Using special centered subtitle layout with text-only backgrounds")
         
         # Reset accumulators for new clip
         self.accumulator = []
@@ -381,21 +397,32 @@ class SubtitleManager:
         current_time = current_frame / fps if fps > 0 else 0
         
         # Find current subtitle (primary - English)
+        # Adjust character limits based on whether we have dual subtitles
+        if self.subtitles2:  # Dual captions mode
+            max_chars_english = 170  # Shorter for side-by-side columns
+            max_chars_spanish = 170  # Shorter for side-by-side columns
+        else:  # Single caption mode
+            max_chars_english = 350  # ~2-3 shorter lines for easier reading
+            max_chars_spanish = 350  # ~2-3 shorter lines for easier reading
+        
         subtitle_text, self.accumulator, self.last_index = self._find_subtitle_at_time(
-            self.subtitles, current_time, self.accumulator, self.last_index
+            self.subtitles, current_time, self.accumulator, self.last_index, max_chars_english
         )
         
         # Find secondary subtitle if available (Spanish)
         subtitle_text2 = ""
         if self.subtitles2:
             subtitle_text2, self.accumulator2, self.last_index2 = self._find_subtitle_at_time(
-                self.subtitles2, current_time, self.accumulator2, self.last_index2
+                self.subtitles2, current_time, self.accumulator2, self.last_index2, max_chars_spanish
             )
         
         # Display progress - use GUI if available, otherwise terminal
         if self.use_gui and self.gui_overlay and self.gui_overlay.is_active():
-            # Note: slide_count is managed by the engine, we just pass 1 here
-            self.gui_overlay.update_progress(current_time, self.duration, subtitle_text, 1, subtitle_text2)
+            # Check if we should use custom movie layout (dual captions + custom movie)
+            if self.is_custom_movie and subtitle_text and subtitle_text2:
+                self.gui_overlay.update_progress_custom_movie(current_time, self.duration, subtitle_text, 1, subtitle_text2)
+            else:
+                self.gui_overlay.update_progress(current_time, self.duration, subtitle_text, 1, subtitle_text2)
         else:
             display_progress(current_time, self.duration, subtitle_text, current_frame)
     

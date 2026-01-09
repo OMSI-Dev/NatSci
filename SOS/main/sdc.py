@@ -14,8 +14,8 @@ from engine import SimplePPEngine
 DEFAULT_CONFIG = r"C:\OMSI\App\SOS\config.txt"
 
 
-class ExitController(threading.Thread):
-    """Simple thread to handle user exit input."""
+class CommandController(threading.Thread):
+    """Thread to handle user command input during playback."""
     
     def __init__(self, engine):
         threading.Thread.__init__(self)
@@ -24,12 +24,52 @@ class ExitController(threading.Thread):
     
     def run(self):
         time.sleep(2)
+        self.print_help()
+        
         while True:
-            user_input = input("\n[EXIT] Press 'q' to quit: ")
-            if user_input.lower() in ['q', 'quit', 'exit']:
-                print("Stopping engine...")
-                self.engine.stop()
+            try:
+                user_input = input("\n[Command] > ").strip().lower()
+                
+                if not user_input:
+                    continue
+                
+                if user_input in ['q', 'quit', 'exit']:
+                    print("Stopping engine...")
+                    self.engine.stop()
+                    break
+                
+                elif user_input in ['n', 'next']:
+                    self.engine.next_clip()
+                
+                elif user_input in ['p', 'prev', 'previous']:
+                    self.engine.prev_clip()
+                
+                elif user_input in ['r', 'restart']:
+                    self.engine.restart_current_clip()
+                
+                elif user_input in ['h', 'help', '?']:
+                    self.print_help()
+                
+                else:
+                    print(f"Unknown command: '{user_input}'. Type 'h' for help.")
+                    
+            except EOFError:
+                # Handle Ctrl+D or input stream closing
                 break
+            except Exception as e:
+                print(f"Error processing command: {e}")
+    
+    def print_help(self):
+        """Print available commands."""
+        print("\n" + "=" * 60)
+        print("Available Commands:")
+        print("=" * 60)
+        print("  n, next      - Skip to next clip")
+        print("  p, prev      - Go to previous clip")
+        print("  r, restart   - Restart current clip")
+        print("  h, help      - Show this help message")
+        print("  q, quit      - Exit the program")
+        print("=" * 60)
 
 
 def load_config(config_path=None):
@@ -109,9 +149,9 @@ def main():
         config["port"]
     )
     
-    # Start exit controller thread
-    exit_thread = ExitController(engine)
-    exit_thread.start()
+    # Start command controller thread
+    command_thread = CommandController(engine)
+    command_thread.start()
     
     # Run engine (blocking)
     print("\nStarting engine...\n")

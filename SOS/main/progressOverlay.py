@@ -125,7 +125,8 @@ class ProgressOverlay(QWidget):
         self.subtitle_label2.setStyleSheet("color: #ffffff; background: rgba(0, 0, 0, 150); padding: 2px;")
         self.subtitle_label2.setWordWrap(True)
         self.subtitle_label2.setMinimumHeight(25)
-        self.subtitle_label2.setContentsMargins(10, 0, 10, 0)
+        self.subtitle_label2.setContentsMargins(10, 0, 250, 0)  # Comfortable reading width for children
+        self.subtitle_label2.setVisible(False)  # Hidden initially
         layout.addWidget(self.subtitle_label2)
         
         # Primary subtitle display (English) - shown below Spanish
@@ -134,8 +135,12 @@ class ProgressOverlay(QWidget):
         self.subtitle_label.setStyleSheet("color: #ffff00; background: rgba(0, 0, 0, 150); padding: 2px;")
         self.subtitle_label.setWordWrap(True)
         self.subtitle_label.setMinimumHeight(25)
-        self.subtitle_label.setContentsMargins(10, 0, 10, 0)
+        self.subtitle_label.setContentsMargins(10, 0, 250, 0)  # Comfortable reading width for children
+        self.subtitle_label.setVisible(False)  # Hidden initially
         layout.addWidget(self.subtitle_label)
+        
+        # Add stretch to push progress bar to bottom
+        layout.addStretch()
         
         # Progress bar with tick marks - RED color, half height, at bottom
         self.progress_bar = TickedProgressBar()
@@ -192,6 +197,7 @@ class ProgressOverlay(QWidget):
     def update_progress(self, current_time, total_duration, subtitle_text="", slide_count=1, subtitle_text2=""):
         """
         Update the progress display.
+        Uses vertical two-column layout when both subtitles are present.
         
         Args:
             current_time: Current playback time in seconds
@@ -206,10 +212,132 @@ class ProgressOverlay(QWidget):
         self.current_subtitle2 = subtitle_text2
         self.slide_count = slide_count
         
-        self._update_ui()
+        # Use vertical two-column layout when both subtitles are present
+        if subtitle_text and subtitle_text2:
+            self._update_ui_vertical()
+        else:
+            self._update_ui()
+    
+    def _update_ui_vertical(self):
+        """Update UI with vertical two-column layout for dual subtitles."""
+        current_str = self._format_time(self.current_time)
+        total_str = self._format_time(self.total_duration)
+        self.time_label.setText(f"{current_str} / {total_str}")
+        
+        # Update progress bar (0-100)
+        if self.total_duration > 0:
+            progress = int((self.current_time / self.total_duration) * 100)
+            progress = min(100, max(0, progress))
+        else:
+            progress = 0
+        
+        self.progress_bar.setValue(progress)
+        self.progress_bar.set_tick_count(self.slide_count)
+        
+        # Hide subtitle_label2, use only subtitle_label for two-column layout
+        self.subtitle_label2.setVisible(False)
+        self.subtitle_label.setVisible(True)
+        
+        # Reset to full width and no margins for fully centered vertical layout
+        self.subtitle_label.setMaximumWidth(16777215)  # Qt's default QWIDGETSIZE_MAX
+        self.subtitle_label.setContentsMargins(0, 0, 0, 0)  # No margins for centered dual layout
+        
+        # Create two-column layout with centered text
+        english_display = self.current_subtitle if self.current_subtitle else ""
+        spanish_display = self.current_subtitle2 if self.current_subtitle2 else ""
+        
+        # Use HTML table for precise column control
+        html_content = f"""
+        <table width='100%' style='border: none;'>
+            <tr>
+                <td width='50%' align='center' valign='middle' style='color: #ffff00; font-size: 14pt; padding: 15px;'>
+                    {english_display}
+                </td>
+                <td width='50%' align='center' valign='middle' style='color: #ffffff; font-size: 14pt; padding: 15px;'>
+                    {spanish_display}
+                </td>
+            </tr>
+        </table>
+        """
+        
+        self.subtitle_label.setText(html_content)
+        self.subtitle_label.setStyleSheet("background: rgba(0, 0, 0, 180); font-family: Arial;")
+        self.subtitle_label.setAlignment(Qt.AlignCenter)
+        self.subtitle_label.setWordWrap(True)
+        self.subtitle_label.setMinimumHeight(100)
+    
+    def update_progress_custom_movie(self, current_time, total_duration, subtitle_text="", slide_count=1, subtitle_text2=""):
+        """
+        Update progress display for site-custom movies with dual captions.
+        Subtitles vertically centered, progress bar and timestamp stacked at bottom.
+        
+        Args:
+            current_time: Current playback time in seconds
+            total_duration: Total duration in seconds
+            subtitle_text: English subtitle text
+            slide_count: Number of slides in the dataset (for tick marks)
+            subtitle_text2: Spanish subtitle text
+        """
+        self.current_time = current_time
+        self.total_duration = total_duration
+        self.current_subtitle = subtitle_text
+        self.current_subtitle2 = subtitle_text2
+        self.slide_count = slide_count
+        
+        # Update progress bar
+        if total_duration > 0:
+            progress = int((current_time / total_duration) * 100)
+            progress = min(100, max(0, progress))
+        else:
+            progress = 0
+        
+        self.progress_bar.setValue(progress)
+        self.progress_bar.set_tick_count(slide_count)
+        
+        # Update timestamp
+        current_str = self._format_time(current_time)
+        total_str = self._format_time(total_duration)
+        self.time_label.setText(f"{current_str} / {total_str}")
+        
+        # Position timestamp directly above progress bar (no gap)
+        self.time_label.setAlignment(Qt.AlignCenter)
+        self.time_label.setVisible(True)
+        self.progress_bar.setVisible(True)
+        
+        # Hide subtitle_label2, use only subtitle_label for two-column layout
+        self.subtitle_label2.setVisible(False)
+        self.subtitle_label.setVisible(True)
+        
+        # Reset styling for custom movie centered display
+        self.subtitle_label.setStyleSheet("background: transparent; padding: 20px;")
+        self.subtitle_label.setAlignment(Qt.AlignCenter)
+        self.subtitle_label.setWordWrap(True)
+        self.subtitle_label.setMinimumHeight(100)
+        self.subtitle_label.setMaximumWidth(16777215)
+        self.subtitle_label.setContentsMargins(0, 0, 0, 0)
+        
+        # Create two-column layout with text-only backgrounds (like standard display)
+        english_display = subtitle_text if subtitle_text else ""
+        spanish_display = subtitle_text2 if subtitle_text2 else ""
+        
+        # Use HTML table with inline-style backgrounds that only cover text
+        html_content = f"""
+        <table width='100%' style='border: none;'>
+            <tr>
+                <td width='50%' align='center' valign='middle' style='padding: 25px;'>
+                    <span style='background: rgba(0, 0, 0, 150); color: #ffff00; padding: 10px; font-family: Arial; font-size: 14pt;'>► {english_display}</span>
+                </td>
+                <td width='50%' align='center' valign='middle' style='padding: 25px;'>
+                    <span style='background: rgba(0, 0, 0, 150); color: #ffffff; padding: 10px; font-family: Arial; font-size: 14pt;'>► {spanish_display}</span>
+                </td>
+            </tr>
+        </table>
+        """
+        
+        self.subtitle_label.setText(html_content)
     
     def _update_ui(self):
-        """Update UI elements with current values."""
+        """Update UI elements with current values for standard single or stacked subtitle display."""
         current_str = self._format_time(self.current_time)
         total_str = self._format_time(self.total_duration)
         self.time_label.setText(f"{current_str} / {total_str}")
@@ -225,16 +353,43 @@ class ProgressOverlay(QWidget):
         self.progress_bar.setValue(progress)
         self.progress_bar.set_tick_count(self.slide_count) #multiple slides
         
+        # Reset subtitle labels to standard stacked layout styling
+        # Show/hide labels based on whether we have content
+        self.subtitle_label.setVisible(True)
+        
+        # Reset subtitle_label styling to standard (left-aligned, yellow text)
+        # Container spans full width, but background only covers text
+        self.subtitle_label.setStyleSheet("background: transparent; padding: 10px;")
+        self.subtitle_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.subtitle_label.setWordWrap(True)  # Enable word wrapping for multiple lines
+        self.subtitle_label.setMinimumHeight(100)  # Match dual subtitle height
+        self.subtitle_label.setMaximumWidth(16777215)  # Reset to full width
+        
+        # Reset subtitle_label2 styling to standard (left-aligned, white text)
+        self.subtitle_label2.setStyleSheet("background: transparent; padding: 10px;")
+        self.subtitle_label2.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.subtitle_label2.setWordWrap(True)  # Enable word wrapping for multiple lines
+        self.subtitle_label2.setMinimumHeight(100)  # Match dual subtitle height
+        self.subtitle_label2.setMaximumWidth(16777215)  # Reset to full width
+        
         # Update secondary subtitle (Spanish) - shown on top
         if self.current_subtitle2:
-            self.subtitle_label2.setText(f"► {self.current_subtitle2}")
+            self.subtitle_label2.setVisible(True)
+            # Simple span with background - QLabel word wrap handles multi-line
+            html_text = f'<span style="background: rgba(0, 0, 0, 150); color: #ffffff; padding: 8px; font-family: Arial; font-size: 12pt;">► {self.current_subtitle2}</span>'
+            self.subtitle_label2.setText(html_text)
         else:
+            self.subtitle_label2.setVisible(False)  # Hide completely when no Spanish subtitle
             self.subtitle_label2.setText("")
         
         # Update primary subtitle (English) - shown below
         if self.current_subtitle:
-            self.subtitle_label.setText(f"► {self.current_subtitle}")
+            self.subtitle_label.setVisible(True)
+            # Simple span with background - QLabel word wrap handles multi-line
+            html_text = f'<span style="background: rgba(0, 0, 0, 150); color: #ffff00; padding: 8px; font-family: Arial; font-size: 12pt;">► {self.current_subtitle}</span>'
+            self.subtitle_label.setText(html_text)
         else:
+            self.subtitle_label.setVisible(False)  # Hide when no subtitle
             self.subtitle_label.setText("")
         
     def _format_time(self, seconds):
