@@ -85,7 +85,6 @@ class ProgressOverlay(QWidget):
         self.current_subtitle2 = ""  # Secondary subtitle (Spanish)
         self.current_frame = 0
         self.slide_count = 1  # Number of slides in current dataset
-        self.is_custom_movie_mode = False  # Track if layout has been modified for custom movies
         
         self._setup_window()
         self._create_widgets()
@@ -197,10 +196,6 @@ class ProgressOverlay(QWidget):
     
     def _restore_layout_control(self):
         """Restore layout control for standard subtitle display after custom movie mode."""
-        # Only restore if we were previously in custom movie mode
-        if not self.is_custom_movie_mode:
-            return  # Nothing to restore
-        
         current_layout = self.layout()
         
         # Check if we need to restore layout (it was emptied by custom movie mode)
@@ -211,16 +206,11 @@ class ProgressOverlay(QWidget):
             current_layout.addWidget(self.subtitle_label)
             current_layout.addStretch()  # Push progress bar to bottom
             current_layout.addWidget(self.progress_bar)
-        
-        # Reset window size to standard
-        screen = QApplication.primaryScreen().geometry()
-        current_size = self.size()
-        if current_size.width() != screen.width() or current_size.height() != 130:
+            
+            # Reset window size to standard
+            screen = QApplication.primaryScreen().geometry()
             self.setFixedSize(screen.width(), 130)
             self._position_window()
-        
-        # Mark that we're back in standard mode
-        self.is_custom_movie_mode = False
     
     def update_progress(self, current_time, total_duration, subtitle_text="", slide_count=1, subtitle_text2=""):
         """
@@ -315,9 +305,6 @@ class ProgressOverlay(QWidget):
         self.current_subtitle = subtitle_text
         self.current_subtitle2 = subtitle_text2
         self.slide_count = slide_count
-        
-        # Mark that we're in custom movie mode
-        self.is_custom_movie_mode = True
         
         # CRITICAL: Remove layout control to allow absolute positioning
         # The VBoxLayout was overriding setGeometry() calls
@@ -430,7 +417,6 @@ class ProgressOverlay(QWidget):
         self.subtitle_label.setWordWrap(True)  # Enable word wrapping for multiple lines
         self.subtitle_label.setMinimumHeight(100)  # Match dual subtitle height
         self.subtitle_label.setMaximumWidth(16777215)  # Reset to full width
-        self.subtitle_label.setContentsMargins(10, 0, 250, 0)  # 250px right margin for children's museum
         
         # Reset subtitle_label2 styling to standard (left-aligned, white text)
         self.subtitle_label2.setStyleSheet("background: transparent; padding: 10px;")
@@ -438,7 +424,6 @@ class ProgressOverlay(QWidget):
         self.subtitle_label2.setWordWrap(True)  # Enable word wrapping for multiple lines
         self.subtitle_label2.setMinimumHeight(100)  # Match dual subtitle height
         self.subtitle_label2.setMaximumWidth(16777215)  # Reset to full width
-        self.subtitle_label2.setContentsMargins(10, 0, 250, 0)  # 250px right margin for children's museum
         
         # Update secondary subtitle (Spanish) - shown on top
         if self.current_subtitle2:
