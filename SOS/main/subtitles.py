@@ -333,8 +333,8 @@ class SubtitleManager:
             datadir_lower = datadir.lower()
             if 'site-custom' in datadir_lower:
                 self.is_custom_movie = True
-                print(f"[Custom Movie] Detected site-custom movie (datadir: {datadir})")
-                print(f"  → Using special centered subtitle layout with text-only backgrounds")
+                print(f"\n[Custom Movie] Detected site-custom movie (datadir: {datadir})\n")
+                # print(f"  → Using special centered subtitle layout with text-only backgrounds")
         
         # Reset accumulators for new clip
         self.accumulator = []

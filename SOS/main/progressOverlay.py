@@ -112,21 +112,13 @@ class ProgressOverlay(QWidget):
         layout.setContentsMargins(0, 5, 0, 0)
         layout.setSpacing(5)
         
-        # Time display (current / total) - right aligned
-        self.time_label = QLabel("0:00 / 0:00")
-        self.time_label.setFont(QFont('Arial', 12, QFont.Bold))
-        self.time_label.setStyleSheet("color: #ffffff; background: transparent;")
-        self.time_label.setAlignment(Qt.AlignRight)
-        self.time_label.setContentsMargins(10, 0, 10, 0)
-        layout.addWidget(self.time_label)
-        
         # Secondary subtitle display (Spanish) - shown on top
         self.subtitle_label2 = QLabel("")
         self.subtitle_label2.setFont(QFont('Arial', 12, QFont.Bold))
         self.subtitle_label2.setStyleSheet("color: #ffffff; background: rgba(0, 0, 0, 150); padding: 2px;")
         self.subtitle_label2.setWordWrap(True)
         self.subtitle_label2.setMinimumHeight(25)
-        self.subtitle_label2.setContentsMargins(10, 0, 250, 0)  # Comfortable reading width for children
+        self.subtitle_label2.setContentsMargins(10, 50, 250, 0)  # 50px top margin
         self.subtitle_label2.setVisible(False)  # Hidden initially
         layout.addWidget(self.subtitle_label2)
         
@@ -136,12 +128,20 @@ class ProgressOverlay(QWidget):
         self.subtitle_label.setStyleSheet("color: #ffff00; background: rgba(0, 0, 0, 150); padding: 2px;")
         self.subtitle_label.setWordWrap(True)
         self.subtitle_label.setMinimumHeight(25)
-        self.subtitle_label.setContentsMargins(10, 0, 250, 0)  # Comfortable reading width for children
+        self.subtitle_label.setContentsMargins(10, 50, 250, 0)  # 50px top margin
         self.subtitle_label.setVisible(False)  # Hidden initially
         layout.addWidget(self.subtitle_label)
         
-        # Add stretch to push progress bar to bottom
+        # Add stretch to push timestamp and progress bar to bottom
         layout.addStretch()
+        
+        # Time display (current / total) - right aligned, right above progress bar
+        self.time_label = QLabel("0:00 / 0:00")
+        self.time_label.setFont(QFont('Arial', 12, QFont.Bold))
+        self.time_label.setStyleSheet("color: #ffffff; background: transparent;")
+        self.time_label.setAlignment(Qt.AlignRight)
+        self.time_label.setContentsMargins(10, 0, 10, 0)
+        layout.addWidget(self.time_label)
         
         # Progress bar with tick marks - RED color, half height, at bottom
         self.progress_bar = TickedProgressBar()
@@ -201,33 +201,63 @@ class ProgressOverlay(QWidget):
         if not self.is_custom_movie_mode:
             return  # Nothing to restore
         
-        # Check current window size - if still in custom movie size, don't restore yet
-        # (this handles cases where engine calls wrong method during loop)
         screen = QApplication.primaryScreen().geometry()
-        current_height = self.size().height()
-        custom_movie_height = int(screen.height() * 0.85)
-        
-        if abs(current_height - custom_movie_height) < 50:
-            # Window is still custom movie sized - don't restore
-            # This means we're still playing custom movies (likely looped)
-            return
-        
         current_layout = self.layout()
         
         # Check if we need to restore layout (it was emptied by custom movie mode)
         if current_layout is not None and current_layout.count() == 0:
-            # Layout exists but is empty - just re-add widgets
-            current_layout.addWidget(self.time_label)
+            # Layout exists but is empty - re-add widgets in correct order
+            
+            # Clear absolute geometry before removing from parent
+            from PyQt5.QtCore import QRect
+            for widget in [self.subtitle_label2, self.subtitle_label, self.time_label, self.progress_bar]:
+                widget.setGeometry(QRect())  # Clear geometry completely
+                widget.setParent(None)
+            
+            # Reset subtitle widgets to standard configuration
+            self.subtitle_label2.setFont(QFont('Arial', 12, QFont.Bold))
+            self.subtitle_label2.setStyleSheet("color: #ffffff; background: rgba(0, 0, 0, 150); padding: 2px;")
+            self.subtitle_label2.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+            self.subtitle_label2.setWordWrap(True)
+            self.subtitle_label2.setMinimumHeight(25)
+            self.subtitle_label2.setMaximumWidth(16777215)
+            self.subtitle_label2.setContentsMargins(10, 50, 250, 0)  # 50px top margin
+            
+            self.subtitle_label.setFont(QFont('Arial', 12))
+            self.subtitle_label.setStyleSheet("color: #ffff00; background: rgba(0, 0, 0, 150); padding: 2px;")
+            self.subtitle_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+            self.subtitle_label.setWordWrap(True)
+            self.subtitle_label.setMinimumHeight(25)
+            self.subtitle_label.setMaximumWidth(16777215)
+            self.subtitle_label.setContentsMargins(10, 50, 250, 0)  # 50px top margin
+            
+            # Reset timestamp
+            self.time_label.setFont(QFont('Arial', 12, QFont.Bold))
+            self.time_label.setStyleSheet("color: #ffffff; background: transparent;")
+            self.time_label.setAlignment(Qt.AlignRight)
+            self.time_label.setContentsMargins(10, 0, 10, 0)
+            
+            # Reset progress bar
+            self.progress_bar.setFixedHeight(12)
+            
+            # Add back to layout in correct order
             current_layout.addWidget(self.subtitle_label2)
             current_layout.addWidget(self.subtitle_label)
-            current_layout.addStretch()  # Push progress bar to bottom
+            current_layout.addStretch()  # Push timestamp and progress bar to bottom
+            current_layout.addWidget(self.time_label)
             current_layout.addWidget(self.progress_bar)
+            
+            # Force complete layout recalculation
+            current_layout.activate()
+            self.update()
         
-        # Reset window size to standard only if it's not already standard
-        current_size = self.size()
-        if current_size.width() != screen.width() or current_size.height() != 130:
-            self.setFixedSize(screen.width(), 130)
-            self._position_window()
+        # Reset window size to standard
+        self.setFixedSize(screen.width(), 130)
+        
+        # Position window at bottom of screen
+        x = 0
+        y = screen.height() - 130
+        self.move(x, y)
         
         # Mark that we're back in standard mode
         self.is_custom_movie_mode = False
@@ -376,38 +406,40 @@ class ProgressOverlay(QWidget):
         self.time_label.setVisible(True)
         self.progress_bar.setVisible(True)
         
-        # Hide subtitle_label2, use only subtitle_label for two-column layout
+        # Hide subtitle_label2, use only subtitle_label for horizontal row layout
         self.subtitle_label2.setVisible(False)
         self.subtitle_label.setVisible(True)
         
-        # Use absolute positioning for subtitle label (vertically centered)
-        subtitle_y = int(window_height * 0.30)  # 30% from top for vertical centering
-        subtitle_height = 150
+        # Use absolute positioning for subtitle label (from positioning_values.txt)
+        # Values: subtitle_y_percent = 0.100, row_spacing = 385
+        subtitle_y_percent = 0.100
+        row_spacing = 385
+        subtitle_y = int(window_height * subtitle_y_percent)
+        # Dynamic height to accommodate row spacing
+        subtitle_height = 150 + row_spacing + 50
         self.subtitle_label.setGeometry(0, subtitle_y, screen.width(), subtitle_height)
         
-        # Reset styling for custom movie centered display
-        self.subtitle_label.setStyleSheet("background: transparent; padding: 20px;")
-        self.subtitle_label.setAlignment(Qt.AlignCenter)
+        # Reset styling for custom movie display with left alignment
+        self.subtitle_label.setStyleSheet("background: transparent;")
+        self.subtitle_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.subtitle_label.setWordWrap(True)
         self.subtitle_label.setMaximumWidth(16777215)
-        self.subtitle_label.setContentsMargins(0, 0, 0, 0)
+        self.subtitle_label.setContentsMargins(150, 0, 0, 0)  # 150px left margin
         
-        # Create two-column layout with text-only backgrounds (like standard display)
+        # Create horizontal row layout: English on top, Spanish on bottom (left-aligned)
         english_display = subtitle_text if subtitle_text else ""
         spanish_display = subtitle_text2 if subtitle_text2 else ""
         
-        # Use HTML table with inline-style backgrounds that only cover text
+        # Use HTML divs with row spacing and left alignment
         html_content = f"""
-        <table width='100%' style='border: none;'>
-            <tr>
-                <td width='50%' align='center' valign='middle' style='padding: 25px;'>
-                    <span style='background: rgba(0, 0, 0, 150); color: #ffff00; padding: 10px; font-family: Arial; font-size: 14pt;'>► {english_display}</span>
-                </td>
-                <td width='50%' align='center' valign='middle' style='padding: 25px;'>
-                    <span style='background: rgba(0, 0, 0, 150); color: #ffffff; padding: 10px; font-family: Arial; font-size: 14pt;'>► {spanish_display}</span>
-                </td>
-            </tr>
-        </table>
+        <div style='text-align: left;'>
+            <div style='margin-bottom: {row_spacing}px;'>
+                <span style='background: rgba(0, 0, 0, 150); color: #ffff00; padding: 10px; font-family: Arial; font-size: 14pt;'>{english_display}</span>
+            </div>
+            <div>
+                <span style='background: rgba(0, 0, 0, 150); color: #ffffff; padding: 10px; font-family: Arial; font-size: 14pt; font-weight: bold;'>{spanish_display}</span>
+            </div>
+        </div>
         """
         
         self.subtitle_label.setText(html_content)
@@ -440,7 +472,7 @@ class ProgressOverlay(QWidget):
         self.subtitle_label.setWordWrap(True)  # Enable word wrapping for multiple lines
         self.subtitle_label.setMinimumHeight(100)  # Match dual subtitle height
         self.subtitle_label.setMaximumWidth(16777215)  # Reset to full width
-        self.subtitle_label.setContentsMargins(10, 0, 250, 0)  # 250px right margin for children's museum
+        self.subtitle_label.setContentsMargins(10, 50, 250, 0)  # 50px top margin
         
         # Reset subtitle_label2 styling to standard (left-aligned, white text)
         self.subtitle_label2.setStyleSheet("background: transparent; padding: 10px;")
@@ -448,7 +480,7 @@ class ProgressOverlay(QWidget):
         self.subtitle_label2.setWordWrap(True)  # Enable word wrapping for multiple lines
         self.subtitle_label2.setMinimumHeight(100)  # Match dual subtitle height
         self.subtitle_label2.setMaximumWidth(16777215)  # Reset to full width
-        self.subtitle_label2.setContentsMargins(10, 0, 250, 0)  # 250px right margin for children's museum
+        self.subtitle_label2.setContentsMargins(10, 50, 250, 0)  # 50px top margin
         
         # Update secondary subtitle (Spanish) - shown on top
         if self.current_subtitle2:
@@ -495,8 +527,11 @@ class ProgressOverlay(QWidget):
         return self.isVisible()
     
     def start(self):
-        """Show the overlay window."""
+        """Show the overlay window with smooth initialization."""
         self.show()
+        self.raise_()
+        QApplication.processEvents()
+        self.repaint()
     
     def stop(self):
         """Close the overlay window."""

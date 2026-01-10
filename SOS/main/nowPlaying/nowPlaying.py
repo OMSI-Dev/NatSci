@@ -120,7 +120,7 @@ class ImageApp:
         self.playlist_text_id = canvas.create_text(
             int(screen_width * 0.075) + 60,
             int(screen_height * 0.38) + 60,
-            text="Playlist will appear here",
+            text="Playlist will appear hereeeee",
             font=("Helvetica Neue", 15),
             fill="#1a1a1a",
             anchor="nw",
@@ -210,6 +210,12 @@ def pi_socket_server(app: ImageApp):
                     playlist_items = [item.strip() for item in playlist_str.split(',')]
                     print(f"[Pi] Updating playlist with {len(playlist_items)} items")
                     app.root.after(0, lambda items=playlist_items: app.update_playlist(items))
+                
+                elif msg.startswith("INIT:"):
+                    print(f"[Pi] Received init message: {msg}")
+                
+                else:
+                    print(f"[Pi] Unknown message format: {msg}")
                 
                 conn.sendall(b"ACK\n")
                 print(f"[Pi] Sent acknowledgment")

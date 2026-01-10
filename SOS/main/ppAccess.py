@@ -132,6 +132,8 @@ class PowerPointShowController:
                 controller = self.presentation.getController()
                 if controller:
                     controller.gotoSlideIndex(number - 1)  # 0-indexed
+                else:
+                    print(f"Warning: Could not get controller for slide navigation")
         except Exception as e:
             print(f"Error navigating to slide {number}: {e}")
     

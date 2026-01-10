@@ -69,7 +69,7 @@ def get_clip_info(host: str = "10.10.51.87", port: int = 2468, timeout: float = 
         recv_data(sock, timeout_idle=1.0)
         
         # Get current clip number
-        sock.sendall(b'get_clip_number\n')
+        sock.sendall(b'get_clip_info 1\n')
         data = recv_data(sock, timeout_idle=1.0)
         clip_number = data.decode('utf-8', 'ignore').strip()
         

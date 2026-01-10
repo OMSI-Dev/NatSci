@@ -14,6 +14,7 @@ import re
 from PyQt5.QtWidgets import QApplication
 from subtitles import SubtitleManager
 from progressOverlay import ProgressOverlay
+from metadata_cache import MetadataCache
 
 
 def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
@@ -100,6 +101,10 @@ class SimplePPEngine:
         self.subtitle_cache_dir = os.path.join(os.path.dirname(__file__), 'subtitle_cache')
         os.makedirs(self.subtitle_cache_dir, exist_ok=True)
         
+        # Metadata cache - minimize server queries
+        self.metadata_cache = MetadataCache()
+        print(f"[Metadata Cache] Initialized: {self.metadata_cache.get_stats()['total_cached_clips']} clips in cache")
+        
         # DEBUGGING : Clip stopwatch timer
         self.clip_start_time = None
         self.clip_real_start_time = None  # Track real elapsed time for progress bar
@@ -110,6 +115,9 @@ class SimplePPEngine:
         self.slide_durations = []   
         self.cached_total_duration = 180.0  
         self.current_playlist_name = None
+        self.overlay_shown = False  # Track if overlay has been shown yet
+        self.libreoffice_launch_time = None  # Track when LibreOffice was launched
+        self.first_clip_loaded = False  # Track if first clip has been loaded (for overlay display)
 
     def connect_to_sos(self, timeout=4):
         """
@@ -289,6 +297,7 @@ class SimplePPEngine:
     def fetch_clip_metadata(self, clip_number):
         """
         This function fetches all metadata for a clip from SOS server via get_all_name_value_pairs.
+        Uses cache to minimize server queries - only fetches from server if not cached.
         
         Args:
             clip_number: The clip number to fetch metadata for
@@ -300,14 +309,40 @@ class SimplePPEngine:
             return {}
         
         try:
+            # First, get clip name using lightweight get_clip_info command
+            cmd = f'get_clip_info * {clip_number}\n'.encode('utf-8')
+            self.sock.sendall(cmd)
+            info_data = recv_data(self.sock, timeout_idle=1.0).decode('utf-8', 'ignore').strip()
+            
+            # Parse clip name from get_clip_info response (format: "1,clip_name")
+            parts = info_data.split(',', 1)
+            if len(parts) == 2:
+                clip_name = parts[1].strip()
+            else:
+                clip_name = f'Clip_{clip_number}'
+            
+            # Check if we have this clip cached
+            cached_metadata = self.metadata_cache.get(clip_name)
+            if cached_metadata is not None:
+                print(f"[Metadata] Using cached metadata for '{clip_name}'")
+                # Ensure clip_number is set
+                cached_metadata['clip_number'] = clip_number
+                return cached_metadata
+            
+            # Not in cache - fetch full metadata from server
+            print(f"[Metadata] Fetching metadata from server for '{clip_name}'...")
             command = f'get_all_name_value_pairs {clip_number}\n'.encode('utf-8')
             self.sock.sendall(command)
             data = recv_data(self.sock, timeout_idle=1.0)
             clip_data = data.decode('utf-8', 'ignore').strip()
             
-            #call function to parse data into dictionary
+            # Parse metadata
             clip_metadata = parse_name_value_pairs(clip_data)
             clip_metadata['clip_number'] = clip_number
+            
+            # Cache the metadata for future use
+            self.metadata_cache.set(clip_name, clip_metadata)
+            print(f"[Metadata] Cached metadata for '{clip_name}'")
             
             return clip_metadata
             
@@ -451,6 +486,7 @@ class SimplePPEngine:
     def fetch_playlist_metadata(self):
         """
         This function fetches metadata for all clips in the current playlist via get_clip_count and get_all_name_value_pairs.
+        Uses intelligent caching to minimize server queries.
 
         Prints duration/timer for each clip, or triggers duration tracker if missing (unless datadir is a .jpg).
         """
@@ -468,22 +504,64 @@ class SimplePPEngine:
             print("-" * 50)
             print(f"[Playlist Metadata] Total clips: {clip_count}")
             print("-" * 50)
-            # Iterate through each clip
+            
+            # First pass: get all clip names to check cache
+            print("[Metadata Cache] Checking which clips need to be fetched...")
+            clips_to_fetch = []
+            clip_names = []
+            
             for clip_number in range(1, clip_count + 1):
-                cmd = f'get_all_name_value_pairs {clip_number}\n'.encode('utf-8')
+                # Get clip info to determine name
+                cmd = f'get_clip_info * {clip_number}\n'.encode('utf-8')
                 self.sock.sendall(cmd)
-                clip_data = recv_data(self.sock, timeout_idle=2.0).decode('utf-8', 'ignore').strip()
-                metadata = parse_name_value_pairs(clip_data)
+                info_data = recv_data(self.sock, timeout_idle=1.0).decode('utf-8', 'ignore').strip()
+                
+                # Parse clip name from get_clip_info response (format: "1,clip_name")
+                parts = info_data.split(',', 1)
+                if len(parts) == 2:
+                    clip_name = parts[1].strip()
+                else:
+                    clip_name = f"Clip_{clip_number}"
+                
+                clip_names.append(clip_name)
+                
+                # Check if cached
+                if not self.metadata_cache.has_clip(clip_name):
+                    clips_to_fetch.append((clip_number, clip_name))
+            
+            # Report cache status
+            cached_count = clip_count - len(clips_to_fetch)
+            print(f"[Metadata Cache] {cached_count} clips in cache, {len(clips_to_fetch)} need fetching")
+            
+            # Second pass: fetch only uncached clips
+            if clips_to_fetch:
+                print("[Metadata] Fetching metadata for new clips...")
+                for clip_number, clip_name in clips_to_fetch:
+                    cmd = f'get_all_name_value_pairs {clip_number}\n'.encode('utf-8')
+                    self.sock.sendall(cmd)
+                    clip_data = recv_data(self.sock, timeout_idle=2.0).decode('utf-8', 'ignore').strip()
+                    metadata = parse_name_value_pairs(clip_data)
+                    metadata['clip_number'] = clip_number
+                    
+                    # Cache the metadata
+                    self.metadata_cache.set(clip_name, metadata)
+                    print(f"  → Cached: {clip_name}")
+            
+            # Third pass: print all clips from cache
+            print("-" * 50)
+            for clip_number, clip_name in enumerate(clip_names, start=1):
+                metadata = self.metadata_cache.get(clip_name)
+                if metadata:
+                    duration = metadata.get('duration', None)
+                    timer = metadata.get('timer', None)
+                    has_timer = timer is not None and timer != ''
 
-                clip_name = metadata.get('name', f'Clip {clip_number}')
-                duration = metadata.get('duration', None)
-                timer = metadata.get('timer', None)
-                has_timer = timer is not None and timer != ''
-
-                if not has_timer:
-                    print(f"[Clip {clip_number}] {clip_name}: No timer found. Default duration is 180s.")
-                elif has_timer:
-                    print(f"[Clip {clip_number}] {clip_name}: duration={duration}, timer={timer}.")
+                    if not has_timer:
+                        print(f"[Clip {clip_number}] {clip_name}: No timer found. Default duration is 180s.")
+                    elif has_timer:
+                        print(f"[Clip {clip_number}] {clip_name}: duration={duration}, timer={timer}.")
+                else:
+                    print(f"[Clip {clip_number}] {clip_name}: No metadata available")
     
         except Exception as e:
             print(f"[Playlist Metadata] Error: {e}")
@@ -501,6 +579,7 @@ class SimplePPEngine:
                 pi_sock.connect((self.pi_ip, self.pi_port))
                 msg = f"NOW_PLAYING:{clip_name}\n"
                 pi_sock.sendall(msg.encode('utf-8'))
+                print(f"[Pi] Sent NOW_PLAYING: {clip_name}")
 
         except Exception as e:
             print(f"[Pi] Could not send now playing info: {e}")
@@ -515,12 +594,17 @@ class SimplePPEngine:
                 s.connect((self.pi_ip, self.pi_port))
                 msg = f"CLIP:{clip_name}\n"
                 s.sendall(msg.encode('utf-8'))
+                print(f"[Pi] Sent CLIP: {clip_name}")
         except Exception as e:
             print(f"[Pi] Error sending clip name: {e}")
 
     def send_playlist_to_pi(self, clip_names):
         """Send the list of clip names in the playlist to the Pi."""
-        if not self.pi_ip or not self.pi_port or not clip_names:
+        if not self.pi_ip or not self.pi_port:
+            print(f"[Pi] Cannot send playlist: Missing IP or port")
+            return
+        if not clip_names:
+            print(f"[Pi] Cannot send playlist: Empty clip list")
             return
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -529,12 +613,18 @@ class SimplePPEngine:
                 # Send as comma-separated string
                 msg = f"PLAYLIST:{','.join(clip_names)}\n"
                 s.sendall(msg.encode('utf-8'))
+                print(f"[Pi] Sent PLAYLIST: {len(clip_names)} clips")
+                print(f"     Clips: {', '.join(clip_names[:3])}{'...' if len(clip_names) > 3 else ''}")
         except Exception as e:
             print(f"[Pi] Error sending playlist info: {e}")
 
     def fetch_playlist_clip_names(self):
-        """Fetch and return a list of all clip names in the current playlist."""
+        """
+        Fetch and return a list of all clip names in the current playlist.
+        Uses get_clip_count and get_clip_info for each clip index (starting from 1).
+        """
         if not self.sock:
+            print("[Playlist] No SOS socket connection")
             return []
         clip_names = []
         try:
@@ -542,55 +632,115 @@ class SimplePPEngine:
             data = recv_data(self.sock, timeout_idle=2.0)
             clip_count_str = data.decode('utf-8', 'ignore').strip()
             if not clip_count_str.isdigit():
+                print(f"[Playlist] Invalid clip count response: {repr(clip_count_str)}")
                 return []
             clip_count = int(clip_count_str)
+            print(f"[Playlist] Fetching {clip_count} clip names...")
+            
+            # Iterate through each clip index (starting from 1) to maintain order
             for clip_number in range(1, clip_count + 1):
-                cmd = f'get_all_name_value_pairs {clip_number}\n'.encode('utf-8')
+                # Use get_clip_info to get clip name (returns the clip name directly)
+                cmd = f'get_clip_info {clip_number}\n'.encode('utf-8')
                 self.sock.sendall(cmd)
-                clip_data = recv_data(self.sock, timeout_idle=2.0).decode('utf-8', 'ignore').strip()
-                metadata = parse_name_value_pairs(clip_data)
-                clip_name = metadata.get('name', f'Clip {clip_number}')
-                clip_names.append(clip_name)
+                info_data = recv_data(self.sock, timeout_idle=1.0).decode('utf-8', 'ignore').strip()
+                
+                # The response is the clip name directly
+                if info_data:
+                    clip_name = info_data
+                    print(f"[Playlist] Clip {clip_number}: '{clip_name}'")
+                    clip_names.append(clip_name)
+                else:
+                    print(f"[Playlist] No response for clip {clip_number}")
+                    clip_names.append(f"Clip_{clip_number}")
+            
+            print(f"[Playlist] Retrieved {len(clip_names)} clip names in order")
+                
         except Exception as e:
-            print(f"[Playlist Metadata] Error fetching clip names: {e}")
+            print(f"[Playlist] Error fetching clip names: {e}")
+            import traceback
+            traceback.print_exc()
         return clip_names
 
     def run(self, poll_interval=0.5):
         """
-        Main engine loop.
+        Main engine loop with optimized startup sequence.
         
         Args:
             poll_interval: Time between checks in seconds (default: 0.5 seconds)
         """
         print("Starting LibreOffice Impress Engine...")
         
-        # Start GUI overlay
-        print("Starting GUI overlay...")
-        self.overlay.start()
-        time.sleep(1)
-        print("[Success] GUI overlay started")
+        # Initialize GUI overlay but keep it hidden initially
+        print("Initializing GUI overlay...")
+        print("[Success] GUI overlay initialized (hidden)")
         
-        # Launch LibreOffice Impress 
+        # Launch LibreOffice
+        print("Launching LibreOffice slideshow...")
         try:
             self.pp.launchpp(RunShow=True)
-            print("LibreOffice slideshow started")
+            self.libreoffice_launch_time = time.time()
+            print("[Success] LibreOffice slideshow started")
         except Exception as e:
             print(f"Failed to launch LibreOffice Impress: {e}")
             print("\nDEBUG INFO:")
             import traceback
             traceback.print_exc()
-            if self.overlay:
-                self.overlay.stop()
             return
         
+        # Verify LibreOffice controller is accessible
+        print("Verifying LibreOffice controller...")
+        max_attempts = 5
+        controller_ready = False
+        for attempt in range(max_attempts):
+            try:
+                if self.pp.show:
+                    test_controller = self.pp.show.getCurrentController()
+                    if test_controller:
+                        print("[Success] LibreOffice controller verified")
+                        controller_ready = True
+                        break
+            except Exception as e:
+                pass
+            
+            if attempt < max_attempts - 1:
+                print(f"  Controller not ready, waiting 1s... ({attempt+1}/{max_attempts})")
+                time.sleep(1)
+        
+        if not controller_ready:
+            print("[Warning] Controller verification failed, but continuing...")
+        
         # Connect to SOS
+        print("Connecting to SOS server...")
         if not self.connect_to_sos():
             print("Failed to connect to SOS. Exiting.")
             self.pp.close()
             return
-   
-        # Restart the current clip to sync from the beginning
-        self.restart_current_clip()
+        print("[Success] Connected to SOS")
+        
+        # Test connection to Raspberry Pi (nowPlaying)
+        print(f"Testing connection to Pi at {self.pi_ip}:{self.pi_port}...")
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as test_sock:
+                test_sock.settimeout(2)
+                test_sock.connect((self.pi_ip, self.pi_port))
+                test_sock.sendall(b"INIT:Engine started\n")
+                print("[Success] Pi connection established")
+        except Exception as e:
+            print(f"[Warning] Could not connect to Pi: {e}")
+            print("         Continuing without Pi integration...")
+        
+        # Fetch and cache playlist metadata
+        print("Fetching playlist metadata...")
+        self.fetch_playlist_metadata()
+        print("[Success] Playlist metadata cached")
+        
+        # Send initial playlist to Pi
+        print("Sending playlist to Pi...")
+        initial_playlist = self.fetch_playlist_clip_names()
+        if initial_playlist:
+            self.send_playlist_to_pi(initial_playlist)
+        
+        print("Initialization complete. Waiting for clip detection...\n")
         
         # Main loop
         print("\nEngine loop running...")
@@ -686,7 +836,7 @@ class SimplePPEngine:
                     elapsed = time.time() - self.clip_start_time
                     print(f"[Stopwatch] Actual duration for '{last_clip}': {elapsed:.2f}s\n")
 
-                self.send_now_playing_to_pi(clip_name)
+                # Send current clip to Pi (Pi expects "CLIP:<name>" format)
                 self.send_clip_to_pi(clip_name)
 
                 # Start timer for new clip
@@ -771,6 +921,7 @@ class SimplePPEngine:
                                 print(f"Clip: '{clip_name}' -> Slides [{slide_list_str}] ({slide_duration:.1f}s each)")
                             else:
                                 print(f"Clip: '{clip_name}' -> Slide {target_slide}")
+                            
                             self.pp.goto(target_slide)
                             self.current_slide = target_slide
                         
@@ -787,7 +938,7 @@ class SimplePPEngine:
                                 # Handle caption2 - might be relative path or have space before filename
                                 if caption2_path:
                                     caption2_path = caption2_path.strip()
-                                    print(f"[Debug] Raw caption2_path: '{caption2_path}'")
+                                    # print(f"[Debug] Raw caption2_path: '{caption2_path}'")
                                     
                                     # Handle case where there's a space before the filename
                                     # e.g., ".../directory /filename.srt" should become ".../directory/filename.srt"
@@ -800,7 +951,7 @@ class SimplePPEngine:
                                         caption_dir = os.path.dirname(caption_path)
                                         caption2_path = f"{caption_dir}/{caption2_path}"
                                     
-                                    print(f"[Debug] caption2_path after processing: '{caption2_path}'")
+                                    # print(f"[Debug] caption2_path after processing: '{caption2_path}'")
                                 
                                 # Try to fetch primary caption from SOS server if path looks like a server path
                                 local_subtitle_path = None
@@ -833,9 +984,28 @@ class SimplePPEngine:
                                     # Pass datadir to detect site-custom movies
                                     datadir = self.current_clip_metadata.get('datadir', '')
                                     self.subtitle_manager.load_subtitles_for_clip(clip_name, local_subtitle_path, local_subtitle2_path, datadir)
+                                    
+                                    # Show overlay after subtitles are loaded AND layout type is determined
+                                    # This prevents wrong format from flashing before adjustment
+                                    if not self.overlay_shown:
+                                        print("\n[Startup] Subtitles loaded and layout determined, showing overlay...")
+                                        self.overlay.start()
+                                        self.overlay_shown = True
                                     print(f"[Subtitles] Ready for display\n")
                                 else:
                                     print(f"[Subtitles-error] Could not load subtitle file\n")
+                            else:
+                                # No subtitles for this clip - show overlay on startup anyway
+                                if not self.overlay_shown:
+                                    print("\n[Startup] No subtitles, showing overlay...")
+                                    self.overlay.start()
+                                    self.overlay_shown = True
+                        else:
+                            # Subtitles disabled - show overlay on startup anyway
+                            if not self.overlay_shown:
+                                print("\n[Startup] Showing overlay...")
+                                self.overlay.start()
+                                self.overlay_shown = True
                 except Exception as e:
                     print(f"Warning: Could not fetch clip metadata: {e}")
         
