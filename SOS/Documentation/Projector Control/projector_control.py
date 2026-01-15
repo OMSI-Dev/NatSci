@@ -76,6 +76,7 @@ def get_power_state():
     result = send_command(STATUS_CHECK)
     if result and len(result) > 6:
         power_state = result[6]
+        # The 7th value in the response indicates the power state:
         # 3 or 4 = Power On, other values = Power Off/Standby
         if power_state in [3, 4]:
             return True  # ON
