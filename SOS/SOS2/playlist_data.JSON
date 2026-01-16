@@ -1,0 +1,36 @@
+[
+    {
+        "name": "normal-demo.sos",
+        "last_modified": "2026-01-15",
+        "path": "/home/sos/sosrc/custom_playlist",
+        "clips": [
+            {
+                "name": "clip name 1",
+                "path": "/path/to/clip1"
+            },
+            {
+                "name": "clip name 2",
+                "path": "/path/to/clip2"
+            },
+            {
+                "name": "clip name 3",
+                "path": "/path/to/clip3"
+            }
+        ]
+    },
+    {
+        "name": "another-playlist.sos",
+        "last_modified": "2026-01-17",
+        "path": "/home/sos/sosrc/another-playlist.sos",
+        "clips": [
+            {
+                "name": "clip A",
+                "path": "/path/to/clipA"
+            },
+            {
+                "name": "clip B",
+                "path": "/path/to/clipB"
+            }
+        ]
+    }
+]

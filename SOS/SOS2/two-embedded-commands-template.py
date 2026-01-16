@@ -1,11 +1,3 @@
-"""
-Executes on the B-link device in the SOS network.
-This is a standalone script for connecting to the SOS server. 
-Returns current clip information if a playlist is loaded. 
-
-IMPORTANT: The SOS app must be running for the connection to succeed. 
-"""
-
 import socket
 import time
 import re
@@ -52,38 +44,29 @@ def parse_name_value_pairs(data: str) -> dict:
     return result
 
 
-def get_clip_info(host: str = "10.10.51.87", port: int = 2468, timeout: float = 4.0):
+def get_playlist_name(host: str = "10.10.51.98", port: int = 2468, timeout: float = 4.0):
     """
-    Connects to the OMSI SOS server and retrieves clip information.
-    Returns a dictionary of clip metadata, or None if connection fails.
+    Gets playlist name from the SOS server 
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(timeout)
     
     try:
-        # Connect
         sock.connect((host, port))
-        
-        # Handshake
         sock.sendall(b'enable\n')
         recv_data(sock, timeout_idle=1.0)
         
-        # Get current clip number
-        sock.sendall(b'get_clip_info *\n')
+        # Get playlist name 
+        sock.sendall(b'get_playlist_name\n')
         data = recv_data(sock, timeout_idle=1.0)
-        clip_number = data.decode('utf-8', 'ignore').strip()
-        
-        # Get all name-value pairs for the current clip
-        command = f'get_all_name_value_pairs {clip_number}\n'.encode('utf-8')
-        sock.sendall(command)
+        playlist_data = data.decode('utf-8', 'ignore').strip()
+
+        # Get paths of all clips in playlist, useful for subtitle fetch 
+        sock.sendall(b'playlist_read ' + playlist_data.encode('utf-8') + b'\n')
         data = recv_data(sock, timeout_idle=1.0)
-        clip_data = data.decode('utf-8', 'ignore').strip()
-        
-        # Parse the data into a dictionary
-        clip_info = parse_name_value_pairs(clip_data)
-        clip_info['clip_number'] = clip_number
-        
-        return clip_info
+        playlist_read = data.decode('utf-8', 'ignore').strip()
+
+        return playlist_read
         
     except OSError as e:
         print(f"Error: {e}")
@@ -93,11 +76,8 @@ def get_clip_info(host: str = "10.10.51.87", port: int = 2468, timeout: float = 
 
 
 if __name__ == '__main__':
-    clip_info = get_clip_info()
-    if clip_info:
-        print("Clip Information:")
-        print("-" * 50)
-        for key, value in sorted(clip_info.items()):
-            print(f"{key:20s}: {value}")
+    playlist_name = get_playlist_name()
+    if playlist_name:
+        print(playlist_name) #put into JSON 
     else:
         print("Failed to retrieve clip data")
