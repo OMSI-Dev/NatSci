@@ -1,22 +1,30 @@
 [
     {
-        "name": "normal-demo.sos",
-        "last_modified": "2026-01-15",
-        "path": "/home/sos/sosrc/custom_playlist",
+        "name": "custom_playlist.sos",
+        "path": "/home/sos/sosrc/custom_playlis",
         "clips": [
             {
-                "name": "clip name 1",
-                "path": "/path/to/clip1"
+                "name": "Blue Marble (with audio)",
+                "path": "/shared/sos/media/land/blue_marble/blue_marble/playlist_audio.sos"
             },
             {
-                "name": "clip name 2",
-                "path": "/path/to/clip2"
+                "name": "Accumulative Hurricane Tracks 1950 - 2005 with no label",
+                "path": "/shared/sos/media/site-custom/OMSI_EFS/Tamara/CoriolisEffect/cumulative/playlist_no_label.sos"
             },
             {
-                "name": "clip name 3",
-                "path": "/path/to/clip3"
+                "name": "A Global Tour of Precipitation",
+                "path": "/shared/sos/media/extras/precip_tour/playlist.sos"
+            },
+            {
+                "name": "Aerosols: FIM Chem Model",
+                "path": "/shared/sos/media/atmosphere/fim_chem/playlist.sos"
+            },
+            {
+                "name": "Aerosols: Sulfate",
+                "path": "/shared/sos/media/atmosphere/aerosol/sulfate/playlist.sos"
             }
-        ]
+        ],
+        "last_modified": "2026-01-16"
     },
     {
         "name": "another-playlist.sos",
@@ -32,5 +40,32 @@
                 "path": "/path/to/clipB"
             }
         ]
+    },
+    {
+        "name": "custom_playlist.sos",
+        "path": "/home/sos/sosrc/custom_playlist.sos",
+        "clips": [
+            {
+                "name": "Blue Marble (with audio)",
+                "path": "/shared/sos/media/land/blue_marble/blue_marble/playlist_audio.sos"
+            },
+            {
+                "name": "Accumulative Hurricane Tracks 1950 - 2005 with no label",
+                "path": "/shared/sos/media/site-custom/OMSI_EFS/Tamara/CoriolisEffect/cumulative/playlist_no_label.sos"
+            },
+            {
+                "name": "A Global Tour of Precipitation",
+                "path": "/shared/sos/media/extras/precip_tour/playlist.sos"
+            },
+            {
+                "name": "Aerosols: FIM Chem Model",
+                "path": "/shared/sos/media/atmosphere/fim_chem/playlist.sos"
+            },
+            {
+                "name": "Aerosols: Sulfate",
+                "path": "/shared/sos/media/atmosphere/aerosol/sulfate/playlist.sos"
+            }
+        ],
+        "last_modified": "2026-01-16"
     }
 ]

@@ -1,0 +1,4 @@
+Press F12 on bootup display 
+Enter BIOS 
+Enter Video Settings
+Toggle settings, configure to 'Slot 4'

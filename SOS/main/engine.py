@@ -71,7 +71,7 @@ class SimplePPEngine:
         
         Args:
             pp: LibreOffice Impress controller object
-            pp_dictionary: Dict mapping clip names to slide numbers
+            pp_dictionary: Dict mapping clip names to slide numbers #not needed, will initalize in sdc.py "slide mapping dictionary
             sos_ip: IP address of SOS server
             sos_port: Port number of SOS server
             pi_ip: IP address of Raspberry Pi (optional)
@@ -95,14 +95,14 @@ class SimplePPEngine:
         self.overlay = ProgressOverlay(position='bottom', opacity=0.85)
         
         # Subtitle support - metadata fetched dynamically from SOS
-        self.current_clip_metadata = {}
+        self.current_clip_metadata = {} #!!! NOT NEEDED - stored in .csv to JSON file 
         self.subtitle_manager = SubtitleManager(gui_overlay=self.overlay)
         self.subtitle_enabled = True
         self.subtitle_cache_dir = os.path.join(os.path.dirname(__file__), 'subtitle_cache')
         os.makedirs(self.subtitle_cache_dir, exist_ok=True)
         
         # Metadata cache - minimize server queries
-        self.metadata_cache = MetadataCache()
+        self.metadata_cache = MetadataCache() #!!! CLIP CACHE HERE 
         print(f"[Metadata Cache] Initialized: {self.metadata_cache.get_stats()['total_cached_clips']} clips in cache")
         
         # DEBUGGING : Clip stopwatch timer
@@ -258,7 +258,7 @@ class SimplePPEngine:
             print(f"! Error restarting clip: {e}")
             return False
     
-    def get_current_clip_info(self):
+    def get_current_clip_info(self): # NOT NEEDED 
         """
         This function gets current clip information from SOS server via get_clip_number and get_clip_info.
         
@@ -294,7 +294,7 @@ class SimplePPEngine:
             print(f"Error getting clip info: {e}")
             return (False, "")
     
-    def fetch_clip_metadata(self, clip_number):
+    def fetch_clip_metadata(self, clip_number): # NOT NEEDED 
         """
         This function fetches all metadata for a clip from SOS server via get_all_name_value_pairs.
         Uses cache to minimize server queries - only fetches from server if not cached.

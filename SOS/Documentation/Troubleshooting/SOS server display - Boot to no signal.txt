@@ -1,0 +1,6 @@
+Temporary development fix - 
+Press F12 on bootup display 
+Enter BIOS 
+Enter Video Settings
+Select 'Auto', Apply, 'Slot 4', Apply
+Exit
