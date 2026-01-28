@@ -13,9 +13,21 @@ This software is built using Python 3.14.
 The following Python libraries must be installed before running :
 
 - pillow
+```
+pip install pillow
+```
 - pywin32
+```
+pip install pywin32
+```
 - pyuno
+```
+pip install pyuno
+```
 - PyQt5
+```
+pip install PyQt5
+```
 
 The following software must be installed before running :
 
