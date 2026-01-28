@@ -1,38 +1,24 @@
 # How Fast Details
 ## Theory of Operation
-[Two - three small paragraphs describing the details of the gameplay for someone who has never seen it before. List the contents of the component and how they interact with each other and the software while explaining the way that it works and it's objective / outcome.]
 
-There are ten tubes that are 11 feet tall, lined up vertically and in parallel.
+There are ten tubes that are each 15 feet tall, lined up vertically and in parallel. Each tube has air flowing up through it with a coverable opening protruding from the base and a ball inside. The player covers the opening to block the air from coming out of that tube and holds their hand over until the ball reaches a predestined point in the tube. The tube on the very left has a low point to reach, where the tube on the right has a high point to reach. As one of the tubes is completed, a corresponding section of an LED lights up in the wall behind the tubes. The player does every tube in sequential order from left to right until the whole LED curve / graph is lit up. 
 
-EXAMPLE:
-The basic gameplay is to open a sliding door, add cushioning materials, close the door and a ‘hammer’ drops to update data on a monitor. An accelerometer is attached to the center of the falling ‘hammer.’ During the fall acceleration & deceleration is recorded to an array and sent to the processing app via serial. Processing parses the data and plots it to the graph. Based on success levels processing will update images, colors, and play a sound. 
-
-Processing controls the timing for the gameplay while the uController waits to receive signals via serial. The uController has several sensors to ensure safety and proper alignment. To sense the door’s close/open state it uses both a reed (NO) & a button trigger(NO). The reed confirms if the door has been reopened allowing for the next attempt.  
-
-Once the door is closed a maglock engages preventing the door to be opened during the hammer drop. Indicating LEDs show if the lock is engaged or not. During startup the uController uses an IR sensor to find the ‘home’ location of the hammer. This is done to ensure repeatability and easy setup. 
+The LED line is representing a graph of the amount of carbon released over time in respect to industrialization. 
 
 ## Updating software
 
-[One small, detailed paragraph on how to get the software running on any computer and how to make changes.]
-
-EXAMPLE:
-The software is built using platform.io. You can use Arduino IDE by copying the src folder and renaming it to Helmet and renaming the main.cpp file to ‘Helmet.ino’. This will allow you to use Arduino to make modifications. You will need to install any missing libraries through the Arduino Library manager.
+The software is built using platform.io. You can use Visual Studio Code to modify or update the software. Clone the How Fast/Software folder to your local computer, then open the folder in Visual Studio Code and let platform.io start. Upload changes to the Teensy 4.1.
 
 ## Project File Organization
 
-[A list providing the contents of the files and their organization.]
-
-EXAMPLE:
-	docs : documentation and pictures
-	src : source code
-	fusion : pdf of schematic
-	examples_tests : N/A
-	processing: save folder to C:\OMSI\APP\
-	processing/data: assets used for the processing app
-	readme.md : basic project info its the file you are reading
-	resources: Helmet_Drop BOM.xls
-	
+README.md : basic project info, the file you're currently reading.
+Hardware : Schematic and board PDFs and the PCB zip file.
+Softare:
+	README.md : Information about the software / code.
+	include : Header files used in cource code.
+	src : Source code (main.cpp).
 	some other directories are used by platformio and vscode
+Sound: Sound assets for gameplay.
 
 #### Hardware
 
@@ -43,25 +29,20 @@ EXAMPLE:
 
 2-pin: (4 qty)
 
-	1. 24V
-	2. Safety Switch
-	3. Accel Sensor (1 pair)
+	1. 5V
 	
-3-pin: (3 qty)
+3-pin: (4 qty)
 
-	1. IR In
-	2. Reed In
-	3. 12v In
+	1. LED Strip
+	2. Upper Rings LEDs
+	3. Lower Rings LEDS
+	4. GND pins - for grounding each of the LED arrays, which each recieves separate power.
+	5. 12V
 	
-4-pin: (2 qty)
+4-pin: (11 qty)
 
-	1. Stepper Motor
-	2. Maglock
-	
-6-pin: (1 qty)
-
-	1.Lock Light
-	2.Unlock Light
+	1-10. TOF1 - TOF10
+	11. Sound
 
 Various Components:
 
@@ -96,20 +77,3 @@ Capitalization matters.
 	Failure: red.mp3
 	Average: orange.mp3
 	Success: green.mp3
-
-## Images/video
-
-[If any images or videos, describe where they are located in the file organization and how to replace if needed. Include the naming scheme and what part of the exhibit/component they affect.]
-
-EXAMPLE:
-The images are saved as PNG and the video is MP4, both are stored /data/images.  by following the naming scheme and replacing old files. It is recommended making a backup before replacing any files. Capitalization matters. 
-
-
-##### Naming scheme:
-
-	Arrow Failure: redArrow.gif
-	Arrow Average: yellowArrow.gif
-	Arrow Success: greenArrow.gif
-	Head Failure: 3_en.png
-	Head Average:  2_en.png
-	Head Success:  1_en.png
