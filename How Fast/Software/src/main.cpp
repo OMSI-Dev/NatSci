@@ -1,5 +1,5 @@
 /*
- * How Fast testing TOF
+ * How Fast
  * References: https://cdn-learn.adafruit.com/assets/assets/000/110/623/original/adafruit_products_Adafruit_ItsyBitsy_M0_pinout.png?1649362886
  * https://wiki.dfrobot.com/SKU_SEN0647_TOF_laser_ranging_sensor_25m#target_4
  * https://www.digikey.com/en/products/detail/dfrobot/SEN0647/27526971
