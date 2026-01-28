@@ -69,7 +69,8 @@ class ProgressBarOverlay(QWidget):
                  container_margin_bottom=100, progress_bar_height=12,
                  progress_bar_color='#ffffff', progress_bar_bg_color='#000000',
                  progress_bar_bg_opacity=200, progress_bar_border_radius=0,
-                 progress_bar_bg_blur=15,
+                 progress_bar_bg_blur=15, progress_bar_bg_width_extend=0,
+                 progress_bar_bg_height_extend=0,
                  timestamp_distance=5, timestamp_font='Arial',
                  timestamp_font_size=12, timestamp_container_padding_left=0,
                  timestamp_container_padding_right=0):
@@ -89,6 +90,8 @@ class ProgressBarOverlay(QWidget):
             progress_bar_bg_opacity: Background opacity of progress bar container (0-255, min 100 for blur)
             progress_bar_border_radius: Border radius for rounded corners in pixels (0=square)
             progress_bar_bg_blur: Blur radius for background (0-60)
+            progress_bar_bg_width_extend: Additional width for background beyond progress bar in pixels (total, distributed equally on both sides)
+            progress_bar_bg_height_extend: Additional height for background beyond progress bar in pixels (total, distributed equally on top/bottom)
             timestamp_distance: Distance between progress bar and timestamps in pixels
             timestamp_font: Font family for timestamps (e.g., 'Arial')
             timestamp_font_size: Font size for timestamps in points
@@ -112,6 +115,8 @@ class ProgressBarOverlay(QWidget):
         self.progress_bar_border_radius = progress_bar_border_radius
         self.progress_bar_bg_blur = progress_bar_bg_blur
         self.blur_radius = progress_bar_bg_blur  # Store as blur_radius for consistency
+        self.progress_bar_bg_width_extend = progress_bar_bg_width_extend
+        self.progress_bar_bg_height_extend = progress_bar_bg_height_extend
         self.timestamp_distance = timestamp_distance
         self.timestamp_font = timestamp_font
         self.timestamp_font_size = timestamp_font_size
@@ -144,13 +149,16 @@ class ProgressBarOverlay(QWidget):
     
     def _create_widgets(self):
         """Create the UI widgets for the overlay - background, progress bar, and timestamps."""
-        # Main container with horizontal margins
+        # Calculate blur extension
+        blur_extend = self.progress_bar_bg_blur * 2  # Extend on each side for blur
+        
+        # Main container with horizontal margins - reduced by blur extension to prevent clipping
         container = QWidget()
         container_layout = QVBoxLayout()
         container_layout.setContentsMargins(
-            self.container_margin_left,
+            max(0, self.container_margin_left - blur_extend),
             0,
-            self.container_margin_right,
+            max(0, self.container_margin_right - blur_extend),
             self.container_margin_bottom
         )
         container_layout.setSpacing(5)
@@ -158,6 +166,9 @@ class ProgressBarOverlay(QWidget):
         # Create a wrapper to hold background and progress bar
         progress_wrapper = QWidget()
         progress_wrapper.setFixedHeight(self.progress_bar_height + (self.progress_bar_bg_blur * 2))
+        # Allow children to extend beyond bounds (prevents blur clipping)
+        progress_wrapper.setAttribute(Qt.WA_TranslucentBackground)
+        progress_wrapper.setStyleSheet("background: transparent;")
         
         # Background rectangle widget (Method 3: QGraphicsBlurEffect on semi-transparent widget)
         self.background_rect = QWidget(progress_wrapper)
@@ -205,10 +216,19 @@ class ProgressBarOverlay(QWidget):
         """)
         
         # Position background and progress bar
-        # Background is centered with blur padding
+        # Offset progress bar to account for blur extension in margins
         blur_padding = self.progress_bar_bg_blur
-        self.background_rect.setGeometry(0, blur_padding, 1920, self.progress_bar_height)
-        self.progress_bar.setGeometry(0, blur_padding, 1920, self.progress_bar_height)
+        x_offset = blur_extend  # Offset to compensate for reduced margins
+        
+        # Calculate background dimensions with extensions
+        bg_width_offset = self.progress_bar_bg_width_extend // 2  # Distribute equally on both sides
+        bg_height_offset = self.progress_bar_bg_height_extend // 2  # Distribute equally on top/bottom
+        bg_width = 1920 + self.progress_bar_bg_width_extend
+        bg_height = self.progress_bar_height + self.progress_bar_bg_height_extend
+        
+        # Background and progress bar positioned with offset to center them properly
+        self.background_rect.setGeometry(x_offset - bg_width_offset, blur_padding - bg_height_offset, bg_width, bg_height)
+        self.progress_bar.setGeometry(x_offset, blur_padding, 1920, self.progress_bar_height)
         
         # Ensure progress bar is on top
         self.background_rect.lower()
@@ -220,13 +240,14 @@ class ProgressBarOverlay(QWidget):
         container_layout.addWidget(progress_wrapper)
         
         # Timestamp container with horizontal layout for current time (left) and end time (right)
+        # Add blur_extend to timestamp padding to align with progress bar
         timestamp_widget = QWidget()
         timestamp_widget.setStyleSheet("background: transparent;")
         timestamp_layout = QHBoxLayout()
         timestamp_layout.setContentsMargins(
-            self.timestamp_container_padding_left,
+            self.timestamp_container_padding_left + blur_extend,
             self.timestamp_distance,
-            self.timestamp_container_padding_right,
+            self.timestamp_container_padding_right + blur_extend,
             0
         )
         timestamp_layout.setSpacing(0)
@@ -314,9 +335,21 @@ class ProgressBarOverlay(QWidget):
         
         # Update geometry to match wrapper width
         blur_padding = self.progress_bar_bg_blur
+        blur_extend = blur_padding * 2
+        x_offset = blur_extend
         wrapper_width = self.progress_wrapper.width()
-        self.background_rect.setGeometry(0, blur_padding, wrapper_width, self.progress_bar_height)
-        self.progress_bar.setGeometry(0, blur_padding, wrapper_width, self.progress_bar_height)
+        
+        # Calculate actual progress bar width accounting for the offset on both sides
+        actual_width = wrapper_width - (blur_extend * 2)
+        
+        # Calculate background dimensions with extensions
+        bg_width_offset = self.progress_bar_bg_width_extend // 2
+        bg_height_offset = self.progress_bar_bg_height_extend // 2
+        bg_width = actual_width + self.progress_bar_bg_width_extend
+        bg_height = self.progress_bar_height + self.progress_bar_bg_height_extend
+        
+        self.background_rect.setGeometry(x_offset - bg_width_offset, blur_padding - bg_height_offset, bg_width, bg_height)
+        self.progress_bar.setGeometry(x_offset, blur_padding, actual_width, self.progress_bar_height)
     
     def _format_time(self, seconds):
         """

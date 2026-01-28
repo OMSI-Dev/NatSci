@@ -15,7 +15,7 @@ class SubtitleOverlay(QWidget):
     """
     
     def __init__(self, position='bottom', opacity=0.85, y_offset=0,
-                 master_container_width_percent=1.0, master_container_height=200,
+                 parent_container_width_percent=1.0, parent_container_height=200,
                  column_horizontal_padding=50, column_top_padding=20,
                  column_bottom_padding=20, column_height_percent=0.8,
                  left_column_width_percent=0.5, column_spacing=0,
@@ -136,10 +136,10 @@ class SubtitleOverlay(QWidget):
         
         self.setAttribute(Qt.WA_TranslucentBackground)
         
-        screen = QApplication.primaryScreen().geometry()
+        screen_geometry = QApplication.primaryScreen().geometry()
         # Calculate height as percentage of screen height
-        container_height = int(screen.height() * self.parent_container_height)
-        self.setFixedSize(screen.width(), container_height)
+        container_height = int(screen_geometry.height() * self.parent_container_height)
+        self.setFixedSize(screen_geometry.width(), container_height)
         self.calculated_container_height = container_height
     
     def _create_widgets(self):
@@ -150,14 +150,14 @@ class SubtitleOverlay(QWidget):
         main_layout.setSpacing(0)
         
         # Parent container - holds both column containers
-        screen = QApplication.primaryScreen()
-        parent_width = int(screen.width() * self.parent_container_width_percent)
+        screen_geometry = QApplication.primaryScreen().geometry()
+        parent_width = int(screen_geometry.width() * self.parent_container_width_percent)
         
         self.parent_container = QWidget()
         self.parent_container.setFixedSize(parent_width, self.calculated_container_height)
         
         # Debug border for parent container
-        if debug_borders:
+        if self.show_debug_borders:
             self.parent_container.setStyleSheet("border: 2px solid red; background: transparent;")
         else:
             self.parent_container.setStyleSheet("background: transparent;")
@@ -302,26 +302,26 @@ class SubtitleOverlay(QWidget):
         self.right_column.setLayout(right_layout)
         columns_layout.addWidget(self.right_column)
         
-        self.master_container.setLayout(columns_layout)
-        main_layout.addWidget(self.master_container, alignment=Qt.AlignCenter)
+        self.parent_container.setLayout(columns_layout)
+        main_layout.addWidget(self.parent_container, alignment=Qt.AlignCenter)
         
         self.setLayout(main_layout)
     
     def _position_window(self):
         """Position the window based on the position setting."""
-        screen = QApplication.primaryScreen().geometry()
+        screen_geometry = QApplication.primaryScreen().geometry()
         window_rect = self.frameGeometry()
         
         x = 0
         
         if self.position == 'bottom':
-            y = screen.height() - window_rect.height()
+            y = screen_geometry.height() - window_rect.height()
         elif self.position == 'top':
             y = 0
         else:  # default to bottom
-            y = screen.height() - window_rect.height()
+            y = screen_geometry.height() - window_rect.height()
         
-        y = max(0, min(screen.height() - window_rect.height(), y - self.y_offset))
+        y = max(0, min(screen_geometry.height() - window_rect.height(), y - self.y_offset))
         self.move(x, y)
     
     def update_subtitles(self, subtitle_text="", subtitle_text2=""):

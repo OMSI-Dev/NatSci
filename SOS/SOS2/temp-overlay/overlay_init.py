@@ -5,8 +5,8 @@ Use Ctrl+C in terminal to exit.
 
 import sys
 import signal
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QApplication, QWidget, QCheckBox, QVBoxLayout
+from PyQt5.QtCore import QTimer, Qt
 from overlay_progressBar import ProgressBarOverlay
 from overlay_subtitles import SubtitleOverlay
 
@@ -20,9 +20,11 @@ PROGRESS_CONTAINER_MARGIN_BOTTOM = 82
 PROGRESS_BAR_HEIGHT = 12
 PROGRESS_BAR_COLOR = '#ffffff'
 PROGRESS_BAR_BG_COLOR = '#000000'
-PROGRESS_BAR_BG_OPACITY = 160          # 0-255 
+PROGRESS_BAR_BG_OPACITY = 155          # 0-255 
 PROGRESS_BAR_BORDER_RADIUS = 6
-PROGRESS_BAR_BG_BLUR = 13              # 0-60 blur radius 
+PROGRESS_BAR_BG_BLUR = 15              # 0-60 blur radius
+PROGRESS_BAR_BG_WIDTH_EXTEND = 20       # Additional width for blur background in pixels
+PROGRESS_BAR_BG_HEIGHT_EXTEND = 20      # Additional height for blur background in pixels
 TIMESTAMP_DISTANCE = 5
 TIMESTAMP_FONT = 'Arial'
 TIMESTAMP_FONT_SIZE = 14
@@ -60,8 +62,8 @@ TEXT_PADDING = 8
 
 # Title row configuration
 SHOW_TITLE_ROW = True
-LEFT_TITLE = 'English'
-RIGHT_TITLE = 'Español'
+LEFT_TITLE = ''#English title
+RIGHT_TITLE = ''#Espanol title
 TITLE_HEIGHT = 200
 TITLE_FONT_SIZE = 40
 TITLE_FONT_FAMILY = 'Arial'
@@ -83,6 +85,7 @@ SHOW_DEBUG_BORDERS = False
 # Global references for signal handler
 progress_overlay = None
 subtitle_overlay = None
+control_window = None
 
 
 def signal_handler(sig, frame):
@@ -92,19 +95,45 @@ def signal_handler(sig, frame):
         progress_overlay.stop()
     if subtitle_overlay:
         subtitle_overlay.stop()
+    if control_window:
+        control_window.close()
     QApplication.quit()
     sys.exit(0)
 
 
 def test_overlays():
     """Test both overlay components together."""
-    global progress_overlay, subtitle_overlay
+    global progress_overlay, subtitle_overlay, control_window
     
     # Set up Ctrl+C handler
     signal.signal(signal.SIGINT, signal_handler)
     
     # Initialize Qt application
     app = QApplication(sys.argv)
+    
+    # Create a small control window
+    control_window = QWidget()
+    control_window.setWindowTitle("Dev Controls")
+    control_window.setWindowFlags(Qt.WindowStaysOnTopHint)
+    control_layout = QVBoxLayout()
+    
+    # Add subtitle visibility checkbox
+    subtitle_checkbox = QCheckBox("Show Subtitles")
+    subtitle_checkbox.setChecked(True)
+    
+    def toggle_subtitles(state):
+        if subtitle_overlay:
+            if state:
+                subtitle_overlay.show()
+            else:
+                subtitle_overlay.hide()
+    
+    subtitle_checkbox.stateChanged.connect(toggle_subtitles)
+    control_layout.addWidget(subtitle_checkbox)
+    
+    control_window.setLayout(control_layout)
+    control_window.setGeometry(100, 100, 200, 80)
+    control_window.show()
     
     # Create progress bar overlay using parameters defined at top of file
     progress_overlay = ProgressBarOverlay(
@@ -119,6 +148,8 @@ def test_overlays():
         progress_bar_bg_opacity=PROGRESS_BAR_BG_OPACITY,
         progress_bar_border_radius=PROGRESS_BAR_BORDER_RADIUS,
         progress_bar_bg_blur=PROGRESS_BAR_BG_BLUR,
+        progress_bar_bg_width_extend=PROGRESS_BAR_BG_WIDTH_EXTEND,
+        progress_bar_bg_height_extend=PROGRESS_BAR_BG_HEIGHT_EXTEND,
         timestamp_distance=TIMESTAMP_DISTANCE,
         timestamp_font=TIMESTAMP_FONT,
         timestamp_font_size=TIMESTAMP_FONT_SIZE,
@@ -183,6 +214,7 @@ def test_overlays():
     
     print("\n" + "="*60)
     print("Overlays running with modular parameters.")
+    print("Use the Dev Controls window to toggle subtitles.")
     print("Adjust parameters in the code to customize layout.")
     print("Press Ctrl+C in this terminal to exit.")
     print("="*60 + "\n")

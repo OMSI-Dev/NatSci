@@ -3,7 +3,7 @@ import socket
 import time
 import re
 import json 
-
+from pp_init import PowerPointShowController
 
 def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
     """Receive data from socket until idle timeout."""
@@ -74,7 +74,7 @@ def initializePlaylist(host: str = "10.10.51.98", port: int = 2468, timeout: flo
                             pdata = fetch_playlist_data(loaded_playlist_path)
                             index = playlist_cache.index(loaded_playlist_data[0])
                             playlist_cache[index] = pdata
-                            with open('playlist_data.json', 'w') as json_file:
+                            with open(r'\\sos2\AuxShare\Documents\playlist_cache.JSON', 'w') as json_file:
                                 json.dump(playlist_cache, json_file, indent=4)  
                             print("Playlist data updated in JSON due to last modified date change.")
                             
@@ -83,7 +83,6 @@ def initializePlaylist(host: str = "10.10.51.98", port: int = 2468, timeout: flo
                         print(f"Error occurred: {e}")
 
                 elif loaded_playlist_exists == False:
-                    #fetch data and append to JSON
                     print("Playlist does not exist in JSON data.")
                     pdata = fetch_playlist_data(loaded_playlist_path)
                     playlist_cache.append(pdata)
@@ -170,8 +169,11 @@ def fetch_playlist_data(playlist_path, host: str = "10.10.51.98", port: int = 24
 
 
 if __name__ == '__main__':
-    playlist_Initialization = initializePlaylist()
-    if playlist_Initialization:
-        print(playlist_Initialization) 
+    playlist_data = initializePlaylist()
+    if playlist_data:
+        print(playlist_data) 
+        # initialize pp Controller, pass in playlist_data and read 
+        ppAccess = PowerPointShowController(playlist_data)
+        # start engine.py 
     else:
         print("Failed to retrieve clip data")
