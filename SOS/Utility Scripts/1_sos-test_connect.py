@@ -52,7 +52,7 @@ def parse_name_value_pairs(data: str) -> dict:
     return result
 
 
-def get_clip_info(host: str = "10.10.51.87", port: int = 2468, timeout: float = 4.0):
+def get_clip_info(host: str = "10.10.51.98", port: int = 2468, timeout: float = 4.0):
     """
     Connects to the OMSI SOS server and retrieves clip information.
     Returns a dictionary of clip metadata, or None if connection fails.
