@@ -146,8 +146,9 @@ class CacheManager:
     def fetch_and_update_full_data(self, sock, playlist_path, mod_date):
         """
         Fetch all data from SOS and update both caches.
+        Includes logic for 'translated-movie'.
         """
-        # print("[Cache] Fetching full playlist data...")
+        print("[Cache] Fetching full playlist data...")
         
         # Helper for socket recv
         def recv_till_timeout(s, timeout=1.0):
@@ -171,7 +172,6 @@ class CacheManager:
         try:
             # Extract just the numeric part in case response has prefix like "R\n8"
             lines = count_data.split('\n')
-            # Try each line until we find a valid integer
             clip_count = None
             for line in lines:
                 line = line.strip()
@@ -180,7 +180,6 @@ class CacheManager:
                     break
             
             if clip_count is None:
-                # Fallback: try to extract any digits from the response
                 import re
                 match = re.search(r'\d+', count_data)
                 if match:
@@ -188,14 +187,15 @@ class CacheManager:
                 else:
                     raise ValueError(f"No numeric value found in response")
                     
-        except ValueError as e:
+        except ValueError:
             print(f"[Cache] Error parsing clip count: {count_data}")
             return
 
-        # print(f"[Cache] Found {clip_count} clips. Fetching details...")        
+        print(f"[Cache] Found {clip_count} clips. Fetching details...")
+        
         new_playlist_clips = []
         
-        # 2. Iterate and Fetch Metadata
+        # 2. Iterate and Fetch Metadata (Pass 1)
         for i in range(1, clip_count + 1):
             # Fetch raw metadata string
             sock.sendall(f'get_all_name_value_pairs {i}\n'.encode())
@@ -205,8 +205,33 @@ class CacheManager:
             metadata = self.parse_name_value_pairs(meta_raw)
             clip_name = metadata.get('name', f'Unknown_Clip_{i}')
             
+            # --- Logic for 'translated-movie' ---
+            # Criteria 1: Path indicates 'site-custom' subfolder
+            # Check 'filename', 'file', 'datadir', or 'clip_filename'
+            full_path = (metadata.get('filename') or 
+                         metadata.get('file') or 
+                         metadata.get('datadir') or 
+                         metadata.get('clip_filename') or 
+                         "")
+            
+            # Normalize slashes for check and lower case
+            normalized_path = full_path.replace('\\', '/').lower()
+            is_site_custom = '/site-custom/' in normalized_path
+            
+            # Criteria 2: 'datadir' indicates .mp4 (or fallback to extension check)
+            # The prompt says: "their key ‘datadir’ value indicates the item is an .mp4 file"
+            datadir_val = metadata.get('datadir', '').lower()
+            is_mp4 = 'mp4' in datadir_val or normalized_path.endswith('.mp4')
+            
+            # Criteria 3 & 4: Has 'caption' and 'caption2'
+            has_captions = 'caption' in metadata and 'caption2' in metadata
+            
+            # Determine status
+            is_translated = is_site_custom and is_mp4 and has_captions
+            
+            metadata['translated-movie'] = is_translated
+            
             # Update the Metadata Cache (Global Dictionary)
-            # Use 'name' as key. This overwrites old entries for the same clip name, which is desired.
             self.clip_metadata[clip_name] = metadata
         
             # Update the Playlist Structure (Ordered List)
@@ -214,9 +239,10 @@ class CacheManager:
                 'name': clip_name
             })
             
-            # print(f"  [{i}/{clip_count}] Processed: {clip_name}")
+            # print(f"  [{i}/{clip_count}] Processed: {clip_name} (Translated: {is_translated})")
 
-        # 3. Update Playlist Cache Object
+
+        # 4. Update Playlist Cache Object
         new_playlist_entry = {
             'name': os.path.basename(playlist_path),
             'path': playlist_path,
@@ -229,5 +255,5 @@ class CacheManager:
         self.playlists.append(new_playlist_entry)
         self.current_playlist = new_playlist_entry
         
-        # 4. Save Everything
+        # 5. Save Everything
         self.save_caches()

@@ -121,7 +121,7 @@ class SimplePPEngine:
     def navigate_to_clip(self, clip_name):
         """Navigate to the slide(s) associated with the given clip name."""
         if clip_name not in self.slide_dictionary:
-            # print(f"[Engine] Warning: No slide mapping for '{clip_name}'")
+            print(f"[Engine] Warning: No slide mapping for '{clip_name}'")
             return
         
         slide_numbers = self.slide_dictionary[clip_name]
