@@ -1,15 +1,21 @@
 """
 SOS2 Main Controller
 Initializes LibreOffice presentation, creates slide mappings, and starts the engine.
+Conditionally starts specialized batch engine for Batch1_2026.sos playlist.
 """
 
 import subprocess
 import socket
 import time
 import re
-import json 
+import json
+import os
 from pp_init import initialize_all
 from engine import SimplePPEngine
+from batch_engine import Batch1Engine
+
+# Subtitle cache directory
+SUBTITLE_CACHE_DIR = r'\\sos2\AuxShare\Documents\subtitle_cache'
 
 def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
     """Receive data from socket until idle timeout."""
@@ -32,6 +38,55 @@ def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
     finally:
         sock.settimeout(orig_timeout)
     return bytes(buffer)
+
+
+def fetch_subtitle_file(remote_path, host="10.10.51.98"):
+    """
+    Fetch subtitle file from SOS server via SCP and cache locally.
+    
+    Args:
+        remote_path: Path to subtitle file on SOS server (e.g., /shared/sos/media/extras/...)
+        host: SOS server IP address
+        
+    Returns:
+        str: Local path to cached subtitle file, or None if failed
+    """
+    if not remote_path:
+        return None
+    
+    # Ensure cache directory exists
+    os.makedirs(SUBTITLE_CACHE_DIR, exist_ok=True)
+    
+    # Generate local filename from remote path
+    filename = os.path.basename(remote_path)
+    local_path = os.path.join(SUBTITLE_CACHE_DIR, filename)
+    
+    # Check if already cached
+    if os.path.exists(local_path):
+        # print(f"  → Subtitle cached: {filename}")
+        return local_path
+    
+    # SSH/SCP fetch logic
+    ssh_user = "sosdemo"
+    scp_cmd = [
+        "scp",
+        "-o", "StrictHostKeyChecking=no",
+        f"{ssh_user}@{host}:{remote_path}",
+        local_path
+    ]
+    
+    print(f"  → Fetching subtitle: {filename}")
+    try:
+        result = subprocess.run(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
+        if result.returncode == 0 and os.path.exists(local_path):
+            print(f"    ✓ Downloaded: {filename}")
+            return local_path
+        else:
+            print(f"    ✗ SCP failed: {result.stderr.decode('utf-8', 'ignore')}")
+            return None
+    except Exception as e:
+        print(f"    ✗ Exception during SCP: {e}")
+        return None
 
 
 def initializePlaylist(host: str = "10.10.51.98", port: int = 2468, timeout: float = 4.0):
@@ -77,7 +132,7 @@ def initializePlaylist(host: str = "10.10.51.98", port: int = 2468, timeout: flo
                 playlist_exists_in_cache = len(cached_entry) > 0
 
                 if playlist_exists_in_cache:
-                    print("Playlist exists in cache.")
+                    print("[YAY!] Playlist exists in cache.")
 
                     # Check last modified date
                     command = 'ssh sos@10.10.51.98 "stat -c %y" ' + loaded_playlist_path + '"'
@@ -86,7 +141,7 @@ def initializePlaylist(host: str = "10.10.51.98", port: int = 2468, timeout: flo
                         modification_date = result.strip().split()[0]
 
                         if modification_date == cached_entry[0]['last_modified']:
-                            print("Playlist last modified date matches cache.")
+                            print("[YAY!]Playlist last modified date matches cache.")
                             # Return the cached playlist metadata
                             return cached_entry[0]
 
@@ -180,30 +235,88 @@ def fetch_playlist_data(playlist_path, host: str = "10.10.51.98", port: int = 24
         
         # Load additional metadata from CSV (spanish_title, english_title, majorcategory)
         csv_metadata = {}
-        csv_path = r'\\sos2\AuxShare\Documents\sos_datasetss.csv'
+        csv_path = r'\\sos2\AuxShare\Documents\sos_datasets.csv'
         try:
             import csv
-            with open(csv_path, 'r', encoding='utf-8-sig', newline='') as csvfile:
-                reader = csv.DictReader(csvfile)
-                for row in reader:
-                    english_title = row.get('English Title', '').strip()
-                    if english_title:
-                        csv_metadata[english_title] = {
-                            'spanish_title': row.get('Spanish Title', '').strip(),
-                            'majorcategory': row.get('Major Categories', '').strip()
-                        }
+            # Try multiple encodings in order of likelihood
+            encodings_to_try = ['utf-8-sig', 'latin-1', 'windows-1252', 'utf-8']
+            
+            for encoding in encodings_to_try:
+                try:
+                    with open(csv_path, 'r', encoding=encoding, newline='') as csvfile:
+                        reader = csv.DictReader(csvfile)
+                        for row in reader:
+                            english_title = row.get('English Title', '').strip()
+                            if english_title:
+                                csv_metadata[english_title] = {
+                                    'spanish_title': row.get('Spanish Title', '').strip(),
+                                    'majorcategory': row.get('Major Categories', '').strip()
+                                }
+                    print(f"CSV loaded successfully with {encoding} encoding")
+                    break  # Success, exit the encoding loop
+                except UnicodeDecodeError:
+                    if encoding == encodings_to_try[-1]:  # Last encoding attempt
+                        raise  # Re-raise if all encodings failed
+                    continue  # Try next encoding
         except Exception as e:
             print(f"Warning: Could not load CSV metadata: {e}")
         
-        # Combine clip data with CSV metadata
-        for name, path in zip(clip_names, clip_paths):
+        # Combine clip data with CSV metadata and fetch clip metadata (including subtitle paths)
+        print(f"\nFetching clip metadata and caching subtitles...")
+        for i, (name, path) in enumerate(zip(clip_names, clip_paths), 1):
             clip_entry = {
                 'name': name,
                 'path': path,
                 'spanish_title': csv_metadata.get(name, {}).get('spanish_title', ''),
                 'english_title': name,  # English title is the clip name
-                'majorcategory': csv_metadata.get(name, {}).get('majorcategory', '')
+                'majorcategory': csv_metadata.get(name, {}).get('majorcategory', ''),
+                'caption': '',  # Will be populated from metadata
+                'caption2': ''  # Will be populated from metadata
             }
+            
+            # Fetch metadata for this clip to get caption paths
+            try:
+                cmd = f'get_all_name_value_pairs {i}\n'.encode('utf-8')
+                sock.sendall(cmd)
+                metadata_data = recv_data(sock, timeout_idle=2.0)
+                metadata_str = metadata_data.decode('utf-8', 'ignore').strip()
+                
+                # Parse metadata for caption, caption2, and duration
+                for line in metadata_str.splitlines():
+                    line = line.strip()
+                    if line.startswith('caption '):
+                        caption_path = line.replace('caption ', '', 1).strip()
+                        clip_entry['caption'] = caption_path
+                        # Fetch and cache the subtitle file
+                        if caption_path:
+                            local_caption = fetch_subtitle_file(caption_path, host)
+                            if local_caption:
+                                clip_entry['caption_local'] = local_caption
+                    elif line.startswith('caption2 '):
+                        caption2_path = line.replace('caption2 ', '', 1).strip()
+                        clip_entry['caption2'] = caption2_path
+                        # Fetch and cache the subtitle file
+                        if caption2_path:
+                            local_caption2 = fetch_subtitle_file(caption2_path, host)
+                            if local_caption2:
+                                clip_entry['caption2_local'] = local_caption2
+                    elif line.startswith('duration '):
+                        duration_str = line.replace('duration ', '', 1).strip()
+                        try:
+                            clip_entry['duration'] = float(duration_str)
+                        except ValueError:
+                            pass
+                
+                if clip_entry['caption'] or clip_entry['caption2']:
+                    print(f"  [{i}] {name}")
+                    if clip_entry.get('caption_local'):
+                        print(f"      EN: {os.path.basename(clip_entry['caption_local'])}")
+                    if clip_entry.get('caption2_local'):
+                        print(f"      ES: {os.path.basename(clip_entry['caption2_local'])}")
+                        
+            except Exception as e:
+                print(f"  Warning: Could not fetch metadata for clip {i} ({name}): {e}")
+            
             playlist_metadata['clips'].append(clip_entry)
 
     except OSError as e:
@@ -230,8 +343,7 @@ if __name__ == '__main__':
     print("SOS2 LibreOffice Impress Controller")
     print("=" * 60)
     
-    # Step 1: Initialize playlist from SOS server (checks cache, fetches if needed)
-    print("\nInitializing playlist from SOS server...")
+    # print("\nInitializing playlist from SOS server...")
     playlist_metadata = initializePlaylist()
     
     if not playlist_metadata:
@@ -239,10 +351,13 @@ if __name__ == '__main__':
         print("Exiting...")
         exit(1)
     
-    print(f"Playlist metadata retrieved successfully")
+    # print(f"Playlist metadata retrieved successfully")
     
-    # Step 2: Initialize LibreOffice presentation and slide dictionary
-    print("\nInitializing presentation and slide mappings...")
+    # Get playlist name for conditional engine selection
+    playlist_name = playlist_metadata.get('name', '')
+    print(f"\nLoaded playlist: {playlist_name}")
+    
+    # print("\nInitializing presentation and slide mappings...")
     pp, slide_dictionary = initialize_all()
     
     if not pp or not slide_dictionary:
@@ -250,13 +365,18 @@ if __name__ == '__main__':
         print("Exiting...")
         exit(1)
     
-    print(f"\nPresentation loaded: {pp.count} slides")
-    print(f"Slide mappings loaded: {len(slide_dictionary)} clips")
+    # print(f"\nPresentation loaded: {pp.count} slides")
+    # print(f"Slide mappings loaded: {len(slide_dictionary)} clips")
     
-    # Step 3: Initialize and start the engine with playlist metadata
-    # Note: SOS connection details (IP, port) are now handled as global variables in engine.py
-    print("\nInitializing engine...")
-    engine = SimplePPEngine(pp, slide_dictionary, playlist_metadata)
+    # Conditionally start specialized batch engine for Batch1_2026.sos
+    if playlist_name == "Batch1_2026.sos":
+        print("\n*** BATCH 1 DETECTED: Starting specialized batch engine ***")
+        print("=" * 60)
+        engine = Batch1Engine(pp, slide_dictionary, playlist_metadata)
+    else:
+        # Note: SOS connection details (IP, port) are now handled as global variables in engine.py
+        print("\nInitializing standard engine...")
+        engine = SimplePPEngine(pp, slide_dictionary, playlist_metadata)
     
     print("\nStarting engine...")
     print("=" * 60)

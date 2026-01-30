@@ -56,9 +56,10 @@ class SimplePPEngine:
         self.current_slide = -1
         self.sock = None
         
-        print(f"[Engine] Initialized with {len(slide_dictionary)} clip mappings")
+        # print(f"[Engine] Initialized with {len(slide_dictionary)} clip mappings")
         if playlist_metadata:
-            print(f"[Engine] Playlist: {playlist_metadata.get('name', 'Unknown')}")
+            pass
+            # print(f"[Engine] Playlist: {playlist_metadata.get('name', 'Unknown')}")
     
     def connect_to_sos(self, timeout=4):
         """
@@ -133,7 +134,7 @@ class SimplePPEngine:
     def get_current_clip_name(self):
         """
         Get the currently playing clip name from SOS.
-        Uses 2-step approach: get_clip_number → get_clip_info.
+        Uses cached playlist metadata for efficiency.
         
         Returns:
             str: Clip name or None on failure
@@ -145,18 +146,21 @@ class SimplePPEngine:
             # Step 1: Get current clip number
             self.sock.sendall(b'get_clip_number\n')
             data = self.sock.recv(1024)
-            clip_number = data.decode('utf-8', 'ignore').strip()
+            clip_number_str = data.decode('utf-8', 'ignore').strip()
             
-            if not clip_number or not clip_number.isdigit():
+            if not clip_number_str or not clip_number_str.isdigit():
                 return None
             
-            # Step 2: Get clip name using clip number
-            cmd = f"get_clip_info {clip_number}\n".encode('utf-8')
-            self.sock.sendall(cmd)
-            data = self.sock.recv(2048)
-            clip_name = data.decode('utf-8', 'ignore').strip()
+            clip_number = int(clip_number_str)
             
-            return clip_name if clip_name else None
+            # Step 2: Look up clip name from cached playlist metadata
+            if self.playlist_metadata and 'clips' in self.playlist_metadata:
+                clips = self.playlist_metadata['clips']
+                if 0 < clip_number <= len(clips):
+                    clip_name = clips[clip_number - 1].get('name', '')
+                    return clip_name if clip_name else None
+            
+            return None
             
         except socket.timeout:
             return None

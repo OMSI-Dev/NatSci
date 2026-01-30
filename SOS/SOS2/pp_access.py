@@ -85,7 +85,7 @@ class PowerPointShowController:
                 self.launched = True
             
             self.count = self.get_slide_total()
-            print(f"[Success] LibreOffice Impress launched: {self.count} slides")
+            # print(f"[Success] LibreOffice Impress launched: {self.count} slides")
         
         except Exception as e:
             print(f"Error launching LibreOffice: {e}")

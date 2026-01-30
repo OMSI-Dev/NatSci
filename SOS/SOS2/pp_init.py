@@ -41,12 +41,12 @@ def initialize_presentation(odp_path=None, run_show=True):
         print(f"ERROR: Presentation file not found: {odp_path}")
         return None
     
-    print(f"Initializing presentation: {odp_path}")
+    # print(f"Initializing presentation: {odp_path}")
     
     try:
         pp = PowerPointShowController(odp_path)
         pp.launchpp(RunShow=run_show)
-        print(f"Presentation initialized successfully")
+        # print(f"Presentation initialized successfully")
         return pp
     except Exception as e:
         print(f"ERROR: Failed to initialize presentation: {e}")
@@ -77,7 +77,7 @@ def create_slide_dictionary(csv_path=None):
         print(f"ERROR: Database file not found: {csv_path}")
         return None
     
-    print(f"Loading slide mappings from: {csv_path}")
+    # print(f"Loading slide mappings from: {csv_path}")
     
     mapping = {}
     
@@ -100,7 +100,7 @@ def create_slide_dictionary(csv_path=None):
             print("ERROR: Could not decode CSV file with any supported encoding")
             return None
         
-        print(f"Successfully read CSV using {used_encoding} encoding")
+        # print(f"Successfully read CSV using {used_encoding} encoding")
         
         # Parse the CSV content
         from io import StringIO
@@ -128,7 +128,7 @@ def create_slide_dictionary(csv_path=None):
                 
                 if english_title and slide_numbers:
                     mapping[english_title] = slide_numbers
-                    print(f"  Mapped: '{english_title}' -> {slide_numbers}")
+                    # print(f"  Mapped: '{english_title}' -> {slide_numbers}")
             
             except Exception as e:
                 print(f"Warning: Error parsing line {line_num}: {e}")
@@ -138,7 +138,7 @@ def create_slide_dictionary(csv_path=None):
             print("ERROR: No valid clip-to-slide mappings found in CSV")
             return None
         
-        print(f"Loaded {len(mapping)} clip-to-slide mappings")
+        # print(f"Loaded {len(mapping)} clip-to-slide mappings")
         return mapping
     
     except Exception as e:
@@ -162,18 +162,16 @@ def initialize_all(odp_path=None, csv_path=None, run_show=True):
     Returns:
         tuple: (pp_controller, slide_dictionary) or (None, None) on failure
     """
-    print("Step 1: Initializing presentation...")
     pp = initialize_presentation(odp_path, run_show)
     if not pp:
         print("ERROR: Presentation initialization failed")
         return None, None
     
-    print("Step 2: Creating slide dictionary...")
     slide_dict = create_slide_dictionary(csv_path)
     if not slide_dict:
         print("ERROR: Slide dictionary creation failed")
         pp.close()
         return None, None
     
-    print(f"SUCCESS: Initialized presentation with {len(slide_dict)} mappings")
+    # print(f"SUCCESS: Initialized presentation with {len(slide_dict)} mappings")
     return pp, slide_dict
