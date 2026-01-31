@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import time
 import socket
 import subprocess
@@ -20,18 +21,26 @@ class CacheManager:
     
     def __init__(self, 
                  playlist_cache_path=r'\\sos2\AuxShare\Documents\Cache\playlist_cache.JSON', 
-                 metadata_cache_path=r'\\sos2\AuxShare\Documents\Cache\clip_metadata_cache.JSON'):
+                 metadata_cache_path=r'\\sos2\AuxShare\Documents\Cache\clip_metadata_cache.JSON',
+                 subtitle_cache_dir=r'\\sos2\AuxShare\Documents\Cache\subtitle_cache',
+                 dataset_csv_path=r'\\sos2\AuxShare\Documents\Cache\SOS_datasets - Cache.csv'):
         
         self.playlist_cache_file = playlist_cache_path
         self.metadata_cache_file = metadata_cache_path
+        self.subtitle_cache_dir = subtitle_cache_dir
+        self.dataset_csv_path = dataset_csv_path
         
         self.playlists = []      # Loaded from playlist_cache.JSON
         self.clip_metadata = {}  # Loaded from clip_metadata_cache.JSON
+        self.dataset_titles = {} # Loaded from SOS_datasets - Cache.csv
         self.current_playlist = None
         
         # Ensure directory exists
         os.makedirs(os.path.dirname(self.playlist_cache_file), exist_ok=True)
+        os.makedirs(self.subtitle_cache_dir, exist_ok=True)
+        
         self.load_caches()
+        self.load_titles_csv(self.dataset_csv_path)
 
     def load_caches(self):
         """Load both JSON caches from disk."""
@@ -99,7 +108,7 @@ class CacheManager:
             print(f"[Cache] SSH check failed: {e}")
             return None
 
-    def get_metadata(self, clip_name, key=None):
+    def get(self, clip_name, key=None):
         """
         Retrieve metadata for a specific clip name.
         """
@@ -107,11 +116,185 @@ class CacheManager:
         metadata = self.clip_metadata.get(clip_name)
         
         if not metadata:
-            return None
+            return {}
             
         if key:
             return metadata.get(key)
+            
         return metadata
+    
+    def is_translated_movie(self, clip_name):
+        """
+        Check if a clip is marked as a translated movie.
+        Returns True if the clip has 'translated-movie' metadata set to True.
+        """
+        metadata = self.clip_metadata.get(clip_name, {})
+        return metadata.get('translated-movie', False)
+    
+    def fetch_subtitle_file(self, source_path):
+        """
+        Fetch a subtitle file from source (local copy or SCP) to cache.
+        Returns absolute path to cached file.
+        """
+        if not source_path: return None
+        
+        filename = os.path.basename(source_path)
+        cached_path = os.path.join(self.subtitle_cache_dir, filename)
+        
+        if os.path.exists(cached_path):
+            return cached_path
+            
+        # Try local copy first (if source is accessible as file)
+        try:
+             # Normalize separators
+             src_norm = os.path.normpath(source_path)
+             if os.path.exists(src_norm):
+                 shutil.copy2(src_norm, cached_path)
+                 print(f"[Cache] Copied local: {filename}")
+                 return cached_path
+        except Exception: pass
+        
+        # Try SCP (SOS Server)
+        sos_ip = "10.10.51.98" 
+        ssh_user = "sos"  # Authenticated user verified by client
+        
+        found_keys = []
+        possible_keys = [
+            r"C:\Users\sosdemo\.ssh\id_rsa",
+            os.path.expanduser("~/.ssh/id_rsa"),
+            os.path.expanduser("~/.ssh/id_ed25519"),
+            os.path.expanduser("~/.ssh/id_ecdsa"),
+        ]
+        
+        # Remove duplicates while preserving order
+        unique_paths = []
+        for p in possible_keys:
+            if p not in unique_paths: unique_paths.append(p)
+            
+        for key_path in unique_paths:
+            if os.path.exists(key_path):
+                found_keys.append(key_path)
+                print(f"[Cache] Found SSH key candidate: {key_path}")
+        
+        # Attempt 1: Use explicit keys with SCP
+        base_scp_cmd = ["scp", "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes", "-o", "PasswordAuthentication=no"]
+        cmd1 = list(base_scp_cmd)
+        if found_keys:
+            for key in found_keys:
+                cmd1 += ["-i", key]
+        cmd1 += [f"{ssh_user}@{sos_ip}:{source_path}", cached_path]
+
+        try:
+            print(f"[Cache] Method 1: SCP with Explicit Keys...")
+            result = subprocess.run(cmd1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
+            if result.returncode == 0 and os.path.exists(cached_path):
+                print(f"[Cache] Success (RPC).")
+                return cached_path
+        except Exception: pass
+
+        # Attempt 2: SCP System Default
+        print(f"[Cache] Method 2: SCP System Default...")
+        cmd2 = ["scp", "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes", "-o", "PasswordAuthentication=no"]
+        cmd2 += [f"{ssh_user}@{sos_ip}:{source_path}", cached_path]
+        
+        try:
+            result = subprocess.run(cmd2, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
+            if result.returncode == 0 and os.path.exists(cached_path):
+                print(f"[Cache] Success (System Default).")
+                return cached_path
+        except Exception: pass
+        
+        # Attempt 3: SSH Cat (Safe Mode)
+        print(f"[Cache] Method 3: SSH 'cat' fallback...")
+        ssh_base = ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes", "-o", "PasswordAuthentication=no"]
+        if found_keys:
+             ssh_base += ["-i", found_keys[0]]
+             
+        ssh_cmd = ssh_base + [f"{ssh_user}@{sos_ip}", f"cat '{source_path}'"]
+        
+        try:
+            with open(cached_path, 'wb') as f:
+                result = subprocess.run(ssh_cmd, stdout=f, stderr=subprocess.PIPE, timeout=5)
+                if result.returncode == 0 and os.path.exists(cached_path) and os.path.getsize(cached_path) > 0:
+                    print(f"[Cache] Success (SSH cat safe).")
+                    return cached_path
+                else:
+                    # Cleanup empty file
+                    f.close()
+                    if os.path.exists(cached_path) and os.path.getsize(cached_path) == 0:
+                        os.remove(cached_path)
+        except Exception: pass
+        
+        # Attempt 4: SSH Cat (Bare / Agent Mode)
+        print(f"[Cache] Method 4: SSH 'cat' (Agent/Interactive Mode)...")
+        ssh_bare = ["ssh", "-o", "StrictHostKeyChecking=no", f"{ssh_user}@{sos_ip}", f"cat '{source_path}'"]
+        
+        try:
+            with open(cached_path, 'wb') as f:
+                result = subprocess.run(ssh_bare, stdout=f, stderr=subprocess.PIPE, timeout=5)
+                if result.returncode == 0 and os.path.exists(cached_path) and os.path.getsize(cached_path) > 0:
+                    print(f"[Cache] Success (SSH cat agent).")
+                    return cached_path
+                else:
+                    f.close()
+                    if os.path.exists(cached_path) and os.path.getsize(cached_path) == 0:
+                         os.remove(cached_path)
+                    
+                    err = result.stderr.decode('utf-8', 'ignore').strip()
+                    print(f"[Cache] All fetch methods failed. Last error: {err}")
+        except subprocess.TimeoutExpired:
+            print("[Cache] Method 4 timed out (likely password prompt). Auth failed.")
+        except Exception as e:
+            print(f"[Cache] Method 4 failed: {e}")
+
+        return None
+
+    def cache_subtitles(self):
+        """
+        Iterate through cached metadata and ensure subtitle files are cached.
+        For translated movies, automatically fetch both English and Spanish subtitles
+        based on naming pattern (e.g., _en.srt and _es.srt).
+        """
+        print("[Cache] Checking subtitle cache...")
+        count = 0
+        
+        for clip_name, metadata in self.clip_metadata.items():
+            # Check if this is a translated movie
+            is_translated = self.is_translated_movie(clip_name)
+            
+            if is_translated and 'caption' in metadata:
+                # For translated movies, fetch both English and Spanish subtitles
+                caption_path = metadata['caption']
+                
+                # Fetch the English subtitle (from caption field)
+                if self.fetch_subtitle_file(caption_path):
+                    count += 1
+                    print(f"[Cache] Fetched English subtitle for: {clip_name}")
+                
+                # Derive Spanish subtitle path from English path
+                # Pattern: replace _en.srt with _es.srt
+                if '_en.srt' in caption_path:
+                    caption2_path = caption_path.replace('_en.srt', '_es.srt')
+                    if self.fetch_subtitle_file(caption2_path):
+                        count += 1
+                        print(f"[Cache] Fetched Spanish subtitle for: {clip_name}")
+                        # Update metadata to include caption2 path
+                        metadata['caption2'] = caption2_path
+                elif 'caption2' in metadata:
+                    # If caption2 is explicitly defined, use it
+                    if self.fetch_subtitle_file(metadata['caption2']):
+                        count += 1
+                        print(f"[Cache] Fetched secondary subtitle for: {clip_name}")
+            else:
+                # For non-translated clips, just fetch whatever captions are defined
+                for key in ['caption', 'caption2']:
+                    if key in metadata:
+                        if self.fetch_subtitle_file(metadata[key]):
+                            count += 1
+        
+        if count > 0:
+            print(f"[Cache] Cached {count} new subtitle files.")
+
 
     def sync(self, socket_connection, current_playlist_path):
         """
@@ -219,7 +402,7 @@ class CacheManager:
             is_site_custom = '/site-custom/' in normalized_path
             
             # Criteria 2: 'datadir' indicates .mp4 (or fallback to extension check)
-            # The prompt says: "their key ‘datadir’ value indicates the item is an .mp4 file"
+            # The prompt says: "their key 'datadir' value indicates the item is an .mp4 file"
             datadir_val = metadata.get('datadir', '').lower()
             is_mp4 = 'mp4' in datadir_val or normalized_path.endswith('.mp4')
             
@@ -231,6 +414,22 @@ class CacheManager:
             
             metadata['translated-movie'] = is_translated
             
+            # Debug output for translated movie detection
+            if 'site-custom' in normalized_path.lower():
+                print(f"\n[DEBUG] {clip_name}:")
+                print(f"  is_site_custom: {is_site_custom}")
+                print(f"  is_mp4: {is_mp4}")
+                print(f"  datadir: {metadata.get('datadir', 'N/A')}")
+                print(f"  has 'caption': {'caption' in metadata}")
+                if 'caption' in metadata:
+                    print(f"    caption value: {metadata['caption']}")
+                print(f"  has 'caption2': {'caption2' in metadata}")
+                if 'caption2' in metadata:
+                    print(f"    caption2 value: {metadata['caption2']}")
+                print(f"  All metadata keys: {list(metadata.keys())}")
+                print(f"  has_captions (both): {has_captions}")
+                print(f"  is_translated: {is_translated}")
+            
             # Update the Metadata Cache (Global Dictionary)
             self.clip_metadata[clip_name] = metadata
         
@@ -239,7 +438,7 @@ class CacheManager:
                 'name': clip_name
             })
             
-            # print(f"  [{i}/{clip_count}] Processed: {clip_name} (Translated: {is_translated})")
+            print(f"  [{i}/{clip_count}] Processed: {clip_name} (Translated: {is_translated})")
 
 
         # 4. Update Playlist Cache Object
@@ -257,3 +456,49 @@ class CacheManager:
         
         # 5. Save Everything
         self.save_caches()
+
+    def load_titles_csv(self, csv_path):
+        """
+        Load Spanish and English titles from the dataset CSV.
+        Expected format: Dataset Name (Auto), Spanish Title, English Title, ...
+        """
+        print(f"[Cache] Attempting to load titles from: {csv_path}")
+        if not os.path.exists(csv_path):
+            print(f"[Cache] ERROR: Titles CSV not found at {csv_path}")
+            return
+            
+        import csv
+        try:
+            with open(csv_path, 'r', encoding='utf-8-sig') as f:
+                # Use DictReader to be robust to column order
+                reader = csv.DictReader(f)
+                count = 0
+                for row in reader:
+                    # Map columns by name based on the CSV header
+                    dataset_name = row.get('Dataset Name (Auto)', '').strip()
+                    spanish_title = row.get('Spanish Title', '').strip()
+                    english_title = row.get('English Title', '').strip()
+                    
+                    if dataset_name:
+                        self.dataset_titles[dataset_name] = {
+                            'spanish': spanish_title,
+                            'english': english_title
+                        }
+                        count += 1
+                
+                print(f"[Cache] Successfully loaded {count} title entries from CSV.")
+                # print(f"[Cache] Current keys: {list(self.dataset_titles.keys())}")
+        except Exception as e:
+            print(f"[Cache] CRITICAL ERROR reading titles CSV: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def get_clip_titles(self, clip_name):
+        """Return (spanish, english) titles for a clip, or defaults."""
+        data = self.dataset_titles.get(clip_name, {})
+        # Log the result of the lookup
+        if data:
+            print(f"[Cache] Found titles for '{clip_name}': {data}")
+        else:
+            print(f"[Cache] No titles found for '{clip_name}' in dataset_titles ({len(self.dataset_titles)} entries)")
+        return data.get('spanish', ""), data.get('english', "")

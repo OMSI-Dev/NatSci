@@ -43,6 +43,9 @@ def initialize_cache_and_playlist():
         # Checks last modified date and updates cache only if needed
         cm.sync(sock, playlist_path)
         
+        # Cache Subtitles
+        cm.cache_subtitles()
+        
         return cm
         
     except Exception as e:

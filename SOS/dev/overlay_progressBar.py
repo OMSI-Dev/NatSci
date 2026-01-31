@@ -4,7 +4,7 @@ Displays only the progress bar with timestamp at the bottom of the screen.
 """
 
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QProgressBar, QGraphicsBlurEffect
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont, QPainter, QPen, QColor
 
 
@@ -130,6 +130,14 @@ class ProgressBarOverlay(QWidget):
         self._setup_window()
         self._create_widgets()
         self._position_window()
+
+        # Smooth update timer
+        self.timer = QTimer()
+        self.timer.timeout.connect(self._smooth_update)
+        self.timer.start(50)  # 20 FPS updates
+        self.target_time = 0.0
+        self.start_time = 0.0 # Time when the last update was received
+        self.last_update_timestamp = 0.0 # System time of last update
     
     def _setup_window(self):
         """Configure window properties for overlay appearance."""
@@ -313,25 +321,62 @@ class ProgressBarOverlay(QWidget):
             total_duration: Total duration in seconds
             slide_count: Number of slides in the dataset (for tick marks)
         """
-        self.current_time = current_time
+        # Update timestamps - separate current and end time
+        # Instead of jumping, we set the target and let the timer interpolate
+        import time
+        now = time.time()
+        
+        # If this is a large jump or first update, snap directly
+        if abs(current_time - self.current_time) > 2.0 or self.total_duration <= 0:
+            self.current_time = current_time
+        
+        self.target_time = current_time
         self.total_duration = total_duration
         self.slide_count = slide_count
+        self.last_update_timestamp = now
         
-        # Update timestamps - separate current and end time
-        current_str = self._format_time(current_time)
+        # Immediate UI update for duration/slide count changes
         total_str = self._format_time(total_duration)
-        self.current_time_label.setText(current_str)
         self.end_time_label.setText(total_str)
+        self.progress_bar.set_tick_count(slide_count)
         
-        # Update progress bar (0-100)
-        if total_duration > 0:
-            progress = int((current_time / total_duration) * 100)
+    def _smooth_update(self):
+        """Interpolate current time for smoother progress bar."""
+        if self.total_duration <= 0:
+            return
+            
+        # Optional: Linear interpolation logic could go here
+        # For now, we will just use the target time as the source of truth 
+        # but ensure we don't exceed it.
+        # Simple approach: drift towards target if we are behind
+        
+        # Actually, simpler logic:
+        # The external engine updates us every X ms. 
+        # Between updates, we can increment current_time based on real elapsed time.
+        import time
+        now = time.time()
+        elapsed_since_update = now - self.last_update_timestamp
+        
+        # Predict where we should be: target_time + elapsed
+        # But clamp it so we don't run away if engine hangs
+        predicted_time = self.target_time + elapsed_since_update
+        
+        # Clamp to duration
+        predicted_time = min(predicted_time, self.total_duration)
+        
+        self.current_time = predicted_time
+        
+        # Update UI
+        current_str = self._format_time(self.current_time)
+        self.current_time_label.setText(current_str)
+        
+        if self.total_duration > 0:
+            progress = int((self.current_time / self.total_duration) * 100)
             progress = min(100, max(0, progress))
         else:
             progress = 0
-        
+            
         self.progress_bar.setValue(progress)
-        self.progress_bar.set_tick_count(slide_count)
         
         # Update geometry to match wrapper width
         blur_padding = self.progress_bar_bg_blur

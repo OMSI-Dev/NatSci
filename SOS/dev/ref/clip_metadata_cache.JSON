@@ -3,6 +3,7 @@
         "datadir": "/shared/sos/media/site-custom/Nature's_Harmonious_Relationships/Nature's_Harmonious_Relationships.mp4",
         "layer": "Nature's_Harmonious_Relationships.mp4",
         "caption": "/shared/sos/media/site-custom/Nature's_Harmonious_Relationships/Nature's_Harmonious_Relationships_en.srt",
+        "caption2": "Nature's_Harmonious_Relationships_es.srt",
         "captionvisible": "false",
         "clip_filename": "/shared/sos/media/site-custom/Nature's_Harmonious_Relationships/playlist.sos",
         "duration": "58.00",
@@ -11,7 +12,7 @@
         "name": "Nature's Harmonious Relationships",
         "pipcount": "0",
         "timer": "58",
-        "translated-movie": false
+        "translated-movie": true
     },
     "Biosphere: Marine Chlorophyll Concentration and Land Vegetation": {
         "datadir": "/shared/sos/media/oceans/seawifs/polar_holes/seawifs_2048.mp4",
@@ -145,11 +146,12 @@
         "layer": "black-screen.jpg",
         "clip_filename": "/shared/sos/media/site-custom/We_Are_All_Related_Credits/playlist.sos",
         "description": "{{ A black screen for the custom OMSI movie \"Nature's Harmonious Relationships\" credits slide ",
+        "duration": "5.0",
         "layercount": "1",
         "majorcategory": "Site-Custom",
         "name": "Credits: We Are All Related",
         "pipcount": "0",
-        "timer": "5",
+        "timer": "5.0",
         "translated-movie": false
     }
 }
