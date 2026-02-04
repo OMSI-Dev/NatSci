@@ -155,3 +155,9 @@ void printTOFInfo()
   Serial.println(tof0.range_precision);
   Serial.println("");
 }
+
+float getTofDis(uint8_t tofNum)
+{
+  // For array of TOFs,
+  // return tofs[tofNum].dis;
+}
