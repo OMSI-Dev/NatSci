@@ -1,0 +1,3 @@
+http://10.10.51.98
+
+- Device must be connected to ‘OMSI Exhibits’ wifi to access the web host

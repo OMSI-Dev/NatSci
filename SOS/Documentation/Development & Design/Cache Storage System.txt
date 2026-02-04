@@ -1,3 +1,0 @@
-Initialization scripts (sdc.py, engine.py) actively store and utilize cache files for subtitles & clip metadata.
-
-If a new dataset is introduced, the scripts will initialize it into the cache, which will make startup processes minimally slower. 
