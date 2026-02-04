@@ -1,9 +1,9 @@
 # How Fast Details
 ## Theory of Operation
 
-There are ten tubes that are each 15 feet tall, lined up vertically and in parallel. Each tube has air flowing up through it with a coverable opening protruding from the base and a ball inside. The player covers the opening to block the air from coming out of that tube and holds their hand over until the ball reaches a predestined point in the tube. The tube on the very left has a low point to reach, where the tube on the right has a high point to reach. As one of the tubes is completed, a corresponding section of an LED lights up in the wall behind the tubes. The player does every tube in sequential order from left to right until the whole LED curve / graph is lit up. 
+There are ten tubes that are each 15 feet tall, lined up vertically and in parallel. Each tube has air flowing up through it with a coverable opening protruding from the base and a ball inside. The player covers the opening to block the air from coming out of that tube and holds their hand over until the ball reaches a predestined point in the tube. The tube on the very left has a low point to reach, where the tube on the right has a high point to reach. As one of the tubes is completed, a corresponding section of an LED lights up in the wall behind the tubes. The player does every tube in sequential order from left to right until the whole LED curve / graph is lit up.
 
-The LED line is representing a graph of the amount of carbon released over time in respect to industrialization. 
+The LED line is representing a graph of the amount of carbon released over time in respect to industrialization. Each tube represents a specific year (1100 - 2025).
 
 ## Updating software
 
@@ -77,3 +77,4 @@ Capitalization matters.
 	Failure: red.mp3
 	Average: orange.mp3
 	Success: green.mp3
+

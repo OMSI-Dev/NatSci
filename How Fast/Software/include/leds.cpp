@@ -1,7 +1,7 @@
 /*
- * Calico Randall
- * January 26, 2026
- * Testing LED reaction with ToF
+ * Calico Rose
+ * January 2026
+ * LED reaction to ToF
  */
 
 #include <Arduino.h>
@@ -9,10 +9,11 @@
 
 #define LED_STRIP_PIN 7
 #define TOTAL_LED_STRIP 15
+#define LED_UPPER_RING_PIN 0
 
 CRGBArray<TOTAL_LED_STRIP> ledStrip;
 
-void loadLEDs()
+void setupLEDs()
 {
     FastLED.addLeds<NEOPIXEL, LED_STRIP_PIN>(ledStrip, TOTAL_LED_STRIP);
     FastLED.setBrightness(255);
