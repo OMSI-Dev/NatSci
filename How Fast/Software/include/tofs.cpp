@@ -6,6 +6,8 @@
 
 #include <Arduino.h>
 
+#define TOTAL_TOFS 10
+
 typedef struct
 {
   unsigned char id;              // ID of the TOF module
@@ -33,6 +35,7 @@ size_t readN(uint8_t *buf, size_t len);
 bool recdData(tof_parameter *buf, uint8_t id = 0);
 
 tof_parameter tof0; // Define a structure to store the decoded data
+tof_parameter tofs[TOTAL_TOFS];
 
 void setupTOFSerial()
 {
@@ -138,9 +141,9 @@ void printTOFDistance()
   Serial.println(tof0.dis);
 }
 
+// Print data through the serial port
 void printTOFInfo()
 {
-  // Print data through the serial port
   Serial.print("id:");
   Serial.println(tof0.id);
   Serial.print("system_time:");
@@ -160,4 +163,18 @@ float getTofDis(uint8_t tofNum)
 {
   // For array of TOFs,
   // return tofs[tofNum].dis;
+}
+
+uint8_t tofTriggered()
+{
+  for (uint8_t i = 0; i < TOTAL_TOFS; i++)
+  {
+    if (tofs[i].dis < 4.0)
+    {
+      Serial.print("ToF #");
+      Serial.print(i);
+      Serial.println(" triggered.");
+      return i;
+    }
+  }
 }

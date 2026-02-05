@@ -21,4 +21,7 @@ void loop()
   printTOFDistance();
 
   delay(10);
+
+  //uint8_t tofTriggered = tofTriggered();
+  //
 }
