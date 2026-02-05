@@ -1,135 +1,96 @@
 """
-Simplified SOS LibreOffice Impress Controller
-Main entry point for the SOS-LibreOffice Impress integration system.
+SOS2 Main Controller (Optimized /dev/ version)
+Initializes CacheManager, synchronizes with SOS, and launches LibreOffice Engine.
 """
 
 import sys
-import threading
+import os
+import socket
 import time
-from parsers import parseConfig, parseSlideNames
-from ppAccess import PowerPointShowController
+
+from cache_manager import CacheManager
 from engine import SimplePPEngine
+from pp_init import initialize_all
 
-
-DEFAULT_CONFIG = r"C:\OMSI\App\SOS\config.txt"
-
-
-class ExitController(threading.Thread):
-    """Simple thread to handle user exit input."""
-    
-    def __init__(self, engine):
-        threading.Thread.__init__(self)
-        self.engine = engine
-        self.daemon = True
-    
-    def run(self):
-        time.sleep(2)
-        while True:
-            user_input = input("\n[EXIT] Press 'q' to quit: ")
-            if user_input.lower() in ['q', 'quit', 'exit']:
-                print("Stopping engine...")
-                self.engine.stop()
-                break
-
-
-def load_config(config_path=None):
+def initialize_cache_and_playlist():
     """
-    Load and parse configuration file.
+    Connects to SOS to get the current playlist name,
+    then initializes the CacheManager and syncs if necessary.
+    """
+    host = "10.10.51.98"
+    port = 2468
     
-    Args:
-        config_path: Path to config file (uses DEFAULT_CONFIG if None)
+    print("Connecting to SOS for initialization...")
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(4.0)
+    
+    try:
+        sock.connect((host, port))
+        sock.sendall(b'enable\n')
+        sock.recv(1024) # Handshake response
         
-    Returns:
-        dict: Configuration dictionary or None on failure
-    """
-    if not config_path:
-        config_path = DEFAULT_CONFIG
-    
-    print(f"Loading config from: {config_path}")
-    success, config_dict = parseConfig(config_path)
-    
-    if not success:
-        print("ERROR: Failed to parse config file")
-        return None
-    
-    return config_dict
-
-
-def load_slide_mapping(database_path):
-    """
-    Load slide mapping from CSV file.
-    
-    Args:
-        database_path: Path to CSV database file containing clip-to-slide mappings
+        # Get Playlist Name
+        sock.sendall(b'get_playlist_name\n')
+        # Use simple recv since we expect a short string
+        data = sock.recv(4096) 
+        playlist_path = data.decode('utf-8', 'ignore').strip()
+        print(f"Current Playlist: {playlist_path}")
         
-    Returns:
-        dict: Mapping of clip names to slide numbers, or None on failure
-    """
-    print(f"Loading slide mappings from: {database_path}")
-    success, pp_dictionary = parseSlideNames(database_path)
-    
-    if not success:
-        print("ERROR: Failed to parse database file")
+        # Initialize Cache Manager
+        cm = CacheManager()
+        
+        # Sync Cache (This handles the "Once a day" logic)
+        # Checks last modified date and updates cache only if needed
+        cm.sync(sock, playlist_path)
+        
+        # Cache Subtitles
+        cm.cache_subtitles()
+        
+        return cm
+        
+    except Exception as e:
+        print(f"Error during initialization: {e}")
         return None
-    
-    print(f"Loaded {len(pp_dictionary)} clip-to-slide mappings")
-    return pp_dictionary
+    finally:
+        sock.close()
 
-
-def main():
-    """Main entry point for the SOS LibreOffice Impress controller."""
-    
+if __name__ == '__main__':
     print("=" * 60)
-    print("SOS LibreOffice Impress Controller - Simplified Version")
+    print("SOS2 Controller (/dev/)")
     print("=" * 60)
     
-    config = load_config()
-    if not config:
+    # 1. Initialize Cache
+    # This replaces the complex 'initializePlaylist' function in old sdc.py
+    cache_mgr = initialize_cache_and_playlist()
+    
+    if not cache_mgr or not cache_mgr.current_playlist:
+        print("\nERROR: Failed to initialize cache or get playlist.")
+        # Fallback rationale: If cache fails, we can't map clip numbers to names efficiently.
+        # We could implement a fallback to old 'query every time' method, but 
+        # for this optimization/dev script, we'll exit.
+        input("Press Enter to exit...")
         sys.exit(1)
+        
+    # 2. Initialize LibreOffice (Reusing SOS2 logic)
+    print("\nInitializing LibreOffice...")
+    pp, slide_dictionary = initialize_all()
     
-    slideshow_path = config["default_path"] + config["default_name"] + ".odp"
-    database_path = config["default_path"] + config["default_name"] + ".csv"
-    
-    print(f"\nSlideshow: {slideshow_path}")
-    print(f"Database:  {database_path}")
-    
-    pp_dictionary = load_slide_mapping(database_path)
-    if not pp_dictionary:
+    if not pp or not slide_dictionary:
+        print("\nERROR: Failed to initialize presentation.")
         sys.exit(1)
+        
+    # 3. Start Engine
+    print("\nStarting Optimized Engine...")
+    print("=" * 60)
     
-    print("\nInitializing LibreOffice Impress controller...")
-    pp = PowerPointShowController(slideshow_path)
+    engine = SimplePPEngine(pp, slide_dictionary, cache_mgr)
     
-    # Initialize engine with SOS connection info
-    print("Initializing engine...")
-    engine = SimplePPEngine(
-        pp, 
-        pp_dictionary, 
-        config["sos_ip"], 
-        config["port"]
-    )
-    
-    # Start exit controller thread
-    exit_thread = ExitController(engine)
-    exit_thread.start()
-    
-    # Run engine (blocking)
-    print("\nStarting engine...\n")
     try:
         engine.run()
     except KeyboardInterrupt:
-        print("\n\nKeyboard interrupt detected")
-        engine.stop()
+        print("Interrupted.")
     except Exception as e:
-        print(f"\nERROR: {e}")
-        engine.stop()
-    
-    # Cleanup
-    print("\nCleaning up...")
-    time.sleep(1)
-    pp.close()
-    print("Done!")
-
-
-if __name__ == "__main__":
-    main()
+        print(f"Error: {e}")
+    finally:
+        pp.close()
+        print("Done.")

@@ -1,0 +1,81 @@
+**Stomp Switch**
+
+DC-DC Converter
+1. 24 IN
+2. 5V OUT
+3. GND
+
+Ethernet Port
+1. 24V IN to DC-DC Converter
+2. GND
+3. GND
+4. DATA IN to LED DATA IN
+5. BTN OUT to Teensy 4.0
+
+Button series in parallel
+1. BTN1 + GND
+2. BTN2 + GND
+3. BTN3 + GND
+4. BTN4 + GND
+
+LED
+1. 5V IN from DC-DC Converter
+2. DATA IN from Ethernet Port
+3. GND
+
+**TEENSY 4.0 SECTION** 
+Ethernet Ports (x5) to Stomp Switch
+1. 24V OUT
+2. GND
+3. GND
+4. DATA OUT from Pins 7, 8, 9, 10, 11 (to LED on Stomp Switch) 
+5. BTN IN from Stomp Switch 
+
+Ethernet Port (x1) from Teensy 4.1
+1. 24V IN
+2. GND
+3. GND
+4. TX to Pin 0
+5. RX to Pin 1
+6. VIN > 3.3V voltage regulator > Teensy 4.0 VIN
+
+**TEENSY 4.1 MAIN**
+24V IN (x5) (3PIN Phoenix Connector)
+1. 24V to Ethernet Out
+2. GND
+3. (Empty)
+
+Ethernet Out to Section 1
+1. RX/TX from Pins 0/1
+2. GND
+4. GND
+5. 5V
+6. 24V
+
+Ethernet Out to Section 2
+1. RX/TX from Pins 7/8
+2. GND
+4. GND
+5. 5V
+6. 24V
+
+Ethernet Out to Section 3
+1. RX/TX from Pins 15/14
+2. GND
+4. GND
+5. 5V
+6. 24V
+
+Ethernet Out to Section 4
+1. RX/TX from Pins 16/17
+2. GND
+4. GND
+5. 5V
+6. 24V
+
+Ethernet Out to Section 5
+1. RX/TX from Pins 21/20
+2. GND
+4. GND
+5. 5V
+6. 24V
