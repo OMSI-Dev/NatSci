@@ -9,6 +9,12 @@
 
 Documentation of troubleshooting setup specs
 
+
+
+Following the guide to \[Install and Configure Apache](https://ubuntu.com/tutorials/install-and-configure-apache#1-overview), and the steps below:
+
+
+
 1. apache2's VirtualHost file - granting permissions to edit '.' file:
 
 ```
