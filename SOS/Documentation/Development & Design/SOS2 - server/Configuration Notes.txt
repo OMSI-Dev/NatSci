@@ -5,6 +5,28 @@
 	firewall enabled for Apache web server
 
 
+**Port Configuration**
+
+	Port 2468: SOS Control Socket (npsh process) - for SOS commands (get_clip_info, get_playlist_name, etc.)
+	Port 80: Apache HTTP Server (for web hosting static files)
+
+IMPORTANT: Python scripts (sdc.py, engine.py, test scripts) should use port 2468 for SOS control commands.
+
+
+**Firewall Configuration**
+
+Enable incoming connections for SOS control port:
+	sudo ufw allow 2468/tcp
+	sudo ufw allow 2469/tcp
+	sudo ufw allow 80/tcp
+	sudo ufw reload
+	sudo ufw status
+
+Verify SOS socket is listening:
+	sudo ss -tlnp | grep :2468
+	ps aux | grep npsh
+
+
 **HTTP Server Config**
 
 Documentation of troubleshooting setup specs

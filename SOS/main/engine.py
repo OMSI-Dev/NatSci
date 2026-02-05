@@ -88,6 +88,8 @@ class OverlayManager:
 
 SOS_IP = "10.10.51.98"
 SOS_PORT = 2468
+PI_IP = "10.10.51.111"
+PI_PORT = 4096
 
 def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
     """Receive data from socket until idle timeout."""
@@ -231,6 +233,20 @@ class SimplePPEngine:
             return float(val) if val else 30.0
         except: return 30.0
 
+    def _send_nowplaying_message(self, message: str) -> None:
+        """Send a nowPlaying socket message to the Pi."""
+        try:
+            with socket.create_connection((PI_IP, PI_PORT), timeout=2.0) as pi_sock:
+                pi_sock.sendall(message.encode('utf-8'))
+        except Exception as e:
+            print(f"[Engine] nowPlaying send failed: {e}")
+
+    def update_nowPlaying(self, clip_number: int) -> None:
+        """Send the current clip number to nowPlaying."""
+        if clip_number is None:
+            return
+        self._send_nowplaying_message(f"CLIP:{clip_number}\n")
+
     def navigate_to_clip(self, clip_name):
         """Navigate to the slide(s) associated with the given clip name."""
         if clip_name not in self.slide_dictionary:
@@ -244,7 +260,7 @@ class SimplePPEngine:
         target_slide = slide_numbers[0]
         
         if target_slide != self.current_slide:
-            print(f"[Engine] Navigating to Slide {target_slide} for '{clip_name}'")
+            print(f"[Engine] Navigating to Slide {target_slide}")
             self.pp.goto(target_slide)
             self.current_slide = target_slide
     
@@ -272,6 +288,7 @@ class SimplePPEngine:
                     print(f"\n[Clip {clip_number}] {clip_name}")
                     self.last_clip_name = clip_name
                     self.navigate_to_clip(clip_name or "")
+                    self.update_nowPlaying(clip_number)
                     
                     # Update Overlay State
                     metadata = self.cache_manager.get(clip_name) if clip_name else {}
@@ -288,7 +305,7 @@ class SimplePPEngine:
                         self.overlay_manager.hide_all()
                     elif is_translated:
                         # Ensure subtitles are fetched/cached locally and use local path
-                        print(f"[Subtitles] Translated clip detected: {clip_name}")
+                        # print(f"[Subtitles] Translated clip detected: {clip_name}")
                         local_meta = metadata.copy()
                         if metadata.get('caption'):
                             path1 = self.cache_manager.fetch_subtitle_file(metadata['caption'])

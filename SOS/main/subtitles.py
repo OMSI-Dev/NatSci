@@ -65,7 +65,7 @@ def parse_srt_file(filepath):
                 })
             except: continue
             
-        print(f"[Subtitles] Loaded {len(subtitles)} entries from {os.path.basename(filepath)}")
+        # print(f"[Subtitles] Loaded {len(subtitles)} entries from {os.path.basename(filepath)}")
         return subtitles
     except Exception as e:
         print(f"Error reading subtitle file {filepath}: {e}")
@@ -353,7 +353,7 @@ class SubtitleOverlay(QWidget):
         )
         left_layout.setSpacing(0)
         
-        print(f"[Overlay] Creating widgets - Title Height: {self.title_height}, Title Top Spacing: {self.title_top_spacing}")
+        # print(f"[Overlay] Creating widgets - Title Height: {self.title_height}, Title Top Spacing: {self.title_top_spacing}")
         
         # Debug border for left column
         if self.show_debug_borders:
@@ -550,7 +550,7 @@ class SubtitleOverlay(QWidget):
         target_w = inner_w - (title_padding * 2)
         target_h = inner_h - (title_padding * 2)
         
-        print(f"[Overlay] Fitting Title: '{text}' (Available: {inner_w}x{inner_h} -> Text Target: {target_w}x{target_h})")
+        # print(f"[Overlay] Fitting Title: '{text}' (Available: {inner_w}x{inner_h} -> Text Target: {target_w}x{target_h})")
         
         # Safety check for invalid dimensions
         if target_w <= 0 or target_h <= 0:
@@ -580,10 +580,10 @@ class SubtitleOverlay(QWidget):
     def update_titles(self, left_title="", right_title=""):
         """Update the titles shown above the columns."""
         if not hasattr(self, 'left_title_label') or not hasattr(self, 'right_title_label'):
-            print(f"[Overlay] Warning: Title labels not initialized!")
+            # print(f"[Overlay] Warning: Title labels not initialized!")
             return
             
-        print(f"[Overlay] Updating titles - Left: '{left_title}', Right: '{right_title}'")
+        # print(f"[Overlay] Updating titles - Left: '{left_title}', Right: '{right_title}'")
         self.left_title = left_title
         self.right_title = right_title
         

@@ -269,7 +269,7 @@ class CacheManager:
                 # Fetch the English subtitle (from caption field)
                 if self.fetch_subtitle_file(caption_path):
                     count += 1
-                    print(f"[Cache] Fetched English subtitle for: {clip_name}")
+                    # print(f"[Cache] Fetched English subtitle for: {clip_name}")
                 
                 # Derive Spanish subtitle path from English path
                 # Pattern: replace _en.srt with _es.srt
@@ -277,7 +277,7 @@ class CacheManager:
                     caption2_path = caption_path.replace('_en.srt', '_es.srt')
                     if self.fetch_subtitle_file(caption2_path):
                         count += 1
-                        print(f"[Cache] Fetched Spanish subtitle for: {clip_name}")
+                        # print(f"[Cache] Fetched Spanish subtitle for: {clip_name}")
                         # Update metadata to include caption2 path
                         metadata['caption2'] = caption2_path
                 elif 'caption2' in metadata:
@@ -497,8 +497,8 @@ class CacheManager:
         """Return (spanish, english) titles for a clip, or defaults."""
         data = self.dataset_titles.get(clip_name, {})
         # Log the result of the lookup
-        if data:
-            print(f"[Cache] Found titles for '{clip_name}': {data}")
-        else:
-            print(f"[Cache] No titles found for '{clip_name}' in dataset_titles ({len(self.dataset_titles)} entries)")
+        # if data:
+        #     print(f"[Cache] Found titles for '{clip_name}': {data}")
+        # else:
+        #     print(f"[Cache] No titles found for '{clip_name}' in dataset_titles ({len(self.dataset_titles)} entries)")
         return data.get('spanish', ""), data.get('english', "")
