@@ -8,8 +8,8 @@ import socket
 import time
 import sys
 
-DEFAULT_SOS_IP = "10.10.51.87"  # Change to your actual default IP if needed
-DEFAULT_SOS_PORT = 2468        # Change to your actual default port if needed
+DEFAULT_SOS_IP = "10.10.51.87"  
+DEFAULT_SOS_PORT = 2468        
 
 def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
     buffer = bytearray()

@@ -1,0 +1,3 @@
+sdc.py - the initialization script for the engine, queries and stores clip metadata for datasets in the loaded playlist. This includes subtitle files for narrated datasets. 
+
+Cache is found in the AuxShare folder and is accessed by the scripts for a more optimized engine. 
