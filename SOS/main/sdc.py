@@ -86,8 +86,14 @@ def initialize_nowplaying(cache_mgr: CacheManager) -> None:
     payload = "\n".join(lines) + "\n"
 
     try:
-        with socket.create_connection((PI_IP, PI_PORT), timeout=3.0) as pi_sock:
-            pi_sock.sendall(payload.encode('utf-8'))
+        pi_sock = socket.create_connection((PI_IP, PI_PORT), timeout=10.0)
+        pi_sock.sendall(payload.encode('utf-8'))
+        pi_sock.shutdown(socket.SHUT_WR)  # Signal end of data
+        
+        # Wait for ACK
+        ack = pi_sock.recv(1024)
+        pi_sock.close()
+        
         print(f"[nowPlaying] Sent {len(clips)} playlist items to Pi.")
     except Exception as e:
         print(f"[nowPlaying] Failed to send playlist: {e}")

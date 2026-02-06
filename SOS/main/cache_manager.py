@@ -23,7 +23,7 @@ class CacheManager:
                  playlist_cache_path=r'\\sos2\AuxShare\Documents\Cache\playlist_cache.JSON', 
                  metadata_cache_path=r'\\sos2\AuxShare\Documents\Cache\clip_metadata_cache.JSON',
                  subtitle_cache_dir=r'\\sos2\AuxShare\Documents\Cache\subtitle_cache',
-                 dataset_csv_path=r'\\sos2\AuxShare\Documents\Cache\SOS_datasets - Cache.csv'):
+                 dataset_csv_path=r'\\sos2\AuxShare\Documents\SOS_datasets.csv'):
         
         self.playlist_cache_file = playlist_cache_path
         self.metadata_cache_file = metadata_cache_path
@@ -469,7 +469,7 @@ class CacheManager:
             
         import csv
         try:
-            with open(csv_path, 'r', encoding='utf-8-sig') as f:
+            with open(csv_path, 'r', encoding='latin-1') as f:
                 # Use DictReader to be robust to column order
                 reader = csv.DictReader(f)
                 count = 0
