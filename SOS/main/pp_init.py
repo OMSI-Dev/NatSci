@@ -14,10 +14,10 @@ from pp_access import PowerPointShowController
 # ============================================================================
 
 # Path to the .odp presentation file in SOS2 folder
-ODP_FILE = r"\\sos2\AuxShare\Documents\noaa_presentation.odp"
+ODP_FILE = r"\\sos2\AuxShare\documents\noaa_presentation.odp"
 
 # Path to the CSV database file for slide mappings
-SLIDE_DATABASE = r"\\sos2\AuxShare\Documents\sos_datasets.csv"
+SLIDE_DATABASE = r"\\sos2\AuxShare\data\sos_datasets.csv"
 
 # ============================================================================
 # FUNCTIONS
