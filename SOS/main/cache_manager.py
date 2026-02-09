@@ -23,7 +23,7 @@ class CacheManager:
                  playlist_cache_path=r'\\sos2\AuxShare\cache\playlist_cache.JSON', 
                  metadata_cache_path=r'\\sos2\AuxShare\cache\clip_metadata_cache.JSON',
                  subtitle_cache_dir=r'\\sos2\AuxShare\cache\subtitles',
-                 dataset_csv_path=r'\\sos2\AuxShare\cache\SOS_datasets.csv'):
+                 dataset_csv_path=r'\\sos2\AuxShare\data\SOS_datasets.csv'):
         
         self.playlist_cache_file = playlist_cache_path
         self.metadata_cache_file = metadata_cache_path

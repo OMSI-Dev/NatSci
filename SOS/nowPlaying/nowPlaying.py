@@ -1,6 +1,9 @@
 import socket
 import signal
 import sys
+import subprocess
+import os
+import atexit
 import pygame
 from typing import Optional, List
 
@@ -9,20 +12,30 @@ PI_PORT = 4096
 BUFFER_SIZE = 8192
 
 # Display Configuration
-DISPLAY_WIDTH = 1080
-DISPLAY_HEIGHT = 1920
+# Physical screen: 1920×1080 rotated 90° to portrait orientation
+# Software renders to landscape and rotates content 90° counter-clockwise
+DISPLAY_WIDTH = 1920
+DISPLAY_HEIGHT = 1080
 FPS = 30
+
+# Design dimensions (portrait layout before rotation)
+DESIGN_WIDTH = 1080
+DESIGN_HEIGHT = 1920
+
+# Display Controls
+DATASET_FONT_SCALE = 0.7  # Multiplier for all dataset fonts (english, spanish, duration)
+ROW_PADDING_LEFT = 100  # Left padding for dataset rows
+ROW_PADDING_RIGHT = 100  # Right padding for dataset rows
+MAX_TEXT_WIDTH = 600  # Maximum width before text wraps, originally 700 
 
 # Color Definitions
 WHITE = (255, 255, 255)
 LIGHT_BLUE = (100, 200, 255)
 
-# Font Paths (same directory as nowPlaying.py)
-MUSEO_FONT_PATH = '/home/pi/Documents/SOS/Museo_Slab_500.otf'
-INTER_FONT_PATH = '/home/pi/Documents/SOS/Inter_24pt-Regular.ttf'
-
-# Background Image Path (same directory as nowPlaying.py)
-BACKGROUND_PATH = '/home/pi/Documents/SOS/bkg.jpg'
+MUSEO_FONT_PATH = '/home/omsiadmin/Documents/SOS/Museo_Slab_500.otf'
+INTER_FONT_PATH = '/home/omsiadmin/Documents/SOS/Inter_24pt-Regular.ttf'
+BACKGROUND_PATH = '/home/omsiadmin/Documents/SOS/bkg.jpg'
+PID_FILE = '/tmp/nowPlaying.pid'
 
 # Global Data
 english_titles = [None]
@@ -42,11 +55,22 @@ duration_font = None
 background = None
 
 
+def cleanup_pid_file():
+    """Remove PID file on exit."""
+    try:
+        if os.path.exists(PID_FILE):
+            os.remove(PID_FILE)
+            print("[Pi] PID file cleaned up")
+    except Exception as e:
+        print(f"[Pi] Warning: Could not remove PID file: {e}")
+
+
 def signal_handler(sig, frame):
     """Handle Ctrl+C gracefully."""
     global running
     print("\n[Pi] Shutting down...")
     running = False
+    cleanup_pid_file()
     pygame.quit()
     sys.exit(0)
 
@@ -57,35 +81,62 @@ def init_display():
     global inter_title_font, inter_subtitle_font, duration_font, background
     
     pygame.init()
-    screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
+    screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
     pygame.display.set_caption('Now Playing')
     clock = pygame.time.Clock()
     
-    # Load fonts
+    # Load fonts (with scaling for dataset fonts)
     try:
         museo_title_font = pygame.font.Font(MUSEO_FONT_PATH, 120)
         museo_subtitle_font = pygame.font.Font(MUSEO_FONT_PATH, 100)
-        inter_title_font = pygame.font.Font(INTER_FONT_PATH, 42)
-        inter_subtitle_font = pygame.font.Font(INTER_FONT_PATH, 38)
-        duration_font = pygame.font.Font(INTER_FONT_PATH, 42)
+        inter_title_font = pygame.font.Font(INTER_FONT_PATH, int(42 * DATASET_FONT_SCALE))
+        inter_subtitle_font = pygame.font.Font(INTER_FONT_PATH, int(38 * DATASET_FONT_SCALE))
+        duration_font = pygame.font.Font(INTER_FONT_PATH, int(42 * DATASET_FONT_SCALE))
         print("[Pi] Fonts loaded successfully")
     except Exception as e:
         print(f"[Pi] Error loading fonts: {e}")
         print("[Pi] Using default fonts")
         museo_title_font = pygame.font.Font(None, 120)
         museo_subtitle_font = pygame.font.Font(None, 100)
-        inter_title_font = pygame.font.Font(None, 42)
-        inter_subtitle_font = pygame.font.Font(None, 38)
-        duration_font = pygame.font.Font(None, 42)
+        inter_title_font = pygame.font.Font(None, int(42 * DATASET_FONT_SCALE))
+        inter_subtitle_font = pygame.font.Font(None, int(38 * DATASET_FONT_SCALE))
+        duration_font = pygame.font.Font(None, int(42 * DATASET_FONT_SCALE))
     
-    # Load background
+    # Load and rotate background for 90° screen orientation
     try:
         background = pygame.image.load(BACKGROUND_PATH)
-        background = pygame.transform.scale(background, (DISPLAY_WIDTH, DISPLAY_HEIGHT))
-        print("[Pi] Background image loaded successfully")
+        #render as a normal 
+
+        # background = pygame.transform.scale(background, (DESIGN_WIDTH, DESIGN_HEIGHT))
+        background = pygame.transform.rotate(background, 90)
+        print("[Pi] Background image loaded and rotated successfully")
     except Exception as e:
         print(f"[Pi] Warning: Could not load background image: {e}")
         background = None
+
+
+def rotate_and_position(surface: pygame.Surface, design_x: int, design_y: int, 
+                        center: bool = False) -> tuple:
+    """
+    Rotate surface 90° counter-clockwise and translate coordinates.
+    Design coordinates are for portrait layout (1080×1920).
+    Returns (rotated_surface, (pos_x, pos_y)).
+    """
+    rotated = pygame.transform.rotate(surface, 90)
+    
+    if center:
+        # For centered text, transform center point
+        # Portrait center (x, y) → Landscape center (y, DISPLAY_HEIGHT - x)
+        pos_x = design_y
+        pos_y = DISPLAY_HEIGHT - design_x
+        rect = rotated.get_rect(center=(pos_x, pos_y))
+        return rotated, rect.topleft
+    else:
+        # For topleft positioning
+        # Portrait (x, y) → Landscape (y, DISPLAY_HEIGHT - x - rotated_height)
+        pos_x = design_y
+        pos_y = DISPLAY_HEIGHT - design_x - rotated.get_height()
+        return rotated, (pos_x, pos_y)
 
 
 def draw_background():
@@ -98,73 +149,137 @@ def draw_background():
 
 def draw_header():
     """Draw the 'Now Playing' and 'Ahora en cartelera' header."""
-    # "Now Playing" in white, Museo Slab
+    # "Now Playing" in white, Museo Slab (centered in design coordinates)
     now_playing_text = museo_title_font.render('Now Playing', True, WHITE)
-    now_playing_rect = now_playing_text.get_rect(center=(DISPLAY_WIDTH // 2, 120))
-    screen.blit(now_playing_text, now_playing_rect)
+    rotated_np, pos_np = rotate_and_position(now_playing_text, DESIGN_WIDTH // 2, 120, center=True)
+    screen.blit(rotated_np, pos_np)
     
     # "Ahora en cartelera" in light blue, Museo Slab
     ahora_text = museo_subtitle_font.render('Ahora en cartelera', True, LIGHT_BLUE)
-    ahora_rect = ahora_text.get_rect(center=(DISPLAY_WIDTH // 2, 250))
-    screen.blit(ahora_text, ahora_rect)
+    rotated_ahora, pos_ahora = rotate_and_position(ahora_text, DESIGN_WIDTH // 2, 250, center=True)
+    screen.blit(rotated_ahora, pos_ahora)
 
 
-def draw_current_item_border(x: int, y: int, width: int, height: int):
+def draw_current_item_border(design_x: int, design_y: int, design_width: int, design_height: int):
     """
-    Draw border around current item.
+    Draw border around current item with coordinate transformation.
     This method is modular for easy style changes.
     """
     border_thickness = 3
+    
+    # Transform rectangle coordinates for 90° rotation
+    # In rotated space: design_y becomes x, (DISPLAY_HEIGHT - design_x - design_width) becomes y
+    # Width and height swap
+    rect_x = design_y
+    rect_y = DISPLAY_HEIGHT - design_x - design_width
+    rect_width = design_height
+    rect_height = design_width
+    
     pygame.draw.rect(
         screen,
         LIGHT_BLUE,
-        (x, y, width, height),
+        (rect_x, rect_y, rect_width, rect_height),
         border_thickness,
         border_radius=5
     )
+
+
+def wrap_text(text: str, font: pygame.font.Font, max_width: int) -> List[str]:
+    """
+    Wrap text to fit within max_width.
+    Returns list of text lines.
+    """
+    words = text.split(' ')
+    lines = []
+    current_line = []
+    
+    for word in words:
+        test_line = ' '.join(current_line + [word])
+        test_surface = font.render(test_line, True, WHITE)
+        
+        if test_surface.get_width() <= max_width:
+            current_line.append(word)
+        else:
+            if current_line:
+                lines.append(' '.join(current_line))
+                current_line = [word]
+            else:
+                # Single word too long, add it anyway
+                lines.append(word)
+    
+    if current_line:
+        lines.append(' '.join(current_line))
+    
+    return lines if lines else [text]
 
 
 def draw_playlist_item(x: int, y: int, english: str, spanish: str, 
                        duration: str, is_current: bool) -> int:
     """
     Draw a single playlist item (English/Spanish pair with duration).
-    Returns the height of the drawn item.
+    Uses design coordinates (portrait layout), renders with rotation.
+    Supports text wrapping with duration always at top-right.
+    Returns the height of the drawn item in design space.
     """
-    item_height = 0
-    left_margin = 100
-    right_margin = DISPLAY_WIDTH - 100
-    duration_width = 80
+    left_margin = ROW_PADDING_LEFT
+    right_margin = DESIGN_WIDTH - ROW_PADDING_RIGHT
+    content_width = right_margin - left_margin
     
-    # Draw English title (white, Inter)
-    english_surface = inter_title_font.render(english, True, WHITE)
-    english_rect = english_surface.get_rect(topleft=(left_margin, y))
-    screen.blit(english_surface, english_rect)
-    item_height += english_rect.height + 5
+    # Reserve space for duration (approximate)
+    duration_surface = duration_font.render(duration, True, WHITE)
+    duration_width = duration_surface.get_width() + 30  # Add some padding
+    text_max_width = min(MAX_TEXT_WIDTH, content_width - duration_width)
     
-    # Draw Spanish title (light blue, Inter)
-    spanish_surface = inter_subtitle_font.render(spanish, True, LIGHT_BLUE)
-    spanish_rect = spanish_surface.get_rect(topleft=(left_margin, y + item_height))
-    screen.blit(spanish_surface, spanish_rect)
-    item_height += spanish_rect.height + 10
+    # Wrap English title
+    english_lines = wrap_text(english, inter_title_font, text_max_width)
     
-    # Draw duration (aligned to right, Inter)
+    # Wrap Spanish title
+    spanish_lines = wrap_text(spanish, inter_subtitle_font, text_max_width)
+    
+    current_y = y
+    english_height = 0
+    
+    # Draw English lines (white, Inter)
+    for i, line in enumerate(english_lines):
+        line_surface = inter_title_font.render(line, True, WHITE)
+        rotated_line, pos_line = rotate_and_position(line_surface, left_margin, current_y)
+        screen.blit(rotated_line, pos_line)
+        line_height = line_surface.get_height()
+        current_y += line_height + (3 if i < len(english_lines) - 1 else 5)
+        english_height += line_height + (3 if i < len(english_lines) - 1 else 5)
+    
+    spanish_height = 0
+    
+    # Draw Spanish lines (light blue, Inter)
+    for i, line in enumerate(spanish_lines):
+        line_surface = inter_subtitle_font.render(line, True, LIGHT_BLUE)
+        rotated_line, pos_line = rotate_and_position(line_surface, left_margin, current_y)
+        screen.blit(rotated_line, pos_line)
+        line_height = line_surface.get_height()
+        current_y += line_height + (3 if i < len(spanish_lines) - 1 else 10)
+        spanish_height += line_height + (3 if i < len(spanish_lines) - 1 else 10)
+    
+    # Draw duration at top-right, aligned with first line of English
     duration_color = LIGHT_BLUE if is_current else WHITE
     duration_surface = duration_font.render(duration, True, duration_color)
-    duration_rect = duration_surface.get_rect(
-        midright=(right_margin, y + spanish_rect.height // 2 + english_rect.height // 2)
-    )
-    screen.blit(duration_surface, duration_rect)
+    duration_x = right_margin - duration_surface.get_width()
+    duration_y = y  # Align with first line
+    rotated_dur, pos_dur = rotate_and_position(duration_surface, duration_x, duration_y)
+    screen.blit(rotated_dur, pos_dur)
     
-    # Draw border if current item (modular styling)
+    # Calculate total item height
+    total_item_height = english_height + spanish_height
+    
+    # Draw border if current item (adaptive height)
     if is_current:
         draw_current_item_border(
             left_margin - 20,
             y - 15,
             right_margin - left_margin + 40,
-            item_height + 20
+            total_item_height + 20
         )
     
-    return item_height + 25  # Add spacing between items
+    return total_item_height + 25  # Add spacing between items
 
 
 def filter_credits(titles: List[Optional[str]]) -> List[int]:
@@ -205,8 +320,8 @@ def render_display():
         )
         current_y += item_height
         
-        # Stop if we run out of screen space
-        if current_y > DISPLAY_HEIGHT - 100:
+        # Stop if we run out of design space (portrait layout)
+        if current_y > DESIGN_HEIGHT - 100:
             break
     
     pygame.display.flip()
@@ -271,17 +386,106 @@ def _handle_clip_message(message: str) -> None:
     print(f"[Pi] Clip Duration: {duration}")
 
 
+def kill_old_instance() -> None:
+    """Kill any existing process using the port and clean up old PID file."""
+    # Check if PID file exists
+    if os.path.exists(PID_FILE):
+        try:
+            with open(PID_FILE, 'r') as f:
+                old_pid = int(f.read().strip())
+            
+            # Check if process is still running
+            try:
+                os.kill(old_pid, 0)  # Signal 0 just checks if process exists
+                print(f"[Pi] Found old instance (PID {old_pid}), terminating...")
+                os.kill(old_pid, signal.SIGTERM)
+                import time
+                time.sleep(0.5)
+                # Force kill if still alive
+                try:
+                    os.kill(old_pid, signal.SIGKILL)
+                except OSError:
+                    pass  # Already dead
+                print("[Pi] Old instance terminated")
+            except OSError:
+                print(f"[Pi] PID {old_pid} not running, cleaning up stale PID file")
+        except Exception as e:
+            print(f"[Pi] Warning: Could not read/kill old PID: {e}")
+        
+        # Remove old PID file
+        try:
+            os.remove(PID_FILE)
+        except:
+            pass
+    
+    # Try using lsof to find process using the port
+    try:
+        result = subprocess.run(
+            ['lsof', '-ti', f':{PI_PORT}'],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        if result.stdout.strip():
+            pids = result.stdout.strip().split('\n')
+            for pid in pids:
+                try:
+                    print(f"[Pi] Killing process {pid} using port {PI_PORT}")
+                    os.kill(int(pid), signal.SIGKILL)
+                except Exception as e:
+                    print(f"[Pi] Could not kill PID {pid}: {e}")
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass  # lsof not available or timed out
+    except Exception as e:
+        print(f"[Pi] Warning checking port: {e}")
+
+
+def write_pid_file() -> None:
+    """Write current process PID to file."""
+    try:
+        with open(PID_FILE, 'w') as f:
+            f.write(str(os.getpid()))
+        print(f"[Pi] PID file created: {PID_FILE}")
+    except Exception as e:
+        print(f"[Pi] Warning: Could not create PID file: {e}")
+
+
 def pi_socket_server() -> None:
     """Socket server that receives INIT and CLIP data from Beelink."""
     global running
+    
+    # Kill any old instances before starting
+    kill_old_instance()
+    
+    # Write PID file and register cleanup
+    write_pid_file()
+    atexit.register(cleanup_pid_file)
     
     # Initialize display
     init_display()
     
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    
+    # On Linux, also set SO_REUSEPORT if available
+    try:
+        server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    except (AttributeError, OSError):
+        pass  # SO_REUSEPORT not available on this system
+    
     server_sock.settimeout(0.1)  # Short timeout to allow display updates
-    server_sock.bind(('0.0.0.0', PI_PORT))
+    
+    try:
+        server_sock.bind(('0.0.0.0', PI_PORT))
+    except OSError as e:
+        print(f"[Pi] ERROR: Cannot bind to port {PI_PORT}")
+        print(f"[Pi] {e}")
+        print(f"[Pi] Another instance may be running. To fix:")
+        print(f"[Pi]   1. Run: lsof -ti:{PI_PORT} | xargs kill -9")
+        print(f"[Pi]   2. Or: pkill -f nowPlaying.py")
+        server_sock.close()
+        sys.exit(1)
+    
     server_sock.listen(5)
 
     bound_addr = server_sock.getsockname()
@@ -346,6 +550,7 @@ def pi_socket_server() -> None:
     # Cleanup
     server_sock.close()
     pygame.quit()
+    cleanup_pid_file()
     print("[Pi] Server stopped")
 
 
