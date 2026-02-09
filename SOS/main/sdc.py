@@ -12,6 +12,9 @@ from cache_manager import CacheManager
 from engine import SimplePPEngine
 from pp_init import initialize_all
 
+PI_IP = "10.10.51.111"
+PI_PORT = 4096
+
 def initialize_cache_and_playlist():
     """
     Connects to SOS to get the current playlist name,
@@ -22,7 +25,7 @@ def initialize_cache_and_playlist():
     
     print("Connecting to SOS for initialization...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(4.0)
+    sock.settimeout(8.0)
     
     try:
         sock.connect((host, port))
@@ -54,20 +57,57 @@ def initialize_cache_and_playlist():
     finally:
         sock.close()
 
+def initialize_nowplaying(cache_mgr: CacheManager) -> None:
+    """Send the current playlist metadata to nowPlaying on the Pi."""
+    if not cache_mgr or not cache_mgr.current_playlist:
+        print("[nowPlaying] No current playlist available.")
+        return
+
+    clips = cache_mgr.current_playlist.get('clips', [])
+    lines = ["INIT"]
+
+    for index, clip in enumerate(clips, start=1):
+        clip_name = clip.get('name', '')
+        spanish_title, english_title = cache_mgr.get_clip_titles(clip_name)
+        if not english_title:
+            english_title = clip_name
+        if not spanish_title:
+            spanish_title = clip_name
+
+        metadata = cache_mgr.get(clip_name)
+        duration = metadata.get('duration') if isinstance(metadata, dict) else None
+        if not duration and isinstance(metadata, dict):
+            duration = metadata.get('timer')
+        if not duration:
+            duration = 90
+
+        lines.append(f"{index}|{english_title}|{spanish_title}|{duration}")
+
+    payload = "\n".join(lines) + "\n"
+
+    try:
+        pi_sock = socket.create_connection((PI_IP, PI_PORT), timeout=10.0)
+        pi_sock.sendall(payload.encode('utf-8'))
+        pi_sock.shutdown(socket.SHUT_WR)  # Signal end of data
+        
+        # Wait for ACK
+        ack = pi_sock.recv(1024)
+        pi_sock.close()
+        
+        print(f"[nowPlaying] Sent {len(clips)} playlist items to Pi.")
+    except Exception as e:
+        print(f"[nowPlaying] Failed to send playlist: {e}")
+
 if __name__ == '__main__':
     print("=" * 60)
     print("SOS2 Controller (/dev/)")
     print("=" * 60)
     
     # 1. Initialize Cache
-    # This replaces the complex 'initializePlaylist' function in old sdc.py
     cache_mgr = initialize_cache_and_playlist()
     
     if not cache_mgr or not cache_mgr.current_playlist:
         print("\nERROR: Failed to initialize cache or get playlist.")
-        # Fallback rationale: If cache fails, we can't map clip numbers to names efficiently.
-        # We could implement a fallback to old 'query every time' method, but 
-        # for this optimization/dev script, we'll exit.
         input("Press Enter to exit...")
         sys.exit(1)
         
@@ -79,7 +119,11 @@ if __name__ == '__main__':
         print("\nERROR: Failed to initialize presentation.")
         sys.exit(1)
         
-    # 3. Start Engine
+    # 3. Initialize nowPlaying
+    print("\nInitializing nowPlaying...")
+    initialize_nowplaying(cache_mgr)
+
+    # 4. Start Engine
     print("\nStarting Optimized Engine...")
     print("=" * 60)
     

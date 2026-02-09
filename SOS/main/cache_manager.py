@@ -20,10 +20,10 @@ class CacheManager:
     """
     
     def __init__(self, 
-                 playlist_cache_path=r'\\sos2\AuxShare\Documents\Cache\playlist_cache.JSON', 
-                 metadata_cache_path=r'\\sos2\AuxShare\Documents\Cache\clip_metadata_cache.JSON',
-                 subtitle_cache_dir=r'\\sos2\AuxShare\Documents\Cache\subtitle_cache',
-                 dataset_csv_path=r'\\sos2\AuxShare\Documents\Cache\SOS_datasets - Cache.csv'):
+                 playlist_cache_path=r'\\sos2\AuxShare\cache\playlist_cache.JSON', 
+                 metadata_cache_path=r'\\sos2\AuxShare\cache\clip_metadata_cache.JSON',
+                 subtitle_cache_dir=r'\\sos2\AuxShare\cache\subtitles',
+                 dataset_csv_path=r'\\sos2\AuxShare\cache\SOS_datasets.csv'):
         
         self.playlist_cache_file = playlist_cache_path
         self.metadata_cache_file = metadata_cache_path
@@ -269,7 +269,7 @@ class CacheManager:
                 # Fetch the English subtitle (from caption field)
                 if self.fetch_subtitle_file(caption_path):
                     count += 1
-                    print(f"[Cache] Fetched English subtitle for: {clip_name}")
+                    # print(f"[Cache] Fetched English subtitle for: {clip_name}")
                 
                 # Derive Spanish subtitle path from English path
                 # Pattern: replace _en.srt with _es.srt
@@ -277,7 +277,7 @@ class CacheManager:
                     caption2_path = caption_path.replace('_en.srt', '_es.srt')
                     if self.fetch_subtitle_file(caption2_path):
                         count += 1
-                        print(f"[Cache] Fetched Spanish subtitle for: {clip_name}")
+                        # print(f"[Cache] Fetched Spanish subtitle for: {clip_name}")
                         # Update metadata to include caption2 path
                         metadata['caption2'] = caption2_path
                 elif 'caption2' in metadata:
@@ -469,7 +469,7 @@ class CacheManager:
             
         import csv
         try:
-            with open(csv_path, 'r', encoding='utf-8-sig') as f:
+            with open(csv_path, 'r', encoding='latin-1') as f:
                 # Use DictReader to be robust to column order
                 reader = csv.DictReader(f)
                 count = 0
@@ -497,8 +497,8 @@ class CacheManager:
         """Return (spanish, english) titles for a clip, or defaults."""
         data = self.dataset_titles.get(clip_name, {})
         # Log the result of the lookup
-        if data:
-            print(f"[Cache] Found titles for '{clip_name}': {data}")
-        else:
-            print(f"[Cache] No titles found for '{clip_name}' in dataset_titles ({len(self.dataset_titles)} entries)")
+        # if data:
+        #     print(f"[Cache] Found titles for '{clip_name}': {data}")
+        # else:
+        #     print(f"[Cache] No titles found for '{clip_name}' in dataset_titles ({len(self.dataset_titles)} entries)")
         return data.get('spanish', ""), data.get('english', "")

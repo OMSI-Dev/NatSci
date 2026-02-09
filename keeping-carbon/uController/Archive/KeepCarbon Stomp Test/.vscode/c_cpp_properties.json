@@ -1,0 +1,95 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "C:/Users/adelanty/OneDrive - Oregon Museum of Science and Industry (OMSI)/Documents/GitHub/NatSci/keeping-carbon/KeepCarbon Stomp Test/include",
+                "C:/Users/adelanty/OneDrive - Oregon Museum of Science and Industry (OMSI)/Documents/GitHub/NatSci/keeping-carbon/KeepCarbon Stomp Test/src",
+                "C:/Users/adelanty/OneDrive - Oregon Museum of Science and Industry (OMSI)/Documents/GitHub/NatSci/keeping-carbon/KeepCarbon Stomp Test/.pio/libdeps/adafruit_trinket_m0/FastLED/src",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/SPI",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_ZeroDMA",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_ZeroDMA/utility",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_TinyUSB_Arduino/src",
+                "C:/Users/adelanty/OneDrive - Oregon Museum of Science and Industry (OMSI)/Documents/GitHub/NatSci/keeping-carbon/KeepCarbon Stomp Test/.pio/libdeps/adafruit_trinket_m0/OMSI_Timer/src",
+                "C:/Users/adelanty/OneDrive - Oregon Museum of Science and Industry (OMSI)/Documents/GitHub/NatSci/keeping-carbon/KeepCarbon Stomp Test/.pio/libdeps/adafruit_trinket_m0/Bounce2/src",
+                "C:/Users/adelanty/.platformio/packages/framework-cmsis@2.50400.181126/CMSIS/Core/Include",
+                "C:/Users/adelanty/.platformio/packages/framework-cmsis-atmel/CMSIS/Device/ATMEL",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/cores/arduino",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_TinyUSB_Arduino/src/arduino",
+                "C:/Users/adelanty/.platformio/packages/framework-cmsis@2.50400.181126/CMSIS/DSP/Include",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/variants/trinket_m0",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/CI_Tests",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/HID",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/I2S/src",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/SAMD_AnalogCorrection/src",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/SDU/src",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Servo/src",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/USBHost/src",
+                "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Wire",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "C:/Users/adelanty/OneDrive - Oregon Museum of Science and Industry (OMSI)/Documents/GitHub/NatSci/keeping-carbon/KeepCarbon Stomp Test/include",
+                    "C:/Users/adelanty/OneDrive - Oregon Museum of Science and Industry (OMSI)/Documents/GitHub/NatSci/keeping-carbon/KeepCarbon Stomp Test/src",
+                    "C:/Users/adelanty/OneDrive - Oregon Museum of Science and Industry (OMSI)/Documents/GitHub/NatSci/keeping-carbon/KeepCarbon Stomp Test/.pio/libdeps/adafruit_trinket_m0/FastLED/src",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/SPI",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_ZeroDMA",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_ZeroDMA/utility",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_TinyUSB_Arduino/src",
+                    "C:/Users/adelanty/OneDrive - Oregon Museum of Science and Industry (OMSI)/Documents/GitHub/NatSci/keeping-carbon/KeepCarbon Stomp Test/.pio/libdeps/adafruit_trinket_m0/OMSI_Timer/src",
+                    "C:/Users/adelanty/OneDrive - Oregon Museum of Science and Industry (OMSI)/Documents/GitHub/NatSci/keeping-carbon/KeepCarbon Stomp Test/.pio/libdeps/adafruit_trinket_m0/Bounce2/src",
+                    "C:/Users/adelanty/.platformio/packages/framework-cmsis@2.50400.181126/CMSIS/Core/Include",
+                    "C:/Users/adelanty/.platformio/packages/framework-cmsis-atmel/CMSIS/Device/ATMEL",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/cores/arduino",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_TinyUSB_Arduino/src/arduino",
+                    "C:/Users/adelanty/.platformio/packages/framework-cmsis@2.50400.181126/CMSIS/DSP/Include",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/variants/trinket_m0",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/CI_Tests",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/HID",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/I2S/src",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/SAMD_AnalogCorrection/src",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/SDU/src",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Servo/src",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/USBHost/src",
+                    "C:/Users/adelanty/.platformio/packages/framework-arduino-samd-adafruit/libraries/Wire",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=60118",
+                "ARDUINO_TRINKET_M0",
+                "CRYSTALLESS",
+                "ADAFRUIT_TRINKET_M0",
+                "ARM_MATH_CM0PLUS",
+                "__SAMD21E18A__",
+                "ARDUINO=10805",
+                "F_CPU=48000000L",
+                "USBCON",
+                "USB_VID=0x239A",
+                "USB_PID=0x801E",
+                "USB_PRODUCT=\"Adafruit Trinket M0\"",
+                "USB_MANUFACTURER=\"Adafruit\"",
+                "ARDUINO_ARCH_SAMD",
+                "USB_CONFIG_POWER=100",
+                "ARDUINO_SAMD_ADAFRUIT",
+                ""
+            ],
+            "cStandard": "gnu11",
+            "cppStandard": "gnu++11",
+            "compilerPath": "C:/Users/adelanty/.platformio/packages/toolchain-gccarmnoneeabi@1.90301.200702/bin/arm-none-eabi-gcc.exe",
+            "compilerArgs": [
+                "-mcpu=cortex-m0plus",
+                "-mthumb",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}
