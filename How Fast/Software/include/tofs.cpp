@@ -1,6 +1,7 @@
 /*
  * Calico Randall
  * How Fast header file for controlling TOFs
+ * TOFs used are the DF Robot SEN0647
  * February 2026
  */
 
@@ -39,13 +40,17 @@ tof_parameter tofs[TOTAL_TOFS];
 
 void setupTOFSerial()
 {
+  // Defaults to SERIAL_8N1 if not defined explicitly.
+  // Baud rate 921600 for fast transmission.
+  // All TOFs should have the same baud rate.
   Serial1.begin(921600, SERIAL_8N1); // RX,TX
+  // mySerial.begin(921600, SERIAL_8N1, 4, 5);  //RX,TX
 }
 
 size_t readN(uint8_t *buf, size_t len)
 {
   size_t offset = 0, left = len;
-  int16_t Tineout = 250;
+  int16_t Timeout = 250;
   uint8_t *buffer = buf;
   long curr = millis();
   while (left)
@@ -56,7 +61,7 @@ size_t readN(uint8_t *buf, size_t len)
       offset++;
       left--;
     }
-    if (millis() - curr > Tineout)
+    if (millis() - curr > Timeout)
     {
       break;
     }
@@ -67,7 +72,7 @@ size_t readN(uint8_t *buf, size_t len)
 bool recdData(tof_parameter *buf, uint8_t id)
 {
   uint8_t rx_buf[16]; // Serial receive array
-  int16_t Tineout = 1000;
+  int16_t Timeout = 1000;
   uint8_t ch;
   bool ret = false;
   uint8_t Sum;
@@ -81,7 +86,7 @@ bool recdData(tof_parameter *buf, uint8_t id)
 
   while (!ret)
   {
-    if (millis() - timeStart > Tineout)
+    if (millis() - timeStart > Timeout)
     {
       break;
     }
@@ -133,12 +138,36 @@ bool recdData(tof_parameter *buf, uint8_t id)
 void readTOFData()
 {
   recdData(&tof0, 0);
+
+  // for (uint8_t i = 0; i < TOTAL_TOFS; i++)
+  //{
+  //   recdData(&tofs[i], i);
+  // }
 }
 
 void printTOFDistance()
 {
   Serial.print("Distance:");
   Serial.println(tof0.dis);
+
+  // Print all TOF distances
+  /*for (uint8_t i = 0; i < TOTAL_TOFS; i++)
+  {
+    Serial.print("Distance of TOF ");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.println(tofs[i].dis);
+  }*/
+}
+
+float getSpecificTOFDis(uint8_t tofNum)
+{
+  // For array of TOFs, return the distance of a specific one.
+  // if(tofNum > TOTAL_TOFS || tofNum < 0) {
+  //      Serial.println("Requested distance for a TOF that does not exist.");
+  //      return 0.0;
+  //}
+  // return tofs[tofNum].dis;
 }
 
 // Print data through the serial port
@@ -159,12 +188,29 @@ void printTOFInfo()
   Serial.println("");
 }
 
-float getTofDis(uint8_t tofNum)
+// Print data through the serial port
+void printSpecificTOFInfo(uint8_t tofNum)
 {
-  // For array of TOFs,
-  // return tofs[tofNum].dis;
+  Serial.print("**** INFO FOR TOF ");
+  Serial.print(tofNum);
+  Serial.println(" ****");
+  Serial.print("id:");
+  Serial.println(tofs[tofNum].id);
+  Serial.print("system_time:");
+  Serial.println(tofs[tofNum].system_time);
+  Serial.print("Distance:");
+  Serial.println(tofs[tofNum].dis);
+  Serial.print("dis_status:");
+  Serial.println(tofs[tofNum].dis_status);
+  Serial.print("signal_strength:");
+  Serial.println(tofs[tofNum].signal_strength);
+  Serial.print("range_precision:");
+  Serial.println(tofs[tofNum].range_precision);
+  Serial.println("");
 }
 
+// If a TOF is triggered, return that TOF number
+// Can be called in main loop?
 uint8_t tofTriggered()
 {
   for (uint8_t i = 0; i < TOTAL_TOFS; i++)
@@ -177,4 +223,7 @@ uint8_t tofTriggered()
       return i;
     }
   }
+
+  // If goes through the loop and none of the TOFs have been triggered.
+  return -1;
 }
