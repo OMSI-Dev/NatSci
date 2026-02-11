@@ -11,6 +11,7 @@ import time
 from cache_manager import CacheManager
 from engine import SimplePPEngine
 from pp_init import initialize_all
+from audio_init import initialize_audio
 
 PI_IP = "10.10.51.111"
 PI_PORT = 4096
@@ -118,16 +119,35 @@ if __name__ == '__main__':
     if not pp or not slide_dictionary:
         print("\nERROR: Failed to initialize presentation.")
         sys.exit(1)
+    
+    # 3. Initialize Audio System
+    print("\nInitializing Audio System...")
+    audio_dict, audio_controller = initialize_audio()
+    
+    if not audio_dict or not audio_controller:
+        print("\nWARNING: Audio system failed to initialize. Continuing without audio.")
+        audio_dict = None
+        audio_controller = None
+    else:
+        # Only sync audio config if CSV has been modified
+        if cache_mgr.needs_audio_sync():
+            print("[Audio] Syncing audio configuration...")
+            for category, filenames in audio_dict.items():
+                cache_mgr.initialize_audio_category(category, filenames)
+            cache_mgr.finalize_audio_sync()
+            print(f"[Audio] Registered {len(audio_dict)} audio categories")
+        else:
+            print("[Audio] Audio config up to date, using cache")
         
-    # 3. Initialize nowPlaying
+    # 4. Initialize nowPlaying
     print("\nInitializing nowPlaying...")
     initialize_nowplaying(cache_mgr)
 
-    # 4. Start Engine
+    # 5. Start Engine
     print("\nStarting Optimized Engine...")
     print("=" * 60)
     
-    engine = SimplePPEngine(pp, slide_dictionary, cache_mgr)
+    engine = SimplePPEngine(pp, slide_dictionary, cache_mgr, audio_controller)
     
     try:
         engine.run()
@@ -137,4 +157,6 @@ if __name__ == '__main__':
         print(f"Error: {e}")
     finally:
         pp.close()
+        if audio_controller:
+            audio_controller.close()
         print("Done.")

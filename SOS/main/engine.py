@@ -5,9 +5,9 @@ Connects to SOS server and controls LibreOffice Impress via CacheManager lookups
 
 import socket
 import time
-import socket
-import time
 import sys
+import threading
+import json
 from PyQt5.QtWidgets import QApplication
 from subtitles import SubtitleManager, SubtitleOverlay
 from overlay_progressBar import ProgressBarOverlay
@@ -90,6 +90,7 @@ SOS_IP = "10.10.51.98"
 SOS_PORT = 2468
 PI_IP = "10.10.51.111"
 PI_PORT = 4096
+ENGINE_QUERY_PORT = 4097  # Port for Pi to query engine state
 
 def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
     """Receive data from socket until idle timeout."""
@@ -122,7 +123,7 @@ class SimplePPEngine:
     - Navigates LibreOffice
     """
     
-    def __init__(self, pp, slide_dictionary, cache_manager):
+    def __init__(self, pp, slide_dictionary, cache_manager, audio_controller=None):
         """
         Initialize the engine.
         
@@ -130,15 +131,28 @@ class SimplePPEngine:
             pp: LibreOffice Impress controller object
             slide_dictionary: Dict mapping clip names to slide numbers
             cache_manager: Initialized CacheManager instance
+            audio_controller: Optional AudioController instance
         """
         self.pp = pp
         self.slide_dictionary = slide_dictionary
         self.cache_manager = cache_manager
+        self.audio_controller = audio_controller
         self.running = True
         self.current_slide = -1
         self.sock = None
         
+        # State tracking for queries
+        self.current_clip_number = None
+        self.playlist_init_data = None  # Stores the INIT message data
+        self.state_lock = threading.Lock()
+        
+        # Audio state tracking
+        self.current_audio_category = None
+        self.audio_enabled = audio_controller is not None
+        
         print(f"[Engine] Initialized with CacheManager")
+        if self.audio_enabled:
+            print("[Engine] Audio controller active")
 
         # UI Overlay Initialization
         if not QApplication.instance():
@@ -153,6 +167,10 @@ class SimplePPEngine:
         self.clip_start_time = None
         self.last_clip_name = None
         self.current_duration = 0
+        
+        # Start query server thread
+        self.query_server_thread = threading.Thread(target=self._run_query_server, daemon=True)
+        self.query_server_thread.start()
     
     def connect_to_sos(self, timeout=4):
         """Connect to SOS server."""
@@ -245,7 +263,101 @@ class SimplePPEngine:
         """Send the current clip number to nowPlaying."""
         if clip_number is None:
             return
+        with self.state_lock:
+            self.current_clip_number = clip_number
         self._send_nowplaying_message(f"CLIP:{clip_number}\n")
+    
+    def _build_init_message(self) -> str:
+        """Build INIT message from current playlist data."""
+        if not self.cache_manager.current_playlist:
+            return "INIT\n"
+        
+        clips = self.cache_manager.current_playlist.get('clips', [])
+        lines = ["INIT"]
+        
+        for idx, clip in enumerate(clips, start=1):
+            clip_name = clip.get('name', '')
+            metadata = self.cache_manager.get(clip_name) or {}
+            
+            english_title = metadata.get('movie-title', clip_name)
+            spanish_title = metadata.get('spanish-translation', '')
+            duration_raw = metadata.get('duration', 0)
+            
+            # Handle both int and float duration values
+            if isinstance(duration_raw, str):
+                try:
+                    duration_sec = float(duration_raw)
+                except ValueError:
+                    duration_sec = 0
+            else:
+                duration_sec = float(duration_raw)
+            
+            # Format duration as "Xm Xs" (no decimals)
+            total_seconds = int(duration_sec)
+            minutes = total_seconds // 60
+            seconds = total_seconds % 60
+            duration_str = f"{minutes}m {seconds}s"
+            
+            lines.append(f"{idx}|{english_title}|{spanish_title}|{duration_str}")
+        
+        return "\n".join(lines) + "\n"
+    
+    def _run_query_server(self):
+        """Run a server socket to handle state queries from Pi."""
+        try:
+            server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            server_sock.bind(('0.0.0.0', ENGINE_QUERY_PORT))
+            server_sock.listen(1)
+            server_sock.settimeout(1.0)  # Allow periodic checks of self.running
+            
+            print(f"[Engine] Query server listening on port {ENGINE_QUERY_PORT}")
+            
+            while self.running:
+                try:
+                    conn, addr = server_sock.accept()
+                    print(f"[Engine] Query connection from {addr}")
+                    
+                    with conn:
+                        conn.settimeout(2.0)
+                        try:
+                            # Receive request
+                            data = conn.recv(1024).decode('utf-8', 'ignore').strip()
+                            print(f"[Engine] Query request: {data}")
+                            
+                            if data == "REQUEST_STATE":
+                                # Build complete response message
+                                init_msg = self._build_init_message()
+                                
+                                # Append current clip if available
+                                with self.state_lock:
+                                    if self.current_clip_number is not None:
+                                        clip_msg = f"CLIP:{self.current_clip_number}\n"
+                                        complete_msg = init_msg + "\n" + clip_msg
+                                    else:
+                                        complete_msg = init_msg
+                                
+                                # Send as single message
+                                conn.sendall(complete_msg.encode('utf-8'))
+                                print(f"[Engine] Sent state to {addr} ({len(complete_msg)} bytes)")
+                                print(f"[Engine] Preview: {complete_msg[:200]}..." if len(complete_msg) > 200 else f"[Engine] Full message: {complete_msg}")
+                        except socket.timeout:
+                            print(f"[Engine] Query timeout from {addr}")
+                        except Exception as e:
+                            print(f"[Engine] Query handler error: {e}")
+                            
+                except socket.timeout:
+                    continue  # Check self.running and continue
+                except Exception as e:
+                    if self.running:
+                        print(f"[Engine] Query server error: {e}")
+                    break
+            
+            server_sock.close()
+            print("[Engine] Query server stopped")
+            
+        except Exception as e:
+            print(f"[Engine] Failed to start query server: {e}")
 
     def navigate_to_clip(self, clip_name):
         """Navigate to the slide(s) associated with the given clip name."""
@@ -263,6 +375,66 @@ class SimplePPEngine:
             print(f"[Engine] Navigating to Slide {target_slide}")
             self.pp.goto(target_slide)
             self.current_slide = target_slide
+    
+    def manage_audio(self, clip_name, is_credits, is_translated):
+        """
+        Manage audio playback based on clip metadata.
+        Plays ambient audio for non-subtitle, non-credits datasets.
+        
+        Args:
+            clip_name: Name of the current clip
+            is_credits: Whether this is a credits clip
+            is_translated: Whether this is a translated movie with subtitles
+        """
+        if not self.audio_enabled or not self.audio_controller:
+            return
+        
+        # Don't play audio for credits or translated movies with subtitles
+        if is_credits or is_translated:
+            if self.audio_controller.is_playing():
+                print("[Audio] Fading out audio for credits/subtitle clip")
+                self.audio_controller.fade_out()
+                self.current_audio_category = None
+            return
+        
+        # Get the major category for this clip
+        major_category = self.cache_manager.get_majorcategory(clip_name)
+        
+        if not major_category:
+            # No category found - stop audio if playing
+            if self.audio_controller.is_playing():
+                print(f"[Audio] No major category found for '{clip_name}', stopping audio")
+                self.audio_controller.fade_out()
+                self.current_audio_category = None
+            return
+        
+        # Every clip change with a valid category should trigger new audio selection
+        # This ensures audio changes even when consecutive clips have the same category
+        if major_category != self.current_audio_category:
+            print(f"[Audio] Category change: {self.current_audio_category} -> {major_category}")
+        else:
+            print(f"[Audio] Clip change (category: {major_category})")
+        
+        # Fade out current audio if playing
+        if self.audio_controller.is_playing():
+            self.audio_controller.fade_out()
+            time.sleep(0.5)  # Brief pause between tracks
+        
+        # Get the next track for this category
+        next_track = self.cache_manager.get_next_audio_track(major_category)
+        
+        if next_track:
+            # Play the new track
+            success = self.audio_controller.play_audio(next_track, loop=True)
+            
+            if success:
+                self.current_audio_category = major_category
+                self.cache_manager.update_last_played(major_category, next_track)
+                print(f"[Audio] Now playing: {next_track} (category: {major_category})")
+            else:
+                print(f"[Audio] Failed to play: {next_track}")
+        else:
+            print(f"[Audio] No audio tracks available for category: {major_category}")
     
     def run(self):
         """Main engine loop."""
@@ -300,6 +472,9 @@ class SimplePPEngine:
                     #this is not correct fetching from metadata
                     is_translated = str(metadata.get('translated-movie', '')).lower() == 'true'
                     print(f"[Engine] is_credits: {is_credits}, is_translated: {is_translated}")
+                    
+                    # Manage audio playback based on clip type
+                    self.manage_audio(clip_name, is_credits, is_translated)
                     
                     if is_credits:
                         self.overlay_manager.hide_all()

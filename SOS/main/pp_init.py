@@ -58,17 +58,17 @@ def initialize_presentation(odp_path=None, run_show=True):
 def create_slide_dictionary(csv_path=None):
     """
     Parse CSV file to create slide mapping dictionary.
-    Maps clip names (English Title) to slide numbers.
+    Maps clip names (Dataset Name) to slide numbers.
     
     CSV Format (sos_datasets.csv):
         Dataset Name (Auto),Spanish Title,English Title,Slide #,Major Categories
-        ,Las relaciones armoniosas...,Nature's Harmonious Relationships,"5,6",
+        Clouds - Real-time,Nubes en movimiento,Clouds on the Move,10,
     
     Args:
         csv_path: Path to CSV database file (uses SLIDE_DATABASE if None)
         
     Returns:
-        dict: Mapping of {english_title: [slide_numbers]}, or None on failure
+        dict: Mapping of {dataset_name: [slide_numbers]}, or None on failure
     """
     if not csv_path:
         csv_path = SLIDE_DATABASE
@@ -108,12 +108,12 @@ def create_slide_dictionary(csv_path=None):
         
         for line_num, row in enumerate(reader, start=2):
             try:
-                # Get English Title (this is the clip name)
-                english_title = row.get('English Title', '').strip()
+                # Get Dataset Name - this is the actual clip name from SOS
+                dataset_name = row.get('Dataset Name (Auto)', '').strip()
                 slide_str = row.get('Slide #', '').strip()
                 
-                if not english_title or not slide_str:
-                    print(f"  Skipping line {line_num}: Empty title or slide number")
+                if not dataset_name or not slide_str:
+                    print(f"  Skipping line {line_num}: Empty dataset name or slide number")
                     continue
                 
                 # Parse slide numbers (supports "1" or "1,2,3" format)
@@ -126,9 +126,9 @@ def create_slide_dictionary(csv_path=None):
                         except ValueError:
                             print(f"Warning: Invalid slide number '{token}' on line {line_num}")
                 
-                if english_title and slide_numbers:
-                    mapping[english_title] = slide_numbers
-                    # print(f"  Mapped: '{english_title}' -> {slide_numbers}")
+                if dataset_name and slide_numbers:
+                    mapping[dataset_name] = slide_numbers
+                    # print(f"  Mapped: '{dataset_name}' -> {slide_numbers}")
             
             except Exception as e:
                 print(f"Warning: Error parsing line {line_num}: {e}")
