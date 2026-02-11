@@ -57,8 +57,10 @@ void loop()
   if (allSectionsComplete())
   {
     // TO ADD - LED ANIMATION WITH DELAY
+    gameFinishedLightsRainbow(3);
+    gameFinishedLightsBreathing(3);
     resetSections();
-    resetGraph();
+    resetGraphLights();
   }
 
   // uint8_t tofTriggered = tofTriggered();

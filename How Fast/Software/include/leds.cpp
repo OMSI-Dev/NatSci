@@ -176,8 +176,58 @@ void lightLEDSection(uint8_t section)
     FastLED.show();
 }
 
-void resetGraph()
+void resetGraphLights()
 {
     fill_solid(ledStrip, TOTAL_LED_STRIP, CRGB::Black);
     FastLED.show();
+}
+
+// Sequence to celebrate finishing. Rainbow sequence.
+// Countdown variable dictates how many times it will chase.
+int gameFinishedLightsRainbow(int countdown)
+{
+    if (countdown == 0)
+    {
+        return 0;
+    }
+
+    for (uint8_t i = 0; i < TOTAL_LED_STRIP; i++)
+    {
+        uint8_t hueVal = i;
+        map(hueVal, 0, TOTAL_LED_STRIP, 0, 255);
+        ledStrip[i] = CHSV(hueVal, 255, (beatsin8(35, 100, 200, 0, 0)));
+        delay(50);
+    }
+
+    for (uint8_t i = 0; i < TOTAL_LED_STRIP; i++)
+    {
+        ledStrip[i] = CRGB::Black;
+        delay(20);
+    }
+    return gameFinishedLightsRainbow(countdown - 1);
+}
+
+// Sequence to celebrate finishing. Red "breathing."
+// Countdown variable dictates how many times it will "breathe."
+int gameFinishedLightsBreathing(int countdown)
+{
+    if (countdown == 0)
+    {
+        return 0;
+    }
+
+    // Make all half bright first.
+    for (uint8_t i = 0; i < TOTAL_LED_STRIP; i++)
+    {
+        ledStrip[i] = CHSV(0, 255, 128);
+        delay(25);
+    }
+
+    for (uint8_t i = 0; i < TOTAL_LED_STRIP; i++)
+    {
+        ledStrip[i] = CHSV(0, 255, 255);
+        delay(50);
+    }
+
+    return gameFinishedLightsBreathing(countdown - 1);
 }
