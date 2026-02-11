@@ -23,17 +23,22 @@ class CacheManager:
                  playlist_cache_path=r'\\sos2\AuxShare\cache\playlist_cache.JSON', 
                  metadata_cache_path=r'\\sos2\AuxShare\cache\clip_metadata_cache.JSON',
                  subtitle_cache_dir=r'\\sos2\AuxShare\cache\subtitles',
-                 dataset_csv_path=r'\\sos2\AuxShare\data\SOS_datasets.csv'):
+                 dataset_csv_path=r'\\sos2\AuxShare\data\SOS_datasets.csv',
+                 audio_config_path=r'\\sos2\AuxShare\audio\audio-config.JSON',
+                 audio_csv_path=r'\\sos2\AuxShare\audio\audio-list.csv'):
         
         self.playlist_cache_file = playlist_cache_path
         self.metadata_cache_file = metadata_cache_path
         self.subtitle_cache_dir = subtitle_cache_dir
         self.dataset_csv_path = dataset_csv_path
+        self.audio_config_file = audio_config_path
+        self.audio_csv_file = audio_csv_path
         
         self.playlists = []      # Loaded from playlist_cache.JSON
         self.clip_metadata = {}  # Loaded from clip_metadata_cache.JSON
         self.dataset_titles = {} # Loaded from SOS_datasets - Cache.csv
         self.current_playlist = None
+        self.audio_config = {}   # Loaded from audio-config.JSON
         
         # Ensure directory exists
         os.makedirs(os.path.dirname(self.playlist_cache_file), exist_ok=True)
@@ -41,6 +46,7 @@ class CacheManager:
         
         self.load_caches()
         self.load_titles_csv(self.dataset_csv_path)
+        self.load_audio_config()
 
     def load_caches(self):
         """Load both JSON caches from disk."""
@@ -502,3 +508,266 @@ class CacheManager:
         # else:
         #     print(f"[Cache] No titles found for '{clip_name}' in dataset_titles ({len(self.dataset_titles)} entries)")
         return data.get('spanish', ""), data.get('english', "")
+
+    # ========================================================================
+    # AUDIO CONFIGURATION MANAGEMENT
+    # ========================================================================
+
+    def load_audio_config(self):
+        """
+        Load audio configuration from JSON file.
+        Creates default config if file doesn't exist or is invalid/empty.
+        
+        Expected structure:
+        {
+            "last_modified": "2026-02-10 10:30:45",
+            "volume-level": 50,
+            "air": {
+                "filenames": {"air_1.mp3": 0, "air_2.mp3": 0},
+                "last_played": ""
+            },
+            ...
+        }
+        """
+        needs_save = False
+        
+        if os.path.exists(self.audio_config_file):
+            try:
+                with open(self.audio_config_file, 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                    if not content or content == '{}':
+                        # File is empty or only has empty JSON
+                        print("[Cache] Audio config file is empty, initializing...")
+                        self.audio_config = self._create_default_audio_config()
+                        needs_save = True
+                    else:
+                        self.audio_config = json.loads(content)
+                        # Validate that essential keys exist
+                        if "volume-level" not in self.audio_config:
+                            print("[Cache] Audio config missing volume-level, reinitializing...")
+                            self.audio_config = self._create_default_audio_config()
+                            needs_save = True
+                        else:
+                            print(f"[Cache] Loaded audio configuration")
+            except Exception as e:
+                print(f"[Cache] Error loading audio config: {e}")
+                self.audio_config = self._create_default_audio_config()
+                needs_save = True
+        else:
+            print("[Cache] Audio config not found, creating default...")
+            self.audio_config = self._create_default_audio_config()
+            needs_save = True
+        
+        if needs_save:
+            self.save_audio_config()
+
+    def _create_default_audio_config(self):
+        """Create a default audio configuration structure."""
+        return {
+            "last_modified": "",
+            "volume-level": 50,
+            "air": {"filenames": {}, "last_played": ""},
+            "space": {"filenames": {}, "last_played": ""},
+            "water": {"filenames": {}, "last_played": ""},
+            "snow and ice": {"filenames": {}, "last_played": ""},
+            "land": {"filenames": {}, "last_played": ""},
+            "people": {"filenames": {}, "last_played": ""},
+            "extras": {"filenames": {}, "last_played": ""},
+            "site-custom": {"filenames": {}, "last_played": ""}
+        }
+
+    def save_audio_config(self, quiet=False):
+        """Save audio configuration to disk."""
+        try:
+            with open(self.audio_config_file, 'w', encoding='utf-8') as f:
+                json.dump(self.audio_config, f, indent=4)
+            if not quiet:
+                print("[Cache] Audio config saved successfully")
+        except Exception as e:
+            print(f"[Cache] Error saving audio config: {e}")
+
+    def needs_audio_sync(self):
+        """
+        Check if audio config needs to be synced with CSV file.
+        
+        Returns:
+            bool: True if sync needed, False otherwise
+        """
+        if not os.path.exists(self.audio_csv_file):
+            return False
+        
+        # Get CSV modification time
+        csv_mtime = datetime.fromtimestamp(os.path.getmtime(self.audio_csv_file))
+        csv_mtime_str = csv_mtime.strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Get stored modification time
+        stored_mtime = self.audio_config.get("last_modified", "")
+        
+        if not stored_mtime:
+            print("[Cache] Audio config has no modification timestamp, sync needed")
+            return True
+        
+        if csv_mtime_str != stored_mtime:
+            print(f"[Cache] Audio CSV modified: {stored_mtime} -> {csv_mtime_str}")
+            return True
+        
+        # Check if categories are empty (config exists but wasn't populated)
+        has_files = False
+        for key, value in self.audio_config.items():
+            if isinstance(value, dict) and "filenames" in value:
+                if value["filenames"]:
+                    has_files = True
+                    break
+        
+        if not has_files:
+            print("[Cache] Audio config has no audio files, sync needed")
+            return True
+        
+        return False
+
+    def initialize_audio_category(self, category, filenames):
+        """
+        Initialize a category with its audio files.
+        
+        Args:
+            category: Category name (e.g., "air", "water")
+            filenames: List of audio filenames for this category
+        """
+        # Normalize category to lowercase
+        category = category.lower()
+        
+        if category not in self.audio_config:
+            self.audio_config[category] = {
+                "filenames": {},
+                "last_played": ""
+            }
+        
+        # Initialize play counts for each file (0 = not played)
+        files_added = 0
+        for filename in filenames:
+            if filename not in self.audio_config[category]["filenames"]:
+                self.audio_config[category]["filenames"][filename] = 0
+                files_added += 1
+        
+        if files_added > 0:
+            print(f"[Cache] Initialized category '{category}' with {files_added} audio files")
+    
+    def finalize_audio_sync(self):
+        """
+        Mark audio sync as complete with current CSV modification time.
+        Call after all categories have been initialized.
+        """
+        if os.path.exists(self.audio_csv_file):
+            csv_mtime = datetime.fromtimestamp(os.path.getmtime(self.audio_csv_file))
+            self.audio_config["last_modified"] = csv_mtime.strftime("%Y-%m-%d %H:%M:%S")
+            self.save_audio_config(quiet=True)
+            print(f"[Cache] Audio config synchronized with CSV")
+
+    def get_next_audio_track(self, category):
+        """
+        Get the next audio track to play for a category.
+        Returns a track that hasn't been played, or the least recently played one.
+        
+        Args:
+            category: Category name (e.g., "air", "water")
+            
+        Returns:
+            str: Filename of next track to play, or None if category not found
+        """
+        # Normalize category to lowercase
+        category = category.lower()
+        
+        if category not in self.audio_config:
+            print(f"[Cache] Audio category '{category}' not found in config")
+            return None
+        
+        cat_data = self.audio_config[category]
+        filenames = cat_data.get("filenames", {})
+        last_played = cat_data.get("last_played", "")
+        
+        if not filenames:
+            print(f"[Cache] No audio files registered for category '{category}'")
+            return None
+        
+        # If only one file, return it
+        if len(filenames) == 1:
+            return list(filenames.keys())[0]
+        
+        # Find files that haven't been played (count = 0)
+        unplayed = [f for f, count in filenames.items() if count == 0]
+        
+        if unplayed:
+            # Return first unplayed file
+            return unplayed[0]
+        
+        # All files played - return one that's NOT the last played
+        available = [f for f in filenames.keys() if f != last_played]
+        
+        if available:
+            # Return the one with lowest play count
+            return min(available, key=lambda f: filenames[f])
+        
+        # Fallback: just return the first file
+        return list(filenames.keys())[0]
+
+    def update_last_played(self, category, filename):
+        """
+        Update the last played track for a category.
+        
+        Args:
+            category: Category name
+            filename: Filename that was just played
+        """
+        # Normalize category to lowercase
+        category = category.lower()
+        
+        if category not in self.audio_config:
+            print(f"[Cache] Cannot update last_played: category '{category}' not found")
+            return
+        
+        cat_data = self.audio_config[category]
+        
+        # Update last_played
+        cat_data["last_played"] = filename
+        
+        # Increment play count
+        if filename in cat_data["filenames"]:
+            cat_data["filenames"][filename] += 1
+        else:
+            cat_data["filenames"][filename] = 1
+        
+        self.save_audio_config(quiet=True)
+
+    def get_audio_volume(self):
+        """Get the current audio volume level."""
+        return self.audio_config.get("volume-level", 50)
+
+    def set_audio_volume(self, volume):
+        """
+        Set the audio volume level.
+        
+        Args:
+            volume: Volume level (0-100)
+        """
+        volume = max(0, min(100, int(volume)))
+        self.audio_config["volume-level"] = volume
+        self.save_audio_config()
+        print(f"[Cache] Audio volume set to {volume}")
+
+    def get_majorcategory(self, clip_name):
+        """
+        Get the majorcategory metadata value for a clip.
+        Normalizes to lowercase to match audio config keys.
+        
+        Args:
+            clip_name: Name of the clip
+            
+        Returns:
+            str: Major category (e.g., "air", "water"), or None if not found
+        """
+        metadata = self.get(clip_name)
+        if metadata and isinstance(metadata, dict):
+            category = metadata.get('majorcategory', None)
+            # Normalize to lowercase to match audio config keys
+            return category.lower() if category else None
+        return None

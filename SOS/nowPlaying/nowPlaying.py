@@ -10,6 +10,8 @@ from typing import Optional, List
 # Socket Configuration
 PI_PORT = 4096
 BUFFER_SIZE = 8192
+ENGINE_IP = "10.10.51.98"  # Beelink/Engine IP
+ENGINE_QUERY_PORT = 4097  # Port to query engine for state
 
 # Display Configuration
 # Physical screen: 1920×1080 rotated 90° to portrait orientation
@@ -26,7 +28,20 @@ DESIGN_HEIGHT = 1920
 DATASET_FONT_SCALE = 0.7  # Multiplier for all dataset fonts (english, spanish, duration)
 ROW_PADDING_LEFT = 100  # Left padding for dataset rows
 ROW_PADDING_RIGHT = 100  # Right padding for dataset rows
-MAX_TEXT_WIDTH = 600  # Maximum width before text wraps, originally 700 
+MAX_TEXT_WIDTH = 600  # Maximum width before text wraps, originally 700
+
+# Margin and Padding Configuration
+HEADER_TOP_MARGIN = 120  # Top margin for "Now Playing" title
+HEADER_BOTTOM_PADDING = 0  # Bottom padding below Spanish title (Ahora en cartelera)
+PLAYLIST_START_Y = 350  # Starting Y position for playlist items (affected by header padding)
+SIDE_MARGIN_OFFSET = 0  # Additional side margin offset for all elements (applied on top of ROW_PADDING)
+
+# Text Background Configuration
+TEXT_BG_ENABLED = False  # Enable/disable text background
+TEXT_BG_COLOR = (0, 0, 0)  # Background color (black)
+TEXT_BG_ALPHA = 60  # Background opacity (0-255, where 255 is fully opaque, 60 = nearly transparent)
+TEXT_BG_PADDING = 40  # Padding around text inside background
+TEXT_BG_FEATHER = 30  # Feathering/blur radius for edges (0 = no feather) 
 
 # Color Definitions
 WHITE = (255, 255, 255)
@@ -105,11 +120,9 @@ def init_display():
     # Load and rotate background for 90° screen orientation
     try:
         background = pygame.image.load(BACKGROUND_PATH)
-        #render as a normal 
-
-        # background = pygame.transform.scale(background, (DESIGN_WIDTH, DESIGN_HEIGHT))
-        background = pygame.transform.rotate(background, 90)
-        print("[Pi] Background image loaded and rotated successfully")
+        # Scale to actual display size (landscape), then background will fit properly
+        background = pygame.transform.scale(background, (DISPLAY_WIDTH, DISPLAY_HEIGHT))
+        print("[Pi] Background image loaded and scaled successfully")
     except Exception as e:
         print(f"[Pi] Warning: Could not load background image: {e}")
         background = None
@@ -139,6 +152,68 @@ def rotate_and_position(surface: pygame.Surface, design_x: int, design_y: int,
         return rotated, (pos_x, pos_y)
 
 
+def draw_text_background(design_x: int, design_y: int, design_width: int, design_height: int, 
+                        feather: int = 0, alpha: int = 60, color: tuple = (0, 0, 0)):
+    """
+    Draw a semi-transparent background with optional feathering behind text.
+    
+    Args:
+        design_x, design_y: Top-left position in design coordinates (portrait)
+        design_width, design_height: Size in design space
+        feather: Feathering/blur radius in pixels (0 = no feather)
+        alpha: Opacity (0-255)
+        color: RGB color tuple
+    """
+    if not TEXT_BG_ENABLED or alpha == 0:
+        return
+    
+    # Create a surface for the background with extra space for feathering
+    total_width = design_width + feather * 2
+    total_height = design_height + feather * 2
+    bg_surface = pygame.Surface((total_width, total_height), pygame.SRCALPHA)
+    bg_surface.fill((0, 0, 0, 0))  # Transparent
+    
+    if feather > 0:
+        # Draw feathered background from outside to inside
+        feather_steps = min(feather, 40)  # More steps for smoother gradient
+        for i in range(feather_steps, 0, -1):
+            # Progress from edge (0) to center (1)
+            progress = 1 - (i / feather_steps)
+            step_alpha = int(alpha * progress)
+            step_color = (*color, step_alpha)
+            
+            # Calculate inset for this step (from outer edge inward)
+            inset = feather - i
+            rect_x = inset
+            rect_y = inset
+            rect_w = total_width - 2 * inset
+            rect_h = total_height - 2 * inset
+            
+            if rect_w > 0 and rect_h > 0:
+                pygame.draw.rect(
+                    bg_surface,
+                    step_color,
+                    (rect_x, rect_y, rect_w, rect_h),
+                    border_radius=8
+                )
+        
+        # Draw solid center
+        if design_width > 0 and design_height > 0:
+            pygame.draw.rect(
+                bg_surface,
+                (*color, alpha),
+                (feather, feather, design_width, design_height),
+                border_radius=8
+            )
+    else:
+        # Simple solid background
+        pygame.draw.rect(bg_surface, (*color, alpha), (0, 0, design_width, design_height))
+    
+    # Rotate and position the background (account for feather offset)
+    rotated_bg, pos_bg = rotate_and_position(bg_surface, design_x - feather, design_y - feather)
+    screen.blit(rotated_bg, pos_bg)
+
+
 def draw_background():
     """Draw the background image or fallback color."""
     if background:
@@ -149,14 +224,35 @@ def draw_background():
 
 def draw_header():
     """Draw the 'Now Playing' and 'Ahora en cartelera' header."""
+    # Calculate positions with configurable margins
+    now_playing_y = HEADER_TOP_MARGIN
+    ahora_y = now_playing_y + 130  # ~130px below "Now Playing"
+    
     # "Now Playing" in white, Museo Slab (centered in design coordinates)
     now_playing_text = museo_title_font.render('Now Playing', True, WHITE)
-    rotated_np, pos_np = rotate_and_position(now_playing_text, DESIGN_WIDTH // 2, 120, center=True)
-    screen.blit(rotated_np, pos_np)
+    text_height_np = now_playing_text.get_height()
     
     # "Ahora en cartelera" in light blue, Museo Slab
     ahora_text = museo_subtitle_font.render('Ahora en cartelera', True, LIGHT_BLUE)
-    rotated_ahora, pos_ahora = rotate_and_position(ahora_text, DESIGN_WIDTH // 2, 250, center=True)
+    text_height_ahora = ahora_text.get_height()
+    
+    # Calculate combined background spanning full width
+    total_header_height = (ahora_y - now_playing_y) + text_height_ahora + TEXT_BG_PADDING * 2
+    
+    # Draw single background behind both header texts (full width)
+    if TEXT_BG_ENABLED:
+        bg_x = 0
+        bg_y = now_playing_y - TEXT_BG_PADDING
+        bg_width = DESIGN_WIDTH
+        bg_height = total_header_height + HEADER_BOTTOM_PADDING
+        draw_text_background(bg_x, bg_y, bg_width, bg_height, 
+                           TEXT_BG_FEATHER, TEXT_BG_ALPHA, TEXT_BG_COLOR)
+    
+    # Draw text on top
+    rotated_np, pos_np = rotate_and_position(now_playing_text, DESIGN_WIDTH // 2, now_playing_y, center=True)
+    screen.blit(rotated_np, pos_np)
+    
+    rotated_ahora, pos_ahora = rotate_and_position(ahora_text, DESIGN_WIDTH // 2, ahora_y, center=True)
     screen.blit(rotated_ahora, pos_ahora)
 
 
@@ -221,8 +317,8 @@ def draw_playlist_item(x: int, y: int, english: str, spanish: str,
     Supports text wrapping with duration always at top-right.
     Returns the height of the drawn item in design space.
     """
-    left_margin = ROW_PADDING_LEFT
-    right_margin = DESIGN_WIDTH - ROW_PADDING_RIGHT
+    left_margin = ROW_PADDING_LEFT + SIDE_MARGIN_OFFSET
+    right_margin = DESIGN_WIDTH - ROW_PADDING_RIGHT - SIDE_MARGIN_OFFSET
     content_width = right_margin - left_margin
     
     # Reserve space for duration (approximate)
@@ -239,6 +335,30 @@ def draw_playlist_item(x: int, y: int, english: str, spanish: str,
     current_y = y
     english_height = 0
     
+    # Calculate total height first for background
+    temp_y = y
+    for i, line in enumerate(english_lines):
+        line_surface = inter_title_font.render(line, True, WHITE)
+        line_height = line_surface.get_height()
+        english_height += line_height + (3 if i < len(english_lines) - 1 else 5)
+    
+    spanish_height = 0
+    for i, line in enumerate(spanish_lines):
+        line_surface = inter_subtitle_font.render(line, True, LIGHT_BLUE)
+        line_height = line_surface.get_height()
+        spanish_height += line_height + (3 if i < len(spanish_lines) - 1 else 10)
+    
+    total_item_height = english_height + spanish_height
+    
+    # Draw text background (behind all text in this item, spanning full width)
+    if TEXT_BG_ENABLED:
+        bg_x = 0
+        bg_y = y - TEXT_BG_PADDING - 15
+        bg_width = DESIGN_WIDTH
+        bg_height = total_item_height + 2 * TEXT_BG_PADDING + 20
+        draw_text_background(bg_x, bg_y, bg_width, bg_height, 
+                           TEXT_BG_FEATHER, TEXT_BG_ALPHA, TEXT_BG_COLOR)
+    
     # Draw English lines (white, Inter)
     for i, line in enumerate(english_lines):
         line_surface = inter_title_font.render(line, True, WHITE)
@@ -246,9 +366,6 @@ def draw_playlist_item(x: int, y: int, english: str, spanish: str,
         screen.blit(rotated_line, pos_line)
         line_height = line_surface.get_height()
         current_y += line_height + (3 if i < len(english_lines) - 1 else 5)
-        english_height += line_height + (3 if i < len(english_lines) - 1 else 5)
-    
-    spanish_height = 0
     
     # Draw Spanish lines (light blue, Inter)
     for i, line in enumerate(spanish_lines):
@@ -257,7 +374,6 @@ def draw_playlist_item(x: int, y: int, english: str, spanish: str,
         screen.blit(rotated_line, pos_line)
         line_height = line_surface.get_height()
         current_y += line_height + (3 if i < len(spanish_lines) - 1 else 10)
-        spanish_height += line_height + (3 if i < len(spanish_lines) - 1 else 10)
     
     # Draw duration at top-right, aligned with first line of English
     duration_color = LIGHT_BLUE if is_current else WHITE
@@ -266,9 +382,6 @@ def draw_playlist_item(x: int, y: int, english: str, spanish: str,
     duration_y = y  # Align with first line
     rotated_dur, pos_dur = rotate_and_position(duration_surface, duration_x, duration_y)
     screen.blit(rotated_dur, pos_dur)
-    
-    # Calculate total item height
-    total_item_height = english_height + spanish_height
     
     # Draw border if current item (adaptive height)
     if is_current:
@@ -305,8 +418,8 @@ def render_display():
     # Limit to 12 rows maximum
     display_indices = valid_indices[:12]
     
-    # Starting Y position for playlist items
-    current_y = 350
+    # Starting Y position for playlist items (uses configurable value)
+    current_y = PLAYLIST_START_Y + HEADER_BOTTOM_PADDING
     
     for idx in display_indices:
         english = english_titles[idx] if idx < len(english_titles) else "Unknown"
@@ -450,6 +563,76 @@ def write_pid_file() -> None:
         print(f"[Pi] Warning: Could not create PID file: {e}")
 
 
+def request_state_from_engine() -> None:
+    """Request current state from engine when starting late."""
+    print("[Pi] Requesting current state from engine...")
+    try:
+        with socket.create_connection((ENGINE_IP, ENGINE_QUERY_PORT), timeout=3.0) as sock:
+            # Send request
+            sock.sendall(b"REQUEST_STATE\n")
+            print("[Pi] Sent REQUEST_STATE to engine")
+            
+            # Receive response (may be large)
+            data = bytearray()
+            sock.settimeout(2.0)
+            while True:
+                try:
+                    chunk = sock.recv(BUFFER_SIZE)
+                    if not chunk:
+                        break
+                    data.extend(chunk)
+                    print(f"[Pi] Received chunk: {len(chunk)} bytes")
+                except socket.timeout:
+                    break  # No more data
+            
+            if data:
+                message = data.decode('utf-8', 'ignore').strip()
+                print(f"[Pi] Received state from engine ({len(message)} bytes)")
+                print(f"[Pi] Raw message preview: {message[:200]}..." if len(message) > 200 else f"[Pi] Raw message: {message}")
+                
+                # Parse messages - INIT comes first, CLIP (if present) comes after blank line
+                if "CLIP:" in message:
+                    # Split INIT and CLIP messages
+                    parts = message.split("\n\n")
+                    if len(parts) >= 2:
+                        # INIT is in first part, CLIP in second
+                        init_part = parts[0]
+                        clip_part = parts[1]
+                        print(f"[Pi] Found INIT and CLIP (split by blank line)")
+                        if init_part.startswith("INIT"):
+                            _parse_init_message(init_part)
+                        if clip_part.startswith("CLIP:"):
+                            _handle_clip_message(clip_part)
+                    else:
+                        # Fallback: manually split by CLIP:
+                        clip_idx = message.find("CLIP:")
+                        if clip_idx > 0:
+                            init_part = message[:clip_idx].strip()
+                            clip_part = message[clip_idx:].strip()
+                            print(f"[Pi] Found INIT and CLIP (manual split)")
+                            if init_part.startswith("INIT"):
+                                _parse_init_message(init_part)
+                            _handle_clip_message(clip_part)
+                else:
+                    # Only INIT message
+                    print(f"[Pi] Found INIT only")
+                    if message.startswith("INIT"):
+                        _parse_init_message(message)
+                    
+                print("[Pi] State successfully loaded from engine")
+            else:
+                print("[Pi] No state data received from engine")
+                
+    except socket.timeout:
+        print("[Pi] Timeout requesting state from engine")
+    except ConnectionRefusedError:
+        print(f"[Pi] Engine not responding on {ENGINE_IP}:{ENGINE_QUERY_PORT}")
+        print("[Pi] Will wait for engine to send data...")
+    except Exception as e:
+        print(f"[Pi] Error requesting state: {e}")
+        print("[Pi] Will wait for engine to send data...")
+
+
 def pi_socket_server() -> None:
     """Socket server that receives INIT and CLIP data from Beelink."""
     global running
@@ -463,6 +646,9 @@ def pi_socket_server() -> None:
     
     # Initialize display
     init_display()
+    
+    # Request current state from engine (if running)
+    request_state_from_engine()
     
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
