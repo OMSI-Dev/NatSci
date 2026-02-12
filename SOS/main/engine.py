@@ -24,14 +24,7 @@ class OverlayManager:
             self.app = QApplication.instance()
             
         # Initialize Overlays (Hidden by default)
-        self.progress_overlay = ProgressBarOverlay(
-            position='bottom',
-            opacity=0.85,
-            progress_bar_color='#ffffff',
-            progress_bar_bg_color='#000000',
-            progress_bar_bg_opacity=155,
-            progress_bar_height=12
-        )
+        self.progress_overlay = ProgressBarOverlay()
         
         self.subtitle_overlay = SubtitleOverlay(
             position='bottom',  # Changed from 'top' to avoid positioning issues

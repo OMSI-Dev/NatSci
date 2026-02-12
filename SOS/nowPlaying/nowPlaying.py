@@ -36,12 +36,21 @@ HEADER_BOTTOM_PADDING = 0  # Bottom padding below Spanish title (Ahora en cartel
 PLAYLIST_START_Y = 350  # Starting Y position for playlist items (affected by header padding)
 SIDE_MARGIN_OFFSET = 0  # Additional side margin offset for all elements (applied on top of ROW_PADDING)
 
-# Text Background Configuration
-TEXT_BG_ENABLED = False  # Enable/disable text background
-TEXT_BG_COLOR = (0, 0, 0)  # Background color (black)
-TEXT_BG_ALPHA = 60  # Background opacity (0-255, where 255 is fully opaque, 60 = nearly transparent)
-TEXT_BG_PADDING = 40  # Padding around text inside background
-TEXT_BG_FEATHER = 30  # Feathering/blur radius for edges (0 = no feather) 
+# Canvas Background Configuration (unified background behind all text)
+CANVAS_BG_ENABLED = True  # Enable/disable unified canvas background
+CANVAS_BG_COLOR = (0, 0, 0)  # Background color (black)
+CANVAS_BG_ALPHA = 60  # Background opacity (0-255, where 255 is fully opaque)
+CANVAS_BG_X = 50  # X position in design coordinates (portrait)
+CANVAS_BG_Y = 80  # Y position in design coordinates (portrait)
+CANVAS_BG_WIDTH = 980  # Width in design coordinates
+CANVAS_BG_HEIGHT = 1760  # Height in design coordinates
+CANVAS_BG_FEATHER = 120  # Feathering/blur radius for edges (0 = no feather)
+
+# White Vignette Configuration
+WHITE_VIGNETTE_ENABLED = True  # Enable/disable white vignette effect
+WHITE_VIGNETTE_STRENGTH =20  # Maximum opacity at edges (0-255)
+WHITE_VIGNETTE_RADIUS = 0.7  # Radius where vignette starts (0.0-1.0, where 1.0 is screen edge)
+WHITE_VIGNETTE_SOFTNESS = 1  # Softness/feathering of vignette (0.0-1.0) 
 
 # Color Definitions
 WHITE = (255, 255, 255)
@@ -152,38 +161,31 @@ def rotate_and_position(surface: pygame.Surface, design_x: int, design_y: int,
         return rotated, (pos_x, pos_y)
 
 
-def draw_text_background(design_x: int, design_y: int, design_width: int, design_height: int, 
-                        feather: int = 0, alpha: int = 60, color: tuple = (0, 0, 0)):
+def draw_canvas_background():
     """
-    Draw a semi-transparent background with optional feathering behind text.
-    
-    Args:
-        design_x, design_y: Top-left position in design coordinates (portrait)
-        design_width, design_height: Size in design space
-        feather: Feathering/blur radius in pixels (0 = no feather)
-        alpha: Opacity (0-255)
-        color: RGB color tuple
+    Draw a unified semi-transparent background with feathering behind all text elements.
+    This goes in front of bkg.jpg but behind all text.
     """
-    if not TEXT_BG_ENABLED or alpha == 0:
+    if not CANVAS_BG_ENABLED or CANVAS_BG_ALPHA == 0:
         return
     
     # Create a surface for the background with extra space for feathering
-    total_width = design_width + feather * 2
-    total_height = design_height + feather * 2
+    total_width = CANVAS_BG_WIDTH + CANVAS_BG_FEATHER * 2
+    total_height = CANVAS_BG_HEIGHT + CANVAS_BG_FEATHER * 2
     bg_surface = pygame.Surface((total_width, total_height), pygame.SRCALPHA)
     bg_surface.fill((0, 0, 0, 0))  # Transparent
     
-    if feather > 0:
+    if CANVAS_BG_FEATHER > 0:
         # Draw feathered background from outside to inside
-        feather_steps = min(feather, 40)  # More steps for smoother gradient
+        feather_steps = min(CANVAS_BG_FEATHER, 50)  # More steps for smoother gradient
         for i in range(feather_steps, 0, -1):
             # Progress from edge (0) to center (1)
             progress = 1 - (i / feather_steps)
-            step_alpha = int(alpha * progress)
-            step_color = (*color, step_alpha)
+            step_alpha = int(CANVAS_BG_ALPHA * progress)
+            step_color = (*CANVAS_BG_COLOR, step_alpha)
             
             # Calculate inset for this step (from outer edge inward)
-            inset = feather - i
+            inset = CANVAS_BG_FEATHER - i
             rect_x = inset
             rect_y = inset
             rect_w = total_width - 2 * inset
@@ -194,24 +196,72 @@ def draw_text_background(design_x: int, design_y: int, design_width: int, design
                     bg_surface,
                     step_color,
                     (rect_x, rect_y, rect_w, rect_h),
-                    border_radius=8
+                    border_radius=12
                 )
         
         # Draw solid center
-        if design_width > 0 and design_height > 0:
+        if CANVAS_BG_WIDTH > 0 and CANVAS_BG_HEIGHT > 0:
             pygame.draw.rect(
                 bg_surface,
-                (*color, alpha),
-                (feather, feather, design_width, design_height),
-                border_radius=8
+                (*CANVAS_BG_COLOR, CANVAS_BG_ALPHA),
+                (CANVAS_BG_FEATHER, CANVAS_BG_FEATHER, CANVAS_BG_WIDTH, CANVAS_BG_HEIGHT),
+                border_radius=12
             )
     else:
         # Simple solid background
-        pygame.draw.rect(bg_surface, (*color, alpha), (0, 0, design_width, design_height))
+        pygame.draw.rect(bg_surface, (*CANVAS_BG_COLOR, CANVAS_BG_ALPHA), 
+                        (0, 0, CANVAS_BG_WIDTH, CANVAS_BG_HEIGHT),
+                        border_radius=12)
     
     # Rotate and position the background (account for feather offset)
-    rotated_bg, pos_bg = rotate_and_position(bg_surface, design_x - feather, design_y - feather)
+    rotated_bg, pos_bg = rotate_and_position(bg_surface, CANVAS_BG_X - CANVAS_BG_FEATHER, 
+                                            CANVAS_BG_Y - CANVAS_BG_FEATHER)
     screen.blit(rotated_bg, pos_bg)
+
+
+def draw_white_vignette():
+    """
+    Draw a white vignette effect over the entire screen.
+    Creates a subtle white glow that fades from the edges.
+    """
+    if not WHITE_VIGNETTE_ENABLED or WHITE_VIGNETTE_STRENGTH == 0:
+        return
+    
+    # Create vignette surface
+    vignette_surface = pygame.Surface((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.SRCALPHA)
+    vignette_surface.fill((0, 0, 0, 0))  # Transparent
+    
+    # Calculate center and max radius
+    center_x = DISPLAY_WIDTH // 2
+    center_y = DISPLAY_HEIGHT // 2
+    max_radius = max(DISPLAY_WIDTH, DISPLAY_HEIGHT) * 0.7
+    
+    # Calculate vignette parameters
+    inner_radius = max_radius * WHITE_VIGNETTE_RADIUS
+    outer_radius = max_radius * (WHITE_VIGNETTE_RADIUS + WHITE_VIGNETTE_SOFTNESS)
+    
+    # Draw vignette as radial gradient
+    steps = 60
+    for i in range(steps):
+        progress = i / steps
+        
+        # Calculate current radius
+        current_radius = inner_radius + (outer_radius - inner_radius) * progress
+        
+        # Calculate alpha (fade from 0 at inner to max at outer)
+        alpha = int(WHITE_VIGNETTE_STRENGTH * progress)
+        
+        # Draw circle
+        if alpha > 0:
+            pygame.draw.circle(
+                vignette_surface,
+                (255, 255, 255, alpha),
+                (center_x, center_y),
+                int(current_radius),
+                max(1, int(outer_radius / steps) + 1)
+            )
+    
+    screen.blit(vignette_surface, (0, 0))
 
 
 def draw_background():
@@ -230,25 +280,11 @@ def draw_header():
     
     # "Now Playing" in white, Museo Slab (centered in design coordinates)
     now_playing_text = museo_title_font.render('Now Playing', True, WHITE)
-    text_height_np = now_playing_text.get_height()
     
     # "Ahora en cartelera" in light blue, Museo Slab
     ahora_text = museo_subtitle_font.render('Ahora en cartelera', True, LIGHT_BLUE)
-    text_height_ahora = ahora_text.get_height()
     
-    # Calculate combined background spanning full width
-    total_header_height = (ahora_y - now_playing_y) + text_height_ahora + TEXT_BG_PADDING * 2
-    
-    # Draw single background behind both header texts (full width)
-    if TEXT_BG_ENABLED:
-        bg_x = 0
-        bg_y = now_playing_y - TEXT_BG_PADDING
-        bg_width = DESIGN_WIDTH
-        bg_height = total_header_height + HEADER_BOTTOM_PADDING
-        draw_text_background(bg_x, bg_y, bg_width, bg_height, 
-                           TEXT_BG_FEATHER, TEXT_BG_ALPHA, TEXT_BG_COLOR)
-    
-    # Draw text on top
+    # Draw text (no individual backgrounds)
     rotated_np, pos_np = rotate_and_position(now_playing_text, DESIGN_WIDTH // 2, now_playing_y, center=True)
     screen.blit(rotated_np, pos_np)
     
@@ -350,16 +386,7 @@ def draw_playlist_item(x: int, y: int, english: str, spanish: str,
     
     total_item_height = english_height + spanish_height
     
-    # Draw text background (behind all text in this item, spanning full width)
-    if TEXT_BG_ENABLED:
-        bg_x = 0
-        bg_y = y - TEXT_BG_PADDING - 15
-        bg_width = DESIGN_WIDTH
-        bg_height = total_item_height + 2 * TEXT_BG_PADDING + 20
-        draw_text_background(bg_x, bg_y, bg_width, bg_height, 
-                           TEXT_BG_FEATHER, TEXT_BG_ALPHA, TEXT_BG_COLOR)
-    
-    # Draw English lines (white, Inter)
+    # Draw English lines (white, Inter) - no individual background
     for i, line in enumerate(english_lines):
         line_surface = inter_title_font.render(line, True, WHITE)
         rotated_line, pos_line = rotate_and_position(line_surface, left_margin, current_y)
@@ -410,6 +437,7 @@ def filter_credits(titles: List[Optional[str]]) -> List[int]:
 def render_display():
     """Render the complete display."""
     draw_background()
+    draw_canvas_background()  # Unified background behind all text
     draw_header()
     
     # Get valid (non-credits) indices
@@ -437,6 +465,7 @@ def render_display():
         if current_y > DESIGN_HEIGHT - 100:
             break
     
+    draw_white_vignette()  # Apply white vignette over everything
     pygame.display.flip()
 
 
