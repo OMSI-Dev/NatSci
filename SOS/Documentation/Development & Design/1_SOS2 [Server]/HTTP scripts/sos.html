@@ -1,0 +1,696 @@
+<!--
+Hosted on SOS2 Server
+/var/www/sos/index.html
+
+Configuration file:
+/etc/apache2/sites-available/000-default.conf
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Server Control Panel</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Inter';
+        }
+
+        :root {
+            --glass-bg: rgba(15, 25, 50, 0.6);
+            --glass-border: rgba(100, 150, 255, 0.3);
+            --accent-cyan: #00d9ff;
+            --accent-blue: #4d7cff;
+            --accent-purple: #a855f7;
+            --text-primary: #e8f1ff;
+            --text-secondary: #94b5e0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            min-height: 100vh;
+            color: var(--text-primary);
+            background: #0a0e1a;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('bkg.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            z-index: -1;
+        }
+
+        /* Rotate background for mobile portrait */
+        @media (max-width: 768px) and (orientation: portrait) {
+            body::before {
+                transform: rotate(90deg);
+                transform-origin: center;
+                width: 100vh;
+                height: 100vw;
+                left: 50%;
+                top: 50%;
+                margin-left: -50vh;
+                margin-top: -50vw;
+            }
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header h1 {
+            font-size: clamp(24px, 6vw, 32px);
+            font-weight: 900;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: white;
+            background-clip: text;
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: .5px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+            animation: glassSlide 0.8s ease-out backwards;
+        }
+
+        .glass-panel:nth-child(2) { animation-delay: 0.1s; }
+        .glass-panel:nth-child(3) { animation-delay: 0.2s; }
+        .glass-panel:nth-child(4) { animation-delay: 0.3s; }
+
+        @keyframes glassSlide {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .toggle-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .toggle-label .icon {
+            font-size: 24px;
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 70px;
+            height: 36px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 18px;
+            border: .5px solid var(--glass-border);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #666, #999);
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle-switch.active {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .toggle-switch.active::before {
+            left: 36px;
+            background: linear-gradient(135deg, #fff, #e0e0e0);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: .5px solid var(--glass-border);
+            letter-spacing: 1px;
+            margin-top: 8px;
+        }
+
+        .status-indicator.on {
+            color: var(--success);
+            border-color: var(--success);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .status-indicator.off {
+            color: var(--text-secondary);
+        }
+
+        .advanced-trigger {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: .5px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 15px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .advanced-trigger:hover {
+            background: rgba(0, 0, 0, 0.5);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .advanced-trigger .chevron {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 20px;
+        }
+
+        .advanced-trigger.open .chevron {
+            transform: rotate(180deg);
+        }
+
+        .advanced-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .advanced-content.open {
+            max-height: 800px;
+            padding-top: 20px;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.4);
+            border: .5px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 20px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+        }
+
+        .control-btn .btn-icon {
+            font-size: 32px;
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 0, 0, 0.6);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 25px rgba(0, 217, 255, 0.4);
+            transform: translateY(-4px) scale(1.02);
+        }
+
+        .control-btn:active {
+            transform: translateY(-2px) scale(0.98);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(135deg, rgba(77, 124, 255, 0.3), rgba(168, 85, 247, 0.3));
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 25px rgba(77, 124, 255, 0.5);
+        }
+
+        .control-btn.muted {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .diagnostics {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 16px;
+            padding: 16px;
+            border: .5px solid var(--glass-border);
+        }
+
+        .diagnostics h3 {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .diagnostic-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: .5px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        .diagnostic-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--glass-border);
+        }
+
+        .diagnostic-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .diagnostic-value {
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .diagnostic-value.true {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .diagnostic-value.false {
+            color: var(--text-secondary);
+            background: rgba(148, 181, 224, 0.1);
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1px;
+            }
+            
+            .glass-panel {
+                padding: 15px;
+                border-radius: 10px;
+            }
+
+            .control-grid {
+                gap: 10px;
+            }
+
+            .control-btn {
+                padding: 20px 12px;
+            }
+
+            .control-btn .btn-icon {
+                font-size: 50px;
+            }
+        }
+
+        /* Pulsing animation for active states */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .toggle-switch.active::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            opacity: 0.3;
+            animation: pulse 2s ease-in-out infinite;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SOS Facilitation Control</h1>
+        </div>
+
+        <!-- Main Facilitation Toggle -->
+        <div class="glass-panel">
+            <div class="toggle-section">
+                <div class="toggle-label">
+                    <span class="icon">◆</span>
+                    <span>Facilitation</span>
+                </div>
+                <div class="toggle-switch" id="facilitationToggle" onclick="toggleFacilitation()"></div>
+            </div>
+            <div class="status-indicator" id="facilitationStatus">● OFF</div>
+        </div>
+
+        <!-- Advanced Settings -->
+        <div class="glass-panel">
+            <button class="advanced-trigger" id="advancedTrigger" onclick="toggleAdvanced()">
+                <span>⚙ Advanced Settings</span>
+                <span class="chevron">▼</span>
+            </button>
+            
+            <div class="advanced-content" id="advancedContent">
+                <div class="control-grid">
+                    <!-- Mute/Unmute -->
+                    <button class="control-btn" id="muteBtn" onclick="toggleMute()">
+                        <div class="btn-icon">♪</div>
+                        <div>MUTE OFF</div>
+                    </button>
+
+                    <!-- Volume Up -->
+                    <button class="control-btn" onclick="volumeUp()">
+                        <div class="btn-icon">▲</div>
+                        <div>Volume Up</div>
+                    </button>
+
+                    <!-- Resume Now Playing -->
+                    <button class="control-btn" id="resumeBtn" onclick="resumePlaying()">
+                        <div class="btn-icon">▶</div>
+                        <div>Resume nowPlaying</div>
+                    </button>
+                    
+                    <!-- Volume Down -->
+                    <button class="control-btn" onclick="volumeDown()">
+                        <div class="btn-icon">▼</div>
+                        <div>Volume Down</div>
+                    </button>
+
+                    <!-- Reset SOS -->
+                    <button class="control-btn" onclick="resetSOS()" style="grid-column: 1 / -1;">
+                        <div class="btn-icon">↻</div>
+                        <div>Reset SOS Scripts</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Diagnostics -->
+        <div class="glass-panel">
+            <div class="diagnostics">
+                <h3>▣ System Diagnostics</h3>
+                
+                <div class="diagnostic-item">
+                    <div class="diagnostic-label">Facilitation Status</div>
+                    <div class="diagnostic-value" id="diagFacilitation">OFF</div>
+                </div>
+
+                <div class="diagnostic-item">
+                    <div class="diagnostic-label">Audio State</div>
+                    <div class="diagnostic-value" id="diagAudio">UNMUTED</div>
+                </div>
+
+                <div class="diagnostic-item">
+                    <div class="diagnostic-label">Volume Level</div>
+                    <div class="diagnostic-value" id="diagVolume">50</div>
+                </div>
+
+                <div class="diagnostic-item">
+                    <div class="diagnostic-label">Now Playing</div>
+                    <div class="diagnostic-value" id="diagPlaying">PAUSED</div>
+                </div>
+
+                <div class="diagnostic-item">
+                    <div class="diagnostic-label">SOS Scripts</div>
+                    <div class="diagnostic-value" id="diagSOS">READY</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let state = {
+            facilitation: false,
+            muted: false,
+            volume: 50,
+            nowPlaying: 'paused',
+            sosReady: true
+        };
+
+        // Toggle Facilitation
+        function toggleFacilitation() {
+            state.facilitation = !state.facilitation;
+            
+            const toggle = document.getElementById('facilitationToggle');
+            const status = document.getElementById('facilitationStatus');
+            
+            toggle.classList.toggle('active');
+            
+            if (state.facilitation) {
+                status.textContent = '● ON';
+                status.classList.add('on');
+                status.classList.remove('off');
+                // Auto-mute when facilitation is ON
+                if (!state.muted) {
+                    toggleMute();
+                }
+            } else {
+                status.textContent = '● OFF';
+                status.classList.remove('on');
+                status.classList.add('off');
+                // Auto-unmute when facilitation is OFF
+                if (state.muted) {
+                    toggleMute();
+                }
+            }
+            
+            updateDiagnostics();
+        }
+
+        // Toggle Advanced Settings
+        function toggleAdvanced() {
+            const content = document.getElementById('advancedContent');
+            const trigger = document.getElementById('advancedTrigger');
+            
+            content.classList.toggle('open');
+            trigger.classList.toggle('open');
+        }
+
+        // Toggle Mute/Unmute
+        function toggleMute() {
+            state.muted = !state.muted;
+            
+            const btn = document.getElementById('muteBtn');
+            const icon = btn.querySelector('.btn-icon');
+            const text = btn.querySelector('div:last-child');
+            
+            if (state.muted) {
+                icon.textContent = '✕';
+                text.textContent = 'MUTE ON';
+                btn.classList.add('muted');
+            } else {
+                icon.textContent = '♪';
+                text.textContent = 'MUTE OFF';
+                btn.classList.remove('muted');
+            }
+            
+            updateDiagnostics();
+        }
+
+        // Volume Up
+        function volumeUp() {
+            if (state.volume < 100) {
+                state.volume += 10;
+                if (state.volume > 100) state.volume = 100;
+            }
+            
+            // Unmute if muted
+            if (state.muted) {
+                toggleMute();
+            }
+            
+            updateDiagnostics();
+            
+            // Visual feedback
+            const btn = event.currentTarget;
+            btn.style.transform = 'translateY(-6px) scale(1.05)';
+            setTimeout(() => {
+                btn.style.transform = '';
+            }, 200);
+        }
+
+        // Volume Down
+        function volumeDown() {
+            if (state.volume > 0) {
+                state.volume -= 10;
+                if (state.volume < 0) state.volume = 0;
+            }
+            
+            // Unmute if muted
+            if (state.muted) {
+                toggleMute();
+            }
+            
+            updateDiagnostics();
+            
+            // Visual feedback
+            const btn = event.currentTarget;
+            btn.style.transform = 'translateY(-6px) scale(1.05)';
+            setTimeout(() => {
+                btn.style.transform = '';
+            }, 200);
+        }
+
+        // Resume Now Playing
+        function resumePlaying() {
+            state.nowPlaying = state.nowPlaying === 'paused' ? 'playing' : 'paused';
+            
+            const btn = document.getElementById('resumeBtn');
+            const icon = btn.querySelector('.btn-icon');
+            const text = btn.querySelector('div:last-child');
+            
+            if (state.nowPlaying === 'playing') {
+                icon.textContent = '❚❚';
+                text.textContent = 'Pause';
+                btn.classList.add('active');
+            } else {
+                icon.textContent = '▶';
+                text.textContent = 'Resume';
+                btn.classList.remove('active');
+            }
+            
+            updateDiagnostics();
+        }
+
+        // Reset SOS Scripts
+        function resetSOS() {
+            state.sosReady = false;
+            
+            const btn = event.currentTarget;
+            btn.style.opacity = '0.5';
+            btn.style.pointerEvents = 'none';
+            
+            // Simulate reset process
+            setTimeout(() => {
+                state.sosReady = true;
+                btn.style.opacity = '';
+                btn.style.pointerEvents = '';
+                updateDiagnostics();
+            }, 2000);
+            
+            updateDiagnostics();
+        }
+
+        // Update Diagnostics Display
+        function updateDiagnostics() {
+            // Facilitation
+            const diagFac = document.getElementById('diagFacilitation');
+            diagFac.textContent = state.facilitation ? 'ON' : 'OFF';
+            diagFac.className = 'diagnostic-value ' + state.facilitation;
+
+            // Audio
+            const diagAudio = document.getElementById('diagAudio');
+            diagAudio.textContent = state.muted ? 'MUTED' : 'UNMUTED';
+            diagAudio.className = 'diagnostic-value ' + !state.muted;
+
+            // Volume
+            const diagVol = document.getElementById('diagVolume');
+            diagVol.textContent = state.volume;
+            diagVol.className = 'diagnostic-value ' + (state.volume > 0);
+
+            // Now Playing
+            const diagPlaying = document.getElementById('diagPlaying');
+            diagPlaying.textContent = state.nowPlaying.toUpperCase();
+            diagPlaying.className = 'diagnostic-value ' + (state.nowPlaying === 'playing');
+
+            // SOS
+            const diagSOS = document.getElementById('diagSOS');
+            diagSOS.textContent = state.sosReady ? 'READY' : 'RESETTING...';
+            diagSOS.className = 'diagnostic-value ' + state.sosReady;
+        }
+
+        // Initialize
+        updateDiagnostics();
+    </script>
+</body>
+</html>
