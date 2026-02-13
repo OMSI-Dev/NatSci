@@ -59,7 +59,6 @@ LIGHT_BLUE = (100, 200, 255)
 MUSEO_FONT_PATH = '/home/omsiadmin/Documents/SOS/Museo_Slab_500.otf'
 INTER_FONT_PATH = '/home/omsiadmin/Documents/SOS/Inter_24pt-Regular.ttf'
 BACKGROUND_PATH = '/home/omsiadmin/Documents/SOS/bkg.jpg'
-PAUSED_IMAGE_PATH = '/home/omsiadmin/Documents/SOS/nowPlaying_paused.jpg'
 PID_FILE = '/tmp/nowPlaying.pid'
 
 # Global Data
@@ -68,7 +67,6 @@ spanish_titles = [None]
 durations = [None]
 current_clip_number = None
 running = True
-is_paused = False  # Facilitation pause state
 
 # Pygame Objects
 screen = None
@@ -79,7 +77,6 @@ inter_title_font = None
 inter_subtitle_font = None
 duration_font = None
 background = None
-paused_image = None
 
 
 def cleanup_pid_file():
@@ -105,7 +102,7 @@ def signal_handler(sig, frame):
 def init_display():
     """Initialize pygame display and load fonts/images."""
     global screen, clock, museo_title_font, museo_subtitle_font
-    global inter_title_font, inter_subtitle_font, duration_font, background, paused_image
+    global inter_title_font, inter_subtitle_font, duration_font, background
     
     pygame.init()
     screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
@@ -138,15 +135,6 @@ def init_display():
     except Exception as e:
         print(f"[Pi] Warning: Could not load background image: {e}")
         background = None
-    
-    # Load paused image for facilitation mode
-    try:
-        paused_image = pygame.image.load(PAUSED_IMAGE_PATH)
-        paused_image = pygame.transform.scale(paused_image, (DISPLAY_WIDTH, DISPLAY_HEIGHT))
-        print("[Pi] Paused image loaded successfully")
-    except Exception as e:
-        print(f"[Pi] Warning: Could not load paused image: {e}")
-        paused_image = None
 
 
 def rotate_and_position(surface: pygame.Surface, design_x: int, design_y: int, 
@@ -472,15 +460,6 @@ def filter_credits(titles: List[Optional[str]]) -> List[int]:
 
 def render_display():
     """Render the complete display."""
-    # Check if in facilitation pause mode
-    if is_paused:
-        if paused_image:
-            screen.blit(paused_image, (0, 0))
-        else:
-            screen.fill((0, 0, 0))  # Black screen if image fails to load
-        pygame.display.flip()
-        return
-    
     draw_background()
     draw_canvas_background()  # Unified background behind all text
     draw_header()
@@ -571,22 +550,6 @@ def _handle_clip_message(message: str) -> None:
     print(f"[Pi] Clip English: {english}")
     print(f"[Pi] Clip Spanish: {spanish}")
     print(f"[Pi] Clip Duration: {duration}")
-
-
-def _handle_pause_command() -> None:
-    """Handle PAUSE command - enter facilitation mode."""
-    global is_paused
-    if not is_paused:
-        is_paused = True
-        print("[Pi] Facilitation mode enabled - display paused")
-
-
-def _handle_unpause_command() -> None:
-    """Handle UNPAUSE command - exit facilitation mode."""
-    global is_paused
-    if is_paused:
-        is_paused = False
-        print("[Pi] Facilitation mode disabled - display resumed")
 
 
 def kill_old_instance() -> None:
@@ -811,10 +774,6 @@ def pi_socket_server() -> None:
                 _parse_init_message(message)
             elif message.startswith("CLIP:"):
                 _handle_clip_message(message)
-            elif message == "PAUSE":
-                _handle_pause_command()
-            elif message == "UNPAUSE":
-                _handle_unpause_command()
             else:
                 print(f"[Pi] Unknown message: {message[:50]}")
 

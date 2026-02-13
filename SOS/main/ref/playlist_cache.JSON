@@ -1,5 +1,9 @@
 [
     {
+        "loaded": "Batch1_2026.sos"
+    }
+    ,
+    {
         "name": "audio-pres-test.sos",
         "path": "/home/sos/sosrc/audio-pres-test.sos",
         "last_modified": "2026-02-09",

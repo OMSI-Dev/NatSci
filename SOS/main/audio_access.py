@@ -367,6 +367,125 @@ class AudioController:
         
         return success
     
+    def get_volume(self):
+        """
+        Get current playback volume from MPV.
+        
+        Returns:
+            int: Current volume (0-100) or None if failed
+        """
+        if not self.is_initialized:
+            return None
+        
+        try:
+            command = {"command": ["get_property", "volume"]}
+            
+            # Send command and capture response
+            ssh_base = [
+                "ssh",
+                "-o", "StrictHostKeyChecking=no",
+                "-o", "BatchMode=yes",
+                "-o", "ConnectTimeout=5"
+            ]
+            
+            found_keys = self._find_ssh_keys()
+            if found_keys:
+                ssh_base += ["-i", found_keys[0]]
+            
+            json_cmd = json.dumps(command)
+            socket_cmd = f"echo '{json_cmd}' | socat - UNIX-CONNECT:{self.mpv_socket}"
+            ssh_cmd = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", socket_cmd]
+            
+            result = subprocess.run(
+                ssh_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=5
+            )
+            
+            if result.returncode == 0 and result.stdout:
+                response = json.loads(result.stdout.decode('utf-8', 'ignore').strip())
+                volume = response.get('data')
+                if volume is not None:
+                    return int(volume)
+            
+            return None
+            
+        except Exception as e:
+            print(f"[Audio] Failed to get volume: {e}")
+            return None
+    
+    def adjust_volume(self, delta):
+        """
+        Adjust volume by delta amount.
+        
+        Args:
+            delta: Amount to adjust (positive or negative)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        current = self.get_volume()
+        if current is None:
+            return False
+        
+        new_volume = max(0, min(100, current + delta))
+        return self.set_volume(new_volume)
+    
+    def mute(self):
+        """
+        Mute audio playback.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.is_initialized:
+            return False
+        
+        command = {"command": ["set_property", "mute", True]}
+        success = self._send_mpv_command(command)
+        
+        if success:
+            print("[Audio] Muted")
+        
+        return success
+    
+    def unmute(self):
+        """
+        Unmute audio playback.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.is_initialized:
+            return False
+        
+        command = {"command": ["set_property", "mute", False]}
+        success = self._send_mpv_command(command)
+        
+        if success:
+            print("[Audio] Unmuted")
+        
+        return success
+    
+    def toggle_mute(self):
+        """
+        Toggle mute state.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.is_initialized:
+            return False
+        
+        command = {"command": ["cycle", "mute"]}
+        success = self._send_mpv_command(command)
+        
+        if success:
+            print("[Audio] Mute toggled")
+        
+        return success
+    
     def get_current_track(self):
         """
         Get the currently playing track filename.

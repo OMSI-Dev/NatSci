@@ -103,19 +103,17 @@ def start_server():
     print(f"[nowPlaying] Socket info: {sock_info}")
     print(f"[nowPlaying] Current state: {'PAUSED' if is_paused else 'UNPAUSED'}")
     print(f"[nowPlaying] Listening and ready for connections...\n")
-    print(f"[nowPlaying] Test the connection with: telnet localhost {PI_PORT}")
+    
+    # Note: Server must actively listen to accept connections, but this is very lightweight.
+    # The loop just waits for incoming connections - no active polling or network traffic.
+    # Commands are only processed when engine sends them (which is infrequent).
     
     connection_attempts = 0
-    last_heartbeat = time.time()
     
     try:
         while True:
-            # Show periodic heartbeat (every 10 seconds)
-            if time.time() - last_heartbeat > 10:
-                print(f"[nowPlaying] Still listening on port {PI_PORT}... (state: {'PAUSED' if is_paused else 'UNPAUSED'})")
-                last_heartbeat = time.time()
-            
             # Check for socket connections (non-blocking with short timeout)
+            # This is passive waiting - no CPU/network overhead
             try:
                 conn, addr = server_sock.accept()
                 connection_attempts += 1
