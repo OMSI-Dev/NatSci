@@ -8,8 +8,9 @@ import time
 import sys
 import threading
 import json
+import atexit
 from PyQt5.QtWidgets import QApplication
-from subtitles import SubtitleManager, SubtitleOverlay
+from overlay_subtitles import SubtitleManager, SubtitleOverlay
 from overlay_progressBar import ProgressBarOverlay
 
 class OverlayManager:
@@ -164,6 +165,9 @@ class SimplePPEngine:
         # Start query server thread
         self.query_server_thread = threading.Thread(target=self._run_query_server, daemon=True)
         self.query_server_thread.start()
+        
+        # Register cleanup handler for unexpected exits
+        atexit.register(self._cleanup)
     
     def connect_to_sos(self, timeout=4):
         """Connect to SOS server."""
@@ -401,6 +405,12 @@ class SimplePPEngine:
                 self.current_audio_category = None
             return
         
+        # Handle multiple categories - use only the first one
+        if ',' in major_category:
+            categories = [cat.strip() for cat in major_category.split(',')]
+            major_category = categories[0]
+            print(f"[Audio] Multiple categories detected, using first: {major_category}")
+        
         # Every clip change with a valid category should trigger new audio selection
         # This ensures audio changes even when consecutive clips have the same category
         if major_category != self.current_audio_category:
@@ -520,12 +530,45 @@ class SimplePPEngine:
         finally:
             self.stop()
     
-    def stop(self):
-        """Stop the engine."""
+    def _cleanup(self):
+        """Internal cleanup method called by stop() or atexit."""
+        if not self.running:
+            return  # Already cleaned up
+            
         self.running = False
+        
+        # Close overlays
+        try:
+            if hasattr(self, 'overlay_manager'):
+                self.overlay_manager.hide_all()
+        except Exception as e:
+            print(f"[Engine] Error closing overlays: {e}")
+        
+        # Stop audio
+        try:
+            if self.audio_controller and hasattr(self.audio_controller, 'is_playing'):
+                if self.audio_controller.is_playing():
+                    self.audio_controller.fade_out()
+        except Exception as e:
+            print(f"[Engine] Error stopping audio: {e}")
+        
+        # Close socket
         if self.sock:
             try:
                 self.sock.close()
-            except:
-                pass
+            except Exception as e:
+                print(f"[Engine] Error closing socket: {e}")
+        
+        # Close LibreOffice
+        try:
+            if self.pp and hasattr(self.pp, 'close'):
+                print("[Engine] Closing LibreOffice...")
+                self.pp.close()
+        except Exception as e:
+            print(f"[Engine] Error closing LibreOffice: {e}")
+    
+    def stop(self):
+        """Stop the engine and clean up resources."""
+        print("[Engine] Stopping...")
+        self._cleanup()
         print("[Engine] Stopped")

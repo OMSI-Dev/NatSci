@@ -422,6 +422,30 @@ def draw_playlist_item(x: int, y: int, english: str, spanish: str,
     return total_item_height + 25  # Add spacing between items
 
 
+def format_duration(duration_str: str) -> str:
+    """
+    Convert duration in seconds to UI-friendly format.
+    Examples: "65" -> "1m 5s", "45" -> "45s", "120.5" -> "2m"
+    """
+    try:
+        total_seconds = float(duration_str)
+        total_seconds = int(round(total_seconds))  # Round to nearest second
+        
+        if total_seconds < 60:
+            return f"{total_seconds}s"
+        
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        
+        if seconds == 0:
+            return f"{minutes}m"
+        else:
+            return f"{minutes}m {seconds}s"
+    except (ValueError, TypeError):
+        # If conversion fails, return as-is
+        return duration_str
+
+
 def filter_credits(titles: List[Optional[str]]) -> List[int]:
     """
     Filter out items containing 'Credits:' in their title.
@@ -498,7 +522,7 @@ def _parse_init_message(message: str) -> None:
             new_durations.append(None)
         new_english[index] = english
         new_spanish[index] = spanish
-        new_durations[index] = duration
+        new_durations[index] = format_duration(duration)
 
     english_titles = new_english
     spanish_titles = new_spanish

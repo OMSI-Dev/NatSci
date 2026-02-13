@@ -13,14 +13,14 @@ _INTER_FONT_LOADED = False
 _INTER_FONT_NAME = 'Arial'  # Default fallback
 
 def get_inter_font():
-    """Load Inter font from the same directory as this script (lazy loading)."""
+    """Load Inter font from the network share location (lazy loading)."""
     global _INTER_FONT_LOADED, _INTER_FONT_NAME
     
     if _INTER_FONT_LOADED:
         return _INTER_FONT_NAME
     
     try:
-        font_path = os.path.join(os.path.dirname(__file__), 'Inter_18pt-Medium.ttf')
+        font_path = r'\\sos2\AuxShare\assets\Inter_18pt-Medium.ttf'
         if os.path.exists(font_path):
             font_id = QFontDatabase.addApplicationFont(font_path)
             if font_id != -1:

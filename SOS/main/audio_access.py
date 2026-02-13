@@ -13,7 +13,7 @@ import os
 class AudioController:
     """Controller for MPV audio playback on remote SOS2 server."""
     
-    def __init__(self, sos2_ip="10.10.51.98", sos2_user="sos", audio_path="/opt/share/AuxShare/audio"):
+    def __init__(self, sos2_ip="10.10.51.98", sos2_user="sos", audio_path="/opt/share/AuxShare/audio"): #NETWORK
         """
         Initialize the audio controller.
         

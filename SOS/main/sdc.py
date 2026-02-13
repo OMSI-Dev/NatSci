@@ -152,11 +152,28 @@ if __name__ == '__main__':
     try:
         engine.run()
     except KeyboardInterrupt:
-        print("Interrupted.")
+        print("\n[SDC] Interrupted.")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"[SDC] Error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
-        pp.close()
-        if audio_controller:
-            audio_controller.close()
-        print("Done.")
+        print("\n[SDC] Cleaning up...")
+        
+        # Close LibreOffice (with error handling)
+        try:
+            if pp and hasattr(pp, 'close'):
+                pp.close()
+                print("[SDC] LibreOffice closed.")
+        except Exception as e:
+            print(f"[SDC] Error closing LibreOffice: {e}")
+        
+        # Close audio controller
+        try:
+            if audio_controller and hasattr(audio_controller, 'close'):
+                audio_controller.close()
+                print("[SDC] Audio controller closed.")
+        except Exception as e:
+            print(f"[SDC] Error closing audio: {e}")
+        
+        print("[SDC] Done.")
