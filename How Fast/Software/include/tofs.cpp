@@ -43,7 +43,8 @@ void setupTOFSerial()
   // Defaults to SERIAL_8N1 if not defined explicitly.
   // Baud rate 921600 for fast transmission.
   // All TOFs should have the same baud rate.
-  Serial1.begin(921600, SERIAL_8N1); // RX,TX
+  //Serial1.begin(921600, SERIAL_8N1); // RX,TX
+  Serial2.begin(921600);
   // mySerial.begin(921600);  //RX,TX
 }
 
@@ -55,9 +56,9 @@ size_t readN(uint8_t *buf, size_t len)
   long curr = millis();
   while (left)
   {
-    if (Serial1.available())
+    if (Serial2.available())
     {
-      buffer[offset] = Serial1.read();
+      buffer[offset] = Serial2.read();
       offset++;
       left--;
     }
@@ -93,11 +94,11 @@ bool recdData(tof_parameter *buf, uint8_t id)
 
     if ((millis() - timeStart1) > 1000)
     {
-      while (Serial1.available() > 0)
+      while (Serial2.available() > 0)
       {
-        Serial1.read();
+        Serial2.read();
       }
-      Serial1.write(cmdBuf, 8);
+      Serial2.write(cmdBuf, 8);
       timeStart1 = millis();
     }
 
