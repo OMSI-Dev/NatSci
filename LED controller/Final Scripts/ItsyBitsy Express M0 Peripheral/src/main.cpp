@@ -11,7 +11,7 @@
 #include <FastLED.h>
 
 #define LED_PIN 5
-#define NUM_LEDS 200  // Adjust this to match your LED strip length
+#define NUM_LEDS 5  // Adjust this to match your LED strip length
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 
