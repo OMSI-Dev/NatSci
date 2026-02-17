@@ -1,0 +1,27 @@
+using Godot;
+using System;
+using System.Collections.Generic;
+
+public partial class TileInfo : Node
+{
+	List<string> round1Tiles = new List<string> {"A2", "A4", "B1", "B3", "B5", 
+												"C2", "C4", "D1", "D3", "D5", 
+												"E2", "E4", "F1", "F3", "F5", 
+												"G2", "G4"};
+	Dictionary<string, bool> tileStates = new Dictionary<string, bool>();
+
+	// Called when the node enters the scene tree for the first time.
+	public override void _Ready()
+	{
+		foreach (var t in round1Tiles)
+		{
+			// All tiles initially turned off.
+			tileStates[t] = false;
+		}
+	}
+
+	// Called every frame. 'delta' is the elapsed time since the previous frame.
+	public override void _Process(double delta)
+	{
+	}
+}
