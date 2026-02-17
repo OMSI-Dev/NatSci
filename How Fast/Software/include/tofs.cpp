@@ -138,7 +138,9 @@ bool recdData(tof_parameter *buf, uint8_t id, Stream &serialPort)
 
 void readTOFData()
 {
-  recdData(&tof0, 0, Serial2);
+  //recdData(&tof0, 0, Serial2);
+  recdData(&tofs[0], 0, Serial2);
+  recdData(&tofs[1], 1, Serial1);
 
   // for (uint8_t i = 0; i < TOTAL_TOFS; i++)
   //{
@@ -148,8 +150,10 @@ void readTOFData()
 
 void printTOFDistance()
 {
-  Serial.print("Distance:");
-  Serial.println(tof0.dis);
+  Serial.print("ToF 0 distance:");
+  Serial.println(tofs[0].dis);
+  Serial.print("ToF 1 distance:");
+  Serial.println(tofs[1].dis);
 
   // Print all TOF distances
   /*for (uint8_t i = 0; i < TOTAL_TOFS; i++)
