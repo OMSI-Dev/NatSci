@@ -43,7 +43,7 @@ void setupTOFSerial()
   // Defaults to SERIAL_8N1 if not defined explicitly.
   // Baud rate 921600 for fast transmission.
   // All TOFs should have the same baud rate.
-  Serial1.begin(921600); // RX,TX
+  Serial1.begin(921600, SERIAL_8N1); // RX,TX
   // mySerial.begin(921600);  //RX,TX
 }
 

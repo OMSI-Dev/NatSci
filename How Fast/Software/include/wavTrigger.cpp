@@ -8,6 +8,7 @@
 //
 // **************************************************************
 
+/*
 #include "wavTrigger.h"
 
 // **************************************************************
@@ -478,4 +479,4 @@ void wavTrigger::setTriggerBank(int bank)
     txbuf[4] = (uint8_t)bank;
     txbuf[5] = EOM;
     WTSerial.write(txbuf, 6);
-}
+} */

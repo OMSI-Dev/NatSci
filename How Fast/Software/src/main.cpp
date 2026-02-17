@@ -8,9 +8,12 @@
 #include <tofs.cpp>
 #include <audio.cpp>
 
+void resetSections();
+bool allSectionsComplete();
+
 bool sectionsCompleted[TOTAL_TOFS];
 
-int timeout = 30000;
+long unsigned int timeout = 30000;
 int lastInteract;
 
 void setup()
@@ -49,7 +52,7 @@ void loop()
   if (millis() - lastInteract > timeout)
   {
     resetSections();
-    resetGraph();
+    resetGraphLights();
   }
 
   // If all sections have been completed, do completion
