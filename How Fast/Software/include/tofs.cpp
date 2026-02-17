@@ -25,7 +25,7 @@ typedef struct
   @param  len Number of bytes to read
   @return  The return value is the number of bytes actually read
 */
-size_t readN(uint8_t *buf, size_t len);
+size_t readN(uint8_t *buf, size_t len, Stream &serialPort);
 
 /**
   @brief  Read a complete data packet
@@ -43,12 +43,12 @@ void setupTOFSerial()
   // Defaults to SERIAL_8N1 if not defined explicitly.
   // Baud rate 921600 for fast transmission.
   // All TOFs should have the same baud rate.
-  //Serial1.begin(921600, SERIAL_8N1); // RX,TX
-  Serial2.begin(921600);
+  Serial1.begin(921600); // RX1,TX1
+  Serial2.begin(921600); // RX2, TX2
   // mySerial.begin(921600);  //RX,TX
 }
 
-size_t readN(uint8_t *buf, size_t len)
+size_t readN(uint8_t *buf, size_t len, Stream &serialPort)
 {
   size_t offset = 0, left = len;
   int16_t Timeout = 250;
@@ -56,9 +56,9 @@ size_t readN(uint8_t *buf, size_t len)
   long curr = millis();
   while (left)
   {
-    if (Serial2.available())
+    if (serialPort.available())
     {
-      buffer[offset] = Serial2.read();
+      buffer[offset] = serialPort.read();
       offset++;
       left--;
     }
@@ -70,7 +70,7 @@ size_t readN(uint8_t *buf, size_t len)
   return offset;
 }
 
-bool recdData(tof_parameter *buf, uint8_t id)
+bool recdData(tof_parameter *buf, uint8_t id, Stream &serialPort)
 {
   uint8_t rx_buf[16]; // Serial receive array
   int16_t Timeout = 1000;
@@ -94,25 +94,25 @@ bool recdData(tof_parameter *buf, uint8_t id)
 
     if ((millis() - timeStart1) > 1000)
     {
-      while (Serial2.available() > 0)
+      while (serialPort.available() > 0)
       {
-        Serial2.read();
+        serialPort.read();
       }
-      Serial2.write(cmdBuf, 8);
+      serialPort.write(cmdBuf, 8);
       timeStart1 = millis();
     }
 
-    if (readN(&ch, 1) == 1)
+    if (readN(&ch, 1, serialPort) == 1)
     {
       if (ch == 0x57)
       {
         rx_buf[0] = ch;
-        if (readN(&ch, 1) == 1)
+        if (readN(&ch, 1, serialPort) == 1)
         {
           if (ch == 0x00)
           {
             rx_buf[1] = ch;
-            if (readN(&rx_buf[2], 14) == 14)
+            if (readN(&rx_buf[2], 14, serialPort) == 14)
             {
               Sum = 0;
               for (int i = 0; i < 15; i++)
@@ -138,7 +138,7 @@ bool recdData(tof_parameter *buf, uint8_t id)
 
 void readTOFData()
 {
-  recdData(&tof0, 0);
+  recdData(&tof0, 0, Serial2);
 
   // for (uint8_t i = 0; i < TOTAL_TOFS; i++)
   //{
