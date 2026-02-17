@@ -11,13 +11,13 @@ C:\Program Files\Unity\Hub\Editor\2021.3.45f1\Editor\Unity.exe
 -name
 AssetImportWorker0
 -projectPath
-C:/Users/OMSI-Admin/Documents/OMSI AR Sandbox
+C:/Users/OMSI-Admin/Documents/GitHub/NatSci/Where is the Water/Where is the Water Unity Project
 -logFile
 Logs/AssetImportWorker0.log
 -srvPort
-51589
-Successfully changed project path to: C:/Users/OMSI-Admin/Documents/OMSI AR Sandbox
-C:/Users/OMSI-Admin/Documents/OMSI AR Sandbox
+59744
+Successfully changed project path to: C:/Users/OMSI-Admin/Documents/GitHub/NatSci/Where is the Water/Where is the Water Unity Project
+C:/Users/OMSI-Admin/Documents/GitHub/NatSci/Where is the Water/Where is the Water Unity Project
 [UnityMemory] Configuration Parameters - Can be set up in boot.config
     "memorysetup-bucket-allocator-granularity=16"
     "memorysetup-bucket-allocator-bucket-count=8"
@@ -47,16 +47,16 @@ C:/Users/OMSI-Admin/Documents/OMSI AR Sandbox
     "memorysetup-temp-allocator-size-cloud-worker=32768"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [11792] Host "[IP] 10.10.250.29 [Port] 0 [Flags] 2 [Guid] 803467113 [EditorId] 803467113 [Version] 1048832 [Id] WindowsEditor(7,OMSI_Exhibits) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" joined multi-casting on [225.0.0.222:54997]...
+Player connection [18612] Host "[IP] 10.10.250.29 [Port] 0 [Flags] 2 [Guid] 2125924336 [EditorId] 2125924336 [Version] 1048832 [Id] WindowsEditor(7,OMSI_Exhibits) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" joined multi-casting on [225.0.0.222:54997]...
 
-Player connection [11792] Host "[IP] 10.10.250.29 [Port] 0 [Flags] 2 [Guid] 803467113 [EditorId] 803467113 [Version] 1048832 [Id] WindowsEditor(7,OMSI_Exhibits) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [18612] Host "[IP] 10.10.250.29 [Port] 0 [Flags] 2 [Guid] 2125924336 [EditorId] 2125924336 [Version] 1048832 [Id] WindowsEditor(7,OMSI_Exhibits) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" joined alternative multi-casting on [225.0.0.222:34997]...
 
 [Physics::Module] Initialized MultithreadedJobDispatcher with {0} workers.
-Refreshing native plugins compatible for Editor in 40.07 ms, found 4 plugins.
+Refreshing native plugins compatible for Editor in 38.47 ms, found 4 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 2021.3.45f1 (0da89fac8e79)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/2021.3.45f1/Editor/Data/Resources/UnitySubsystems
-[Subsystems] Discovering subsystems at path C:/Users/OMSI-Admin/Documents/OMSI AR Sandbox/Assets
+[Subsystems] Discovering subsystems at path C:/Users/OMSI-Admin/Documents/GitHub/NatSci/Where is the Water/Where is the Water Unity Project/Assets
 GfxDevice: creating device client; threaded=0; jobified=0
 Direct3D:
     Version:  Direct3D 11.0 [level 11.1]
@@ -68,35 +68,35 @@ Initialize mono
 Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/2021.3.45f1/Editor/Data/Managed'
 Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/2021.3.45f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
 Mono config path = 'C:/Program Files/Unity/Hub/Editor/2021.3.45f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56804
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56716
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: C:/Program Files/Unity/Hub/Editor/2021.3.45f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
-Registered in 0.005261 seconds.
+Registered in 0.005349 seconds.
 Native extension for WindowsStandalone target not found
-Refreshing native plugins compatible for Editor in 32.57 ms, found 4 plugins.
+Refreshing native plugins compatible for Editor in 32.29 ms, found 4 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
-- Completed reload, in  0.465 seconds
+- Completed reload, in  0.466 seconds
 Domain Reload Profiling:
-	ReloadAssembly (465ms)
-		BeginReloadAssembly (52ms)
+	ReloadAssembly (467ms)
+		BeginReloadAssembly (54ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (0ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
 			CreateAndSetChildDomain (0ms)
 		EndReloadAssembly (334ms)
-			LoadAssemblies (51ms)
+			LoadAssemblies (53ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (83ms)
+			SetupTypeCache (82ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (22ms)
+			RebuildScriptCaches (23ms)
 			SetupLoadedEditorAssemblies (196ms)
 				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (7ms)
+				InitializePlatformSupportModulesInManaged (6ms)
 				SetLoadedEditorAssemblies (0ms)
-				RefreshPlugins (33ms)
+				RefreshPlugins (32ms)
 				BeforeProcessingInitializeOnLoad (1ms)
 				ProcessInitializeOnLoadAttributes (118ms)
 				ProcessInitializeOnLoadMethodAttributes (38ms)
@@ -106,39 +106,39 @@ Domain Reload Profiling:
 			AwakeInstancesAfterBackupRestoration (0ms)
 Platform modules already initialized, skipping
 Registering precompiled user dll's ...
-Registered in 0.004364 seconds.
+Registered in 0.004310 seconds.
 Begin MonoManager ReloadAssembly
 Symbol file LoadedFromMemory is not a mono symbol file
 Native extension for WindowsStandalone target not found
-Refreshing native plugins compatible for Editor in 31.95 ms, found 4 plugins.
+Refreshing native plugins compatible for Editor in 32.93 ms, found 4 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Package Manager log level set to [2]
 [Package Manager] Server::EnsureServerProcessIsRunning -- launch failed, reason: Unity was launched with the -noUpm command-line argument
 [Package Manager] Cannot connect to Unity Package Manager local server
 Mono: successfully reloaded assembly
-- Completed reload, in  1.293 seconds
+- Completed reload, in  1.287 seconds
 Domain Reload Profiling:
-	ReloadAssembly (1293ms)
-		BeginReloadAssembly (97ms)
+	ReloadAssembly (1287ms)
+		BeginReloadAssembly (88ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (5ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
-			CreateAndSetChildDomain (16ms)
-		EndReloadAssembly (1119ms)
-			LoadAssemblies (76ms)
+			CreateAndSetChildDomain (17ms)
+		EndReloadAssembly (1122ms)
+			LoadAssemblies (63ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (162ms)
+			SetupTypeCache (163ms)
 			ReleaseScriptCaches (0ms)
 			RebuildScriptCaches (42ms)
-			SetupLoadedEditorAssemblies (816ms)
+			SetupLoadedEditorAssemblies (821ms)
 				LogAssemblyErrors (0ms)
 				InitializePlatformSupportModulesInManaged (4ms)
 				SetLoadedEditorAssemblies (0ms)
-				RefreshPlugins (32ms)
-				BeforeProcessingInitializeOnLoad (53ms)
-				ProcessInitializeOnLoadAttributes (624ms)
-				ProcessInitializeOnLoadMethodAttributes (97ms)
+				RefreshPlugins (33ms)
+				BeforeProcessingInitializeOnLoad (55ms)
+				ProcessInitializeOnLoadAttributes (627ms)
+				ProcessInitializeOnLoadMethodAttributes (96ms)
 				AfterProcessingInitializeOnLoad (6ms)
 				EditorAssembliesLoaded (0ms)
 			ExecutionOrderSort2 (0ms)
@@ -147,12 +147,12 @@ Platform modules already initialized, skipping
 ========================================================================
 Worker process is ready to serve import requests
 Launched and connected shader compiler UnityShaderCompiler.exe after 0.03 seconds
-Refreshing native plugins compatible for Editor in 0.43 ms, found 4 plugins.
+Refreshing native plugins compatible for Editor in 0.46 ms, found 4 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Unloading 3353 Unused Serialized files (Serialized files now loaded: 0)
 Unloading 69 unused Assets / (1.0 MB). Loaded Objects now: 3786.
-Memory consumption went from 124.3 MB to 123.3 MB.
-Total: 3.564400 ms (FindLiveObjects: 0.150700 ms CreateObjectMapping: 0.038600 ms MarkObjects: 3.230900 ms  DeleteObjects: 0.143500 ms)
+Memory consumption went from 125.5 MB to 124.5 MB.
+Total: 3.627900 ms (FindLiveObjects: 0.136000 ms CreateObjectMapping: 0.037300 ms MarkObjects: 3.302200 ms  DeleteObjects: 0.151800 ms)
 
 AssetImportParameters requested are different than current active one (requested -> active):
   custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
@@ -168,17 +168,9 @@ AssetImportParameters requested are different than current active one (requested
   custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
 ========================================================================
 Received Import Request.
-  Time since last request: 1908877.186170 seconds.
-  path: Assets/Sandbox/Scripts/WaterSimulation/CircleTracker.cs
-  artifactKey: Guid(d80a1ea37a7a4dd498fdde6ce317bd27) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+  Time since last request: 2425692.795685 seconds.
+  path: Assets/Depth.txt
+  artifactKey: Guid(68963c5e82082e340a2e0dff50df3704) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
 Number of updated assets reloaded before import = 0
-Start importing Assets/Sandbox/Scripts/WaterSimulation/CircleTracker.cs using Guid(d80a1ea37a7a4dd498fdde6ce317bd27) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '1950f7f6fff089548ff19d2dd3914ad0') in 0.023993 seconds 
-Number of asset objects unloaded after import = 0
-========================================================================
-Received Import Request.
-  Time since last request: 5513.810760 seconds.
-  path: Assets/Sandbox/Scripts/WaterSimulation/SquareTest.cs
-  artifactKey: Guid(9845e6d75759c9b498fc9656d47bd6ec) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Number of updated assets reloaded before import = 0
-Start importing Assets/Sandbox/Scripts/WaterSimulation/SquareTest.cs using Guid(9845e6d75759c9b498fc9656d47bd6ec) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '9e6a9f5cbb799f20b796bebd48d89797') in 0.008431 seconds 
-Number of asset objects unloaded after import = 0
+Start importing Assets/Depth.txt using Guid(68963c5e82082e340a2e0dff50df3704) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '6cccd40ad4c5acd139df55ac937fa385') in 0.022585 seconds 
+Number of asset objects unloaded after import = 1
