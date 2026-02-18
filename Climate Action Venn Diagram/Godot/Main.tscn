@@ -1,19 +1,19 @@
-[gd_scene load_steps=3 format=3 uid="uid://covchfpd1gn73"]
+[gd_scene format=3 uid="uid://covchfpd1gn73"]
 
 [ext_resource type="Script" uid="uid://snqqeo2bblct" path="res://QRGenerator.cs" id="1_uu6xs"]
 [ext_resource type="Script" uid="uid://ce8psjdrd0yr6" path="res://Scripts/QRCodeHelper.gd" id="2_r0du0"]
 
-[node name="Node2D" type="Node2D"]
+[node name="Node2D" type="Node2D" unique_id=739999347]
 script = ExtResource("1_uu6xs")
 
-[node name="QRTexture" type="TextureRect" parent="."]
+[node name="QRTexture" type="TextureRect" parent="." unique_id=487329397]
 custom_minimum_size = Vector2(100, 100)
 offset_left = 5.0
 offset_top = -3.0
 offset_right = 261.0
 offset_bottom = 253.0
 
-[node name="QRCodeHelper" type="Node" parent="."]
+[node name="QRCodeHelper" type="Node" parent="." unique_id=1124186671]
 script = ExtResource("2_r0du0")
 
-[node name="CSVDownloader" type="HTTPRequest" parent="."]
+[node name="CSVDownloader" type="HTTPRequest" parent="." unique_id=221733154]
