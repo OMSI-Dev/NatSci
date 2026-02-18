@@ -1,0 +1,20 @@
+fileFormatVersion: 2
+guid: df8b3479e2d69c2428f9e348a6efb75b
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - KinectManager: {instanceID: 0}
+  - CalibrationManager: {instanceID: 0}
+  - SandboxProcessingShader: {instanceID: 0}
+  - DefaultSandboxShader: {fileID: 4800000, guid: 45c7e4382c3602943a5fdef524daba4c,
+      type: 3}
+  - ColourScaleTexture: {fileID: 2800000, guid: fbb8cca9efb470e4dbdcf07a544403c7,
+      type: 3}
+  - SandboxDataCamera: {instanceID: 0}
+  - TopographyTextHandler: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

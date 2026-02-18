@@ -1,0 +1,20 @@
+fileFormatVersion: 2
+guid: 1bb78f7ee98e6d148af9fc43c6f26572
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - Sandbox: {instanceID: 0}
+  - HandInput: {instanceID: 0}
+  - CalibrationManager: {instanceID: 0}
+  - WaterDroplet: {instanceID: 0}
+  - MetaballCamera: {instanceID: 0}
+  - MetaballShader: {instanceID: 0}
+  - WaterSurfaceComputeShader: {instanceID: 0}
+  - WaterColorTexture: {instanceID: 0}
+  - rainAudio: {fileID: 8300000, guid: da67377a8f34da0409935d63f5a5c083, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -9,6 +9,12 @@
 
 #define TOTAL_TOFS 10
 
+// Software Serial pin definition.
+#define RX9PIN 2
+#define TX9PIN 3
+#define RX10PIN 4
+#define TX10PIN 5
+
 typedef struct
 {
   unsigned char id;              // ID of the TOF module
@@ -138,7 +144,7 @@ bool recdData(tof_parameter *buf, uint8_t id, Stream &serialPort)
 
 void readTOFData()
 {
-  //recdData(&tof0, 0, Serial2);
+  // recdData(&tof0, 0, Serial2);
   recdData(&tofs[0], 0, Serial2);
   recdData(&tofs[1], 1, Serial1);
 

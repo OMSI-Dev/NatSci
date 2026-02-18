@@ -27,7 +27,6 @@
 // 11/06/16  Support for v1.30 firmware features, including two-way
 //           communication with track status reporting.
 
-/*
 #ifndef WAVTRIGGER_H
 #define WAVTRIGGER_H
 
@@ -150,4 +149,4 @@ private:
     bool sysinfoRcvd;
 };
 
-#endif */
+#endif
