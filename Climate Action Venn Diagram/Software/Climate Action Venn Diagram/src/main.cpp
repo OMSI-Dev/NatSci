@@ -12,6 +12,7 @@ Claude & all the devs before it...developed the backend for sending packets to t
 
 #include <Arduino.h>
 #include <Bounce2.h>
+#include <serialHandler.h>
 #include <Timer.h>
 #include <pins.h>
 
