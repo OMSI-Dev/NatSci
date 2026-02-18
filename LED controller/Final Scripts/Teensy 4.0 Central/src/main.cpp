@@ -1,72 +1,107 @@
-/* Teensy 4.0 RGB LED Controller with EEPROM Storage and Animation Mode
- * 
- * Hardware connections:
- * - OLED Display (128x64): SDA > pin 18, SCL > pin 19, VCC > 5V, GND > GND
- * - Rotary Encoder: A1 > pin 15, B1 > pin 14, GND > GND
- * - Buttons S1-S4: pins 2-5 (Presets 1-4)
- * - Button S5 (EDIT): pin 6
- * - Button S6 (SAVE): pin 7
- * - Button S7 (WRITE): pin 8
- * - Button S8 (EXPORT/Animation Toggle): pin 9
- * - LED Indicator: pin 10 (for S8 button)
- * - I2C to ItsyBitsy: Wire1 on pins 16/17 (3.3V bus)
- * - I2C to OLED: Wire on pins 18/19 (3.3V bus)
- * 
- * Button Functions:
- * - S1-S4: Select preset slots (Static RGB or Animation based on mode)
- * - S5 (EDIT): Cycle through R→G→B→Neutral edit modes
- * - S6 (WRITE): Save current RGB to ItsyBitsy EEPROM (persistent)
- * - S7 (EXPORT): Save current RGB to Teensy EEPROM preset slot
- * - S8 (ANIM): Toggle Animation Mode ON/OFF
- * 
- * Edit Mode:
- * - Press EDIT to cycle: Neutral → R (red blinks) → G (green blinks) → B (blue blinks) → Neutral
- * - In R/G/B mode: rotary encoder edits that color channel (0-255)
- * - In Neutral mode: no editing, can send to LED or save to presets
- * 
- * Animation Mode:
- * - When toggled ON: LED indicator lights up, presets become animation slots
- * - OLED displays "Animation Preset X" instead of "Preset X"
- * - Animation sequences not yet implemented
- */
+/*
+Connect to Trinket via SDA/SCL pins 16 and 17. 
+Send LED data to Trinket to display on WS2812B LED strip.
+*/
 
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <Arduino.h>
-#include <EEPROM.h>
+#include <Wire.h>
 
-   
-const int buttonPin = 2;
+#define I2C_ADDRESS 0x08  // Address of the ItsyBitsy peripheral
+#define NUM_LEDS 5        // Number of LEDs on the strip
 
-void setup() {
-  pinMode(buttonPin, INPUT_PULLUP);
-  Serial.begin(9600);
-  Serial.println("Pushbutton bounce test:");
+uint8_t ledData[NUM_LEDS * 3];  // RGB data for all LEDs
+
+void sendLEDData() {
+  Wire1.beginTransmission(I2C_ADDRESS);
+  Wire1.write(ledData, NUM_LEDS * 3);  // Send all LED data
+  Wire1.endTransmission();
 }
 
-byte previousState = HIGH;         // what state was the button last time
-unsigned int count = 0;            // how many times has it changed to low
-unsigned long countAt = 0;         // when count changed
-unsigned int countPrinted = 0;     // last count printed
+void setLEDColor(int ledIndex, uint8_t r, uint8_t g, uint8_t b) {
+  if (ledIndex >= 0 && ledIndex < NUM_LEDS) {
+    ledData[ledIndex * 3] = r;
+    ledData[ledIndex * 3 + 1] = g;
+    ledData[ledIndex * 3 + 2] = b;
+  }
+}
+
+void setAllLEDs(uint8_t r, uint8_t g, uint8_t b) {
+  for (int i = 0; i < NUM_LEDS; i++) {
+    setLEDColor(i, r, g, b);
+  }
+}
+
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  
+  // Initialize I2C as central on Wire1 (pins 17=SDA, 16=SCL)
+  Wire1.begin();
+  Wire1.setClock(100000);  // 100kHz I2C speed
+  
+  // Initialize LED data to off
+  memset(ledData, 0, sizeof(ledData));
+  
+  delay(100);  // Give peripheral time to initialize
+}
 
 void loop() {
-  // Serial.println("Looping...");
-  byte buttonState = digitalRead(buttonPin);
-  if (buttonState != previousState) {
-    if (buttonState == LOW) {
-      count = count + 1;
-      countAt = millis();
-    }
-    previousState = buttonState;
-  } else {
-    if (count != countPrinted) {
-      unsigned long nowMillis = millis();
-      if (nowMillis - countAt > 100) {
-        Serial.print("count: ");
-        Serial.println(count);
-        countPrinted = count;
+  // Example: Cycle through colors
+  
+  // Red
+  setAllLEDs(255, 0, 0);
+  sendLEDData();
+  delay(1000);
+  
+  // Green
+  setAllLEDs(0, 255, 0);
+  sendLEDData();
+  delay(1000);
+  
+  // Blue
+  setAllLEDs(0, 0, 255);
+  sendLEDData();
+  delay(1000);
+  
+  // White
+  setAllLEDs(255, 255, 255);
+  sendLEDData();
+  delay(1000);
+  
+  // Rainbow effect
+  static uint8_t hue = 0;
+  for (int i = 0; i < 256; i++) {
+    for (int led = 0; led < NUM_LEDS; led++) {
+      uint8_t ledHue = hue + (led * 256 / NUM_LEDS);
+      // Simple HSV to RGB conversion for rainbow effect
+      uint8_t r, g, b;
+      if (ledHue < 85) {
+        r = ledHue * 3;
+        g = 255 - ledHue * 3;
+        b = 0;
+      } else if (ledHue < 170) {
+        ledHue -= 85;
+        r = 255 - ledHue * 3;
+        g = 0;
+        b = ledHue * 3;
+      } else {
+        ledHue -= 170;
+        r = 0;
+        g = ledHue * 3;
+        b = 255 - ledHue * 3;
       }
+      setLEDColor(led, r, g, b);
     }
+    sendLEDData();
+    hue++;
+    delay(20);
   }
+  
+  // Color wipe
+  for (int led = 0; led < NUM_LEDS; led++) {
+    setLEDColor(led, 255, 0, 128);  // Purple
+    sendLEDData();
+    delay(100);
+  }
+  
+  delay(500);
 }
