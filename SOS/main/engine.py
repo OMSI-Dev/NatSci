@@ -80,11 +80,12 @@ class OverlayManager:
         self.app.processEvents()
 
 
-SOS_IP = "10.10.51.98"
+SOS_IP = "10.10.51.98" #NETWORK
 SOS_PORT = 2468
-PI_IP = "10.10.51.111"
+PI_IP = "10.10.51.111" #NETWORK
 PI_PORT = 4096
 ENGINE_QUERY_PORT = 4097  # Port for Pi to query engine state
+HTTP_SERVER_PORT = 5000  # Port for HTTP facilitation interface
 
 def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
     """Receive data from socket until idle timeout."""
@@ -107,6 +108,64 @@ def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
     finally:
         sock.settimeout(orig_timeout)
     return bytes(buffer)
+
+def parse_http_request(data: bytes) -> tuple:
+    """
+    Parse HTTP request and extract JSON body.
+    Returns (is_http, json_body, method, path)
+    """
+    try:
+        request_text = data.decode('utf-8', errors='ignore')
+        
+        # Check if it's an HTTP request
+        if not (request_text.startswith('POST') or request_text.startswith('GET') or request_text.startswith('OPTIONS')):
+            return (False, request_text, None, None)
+        
+        # Split headers and body
+        parts = request_text.split('\r\n\r\n', 1)
+        if len(parts) < 2:
+            parts = request_text.split('\n\n', 1)
+        
+        if len(parts) < 2:
+            return (False, request_text, None, None)
+        
+        headers_text = parts[0]
+        body = parts[1] if len(parts) > 1 else ""
+        
+        # Parse first line for method and path
+        first_line = headers_text.split('\n')[0]
+        method = first_line.split(' ')[0] if ' ' in first_line else 'POST'
+        path = first_line.split(' ')[1] if len(first_line.split(' ')) > 1 else '/'
+        
+        return (True, body, method, path)
+        
+    except Exception as e:
+        print(f"[Engine HTTP] Error parsing request: {e}")
+        return (False, data.decode('utf-8', errors='ignore'), None, None)
+
+def send_http_response(conn: socket.socket, data: dict, status_code: int = 200):
+    """Send HTTP response with CORS headers."""
+    status_messages = {
+        200: "OK",
+        400: "Bad Request",
+        500: "Internal Server Error"
+    }
+    
+    status_message = status_messages.get(status_code, "OK")
+    response_body = json.dumps(data)
+    
+    # Build HTTP response with CORS headers
+    response = f"HTTP/1.1 {status_code} {status_message}\r\n"
+    response += "Content-Type: application/json\r\n"
+    response += f"Content-Length: {len(response_body)}\r\n"
+    response += "Access-Control-Allow-Origin: *\r\n"
+    response += "Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n"
+    response += "Access-Control-Allow-Headers: Content-Type\r\n"
+    response += "Connection: close\r\n"
+    response += "\r\n"
+    response += response_body
+    
+    conn.sendall(response.encode('utf-8'))
 
 class SimplePPEngine:
     """
@@ -144,6 +203,9 @@ class SimplePPEngine:
         self.current_audio_category = None
         self.audio_enabled = audio_controller is not None
         
+        # Facilitation mode state
+        self.facilitation_mode = False
+        
         print(f"[Engine] Initialized with CacheManager")
         if self.audio_enabled:
             print("[Engine] Audio controller active")
@@ -165,6 +227,11 @@ class SimplePPEngine:
         # Start query server thread
         self.query_server_thread = threading.Thread(target=self._run_query_server, daemon=True)
         self.query_server_thread.start()
+        
+        # Start HTTP facilitation server thread
+        self.http_server_thread = threading.Thread(target=self._run_http_server, daemon=True)
+        self.http_server_thread.start()
+        print(f"[Engine] HTTP facilitation server starting on port {HTTP_SERVER_PORT}")
         
         # Register cleanup handler for unexpected exits
         atexit.register(self._cleanup)
@@ -356,6 +423,176 @@ class SimplePPEngine:
         except Exception as e:
             print(f"[Engine] Failed to start query server: {e}")
 
+    def _run_http_server(self):
+        """Run HTTP server for facilitation commands."""
+        try:
+            server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            server_sock.bind(('0.0.0.0', HTTP_SERVER_PORT))
+            server_sock.listen(5)
+            server_sock.settimeout(1.0)
+            
+            print(f"[Engine] HTTP server ready on port {HTTP_SERVER_PORT}")
+            
+            while self.running:
+                try:
+                    conn, addr = server_sock.accept()
+                    
+                    # Receive data
+                    data = recv_data(conn)
+                    
+                    if data:
+                        # Parse HTTP request
+                        is_http, body, method, path = parse_http_request(data)
+                        
+                        if is_http:
+                            # Handle OPTIONS preflight
+                            if method == "OPTIONS":
+                                response = "HTTP/1.1 200 OK\r\n"
+                                response += "Access-Control-Allow-Origin: *\r\n"
+                                response += "Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n"
+                                response += "Access-Control-Allow-Headers: Content-Type\r\n"
+                                response += "Content-Length: 0\r\n"
+                                response += "Connection: close\r\n\r\n"
+                                conn.sendall(response.encode('utf-8'))
+                                conn.close()
+                                continue
+                            
+                            # Handle POST/GET with body
+                            if body:
+                                response_data = self._handle_http_command(body)
+                                send_http_response(conn, response_data)
+                            else:
+                                send_http_response(conn, {"status": "error", "message": "No data"}, 400)
+                        else:
+                            # Non-HTTP (raw socket)
+                            response_data = self._handle_http_command(body)
+                            conn.sendall(json.dumps(response_data).encode('utf-8'))
+                    
+                    conn.close()
+                    
+                except socket.timeout:
+                    continue
+                except Exception as e:
+                    if self.running:
+                        print(f"[Engine HTTP] Connection error: {e}")
+            
+            server_sock.close()
+            print("[Engine] HTTP server stopped")
+            
+        except Exception as e:
+            print(f"[Engine] Failed to start HTTP server: {e}")
+    
+    def _handle_http_command(self, message: str) -> dict:
+        """Process HTTP command from facilitation interface."""
+        try:
+            message = message.strip()
+            if not message:
+                return {"status": "error", "message": "Empty command"}
+            
+            data = json.loads(message)
+            command = data.get("command", "").upper()
+            
+            if command == "FACILITATION_TOGGLE":
+                enable = data.get("enable", False)
+                return self._toggle_facilitation(enable)
+            
+            elif command == "VOLUME_CONTROL":
+                action = data.get("action", "").upper()
+                return self._handle_volume_control(action)
+            
+            elif command == "GET_STATE":
+                with self.state_lock:
+                    return {
+                        "status": "ok",
+                        "facilitation_mode": self.facilitation_mode,
+                        "volume": self.audio_controller.get_volume() if self.audio_enabled else None,
+                        "audio_enabled": self.audio_enabled
+                    }
+            
+            else:
+                return {"status": "error", "message": f"Unknown command: {command}"}
+                
+        except json.JSONDecodeError as e:
+            return {"status": "error", "message": f"Invalid JSON: {str(e)}"}
+        except Exception as e:
+            return {"status": "error", "message": f"Error: {str(e)}"}
+    
+    def _toggle_facilitation(self, enable: bool) -> dict:
+        """Toggle facilitation mode."""
+        try:
+            with self.state_lock:
+                old_state = self.facilitation_mode
+                self.facilitation_mode = enable
+            
+            if enable:
+                print("[Engine] Facilitation ON")
+                
+                # Fade out and mute audio if playing
+                if self.audio_enabled and self.audio_controller:
+                    if self.audio_controller.is_playing():
+                        print("[Engine] Fading out audio...")
+                        self.audio_controller.fade_out()
+                        time.sleep(2.2)  # Wait for fade
+                    
+                    print("[Engine] Muting audio")
+                    self.audio_controller.mute()
+                
+                # Send PAUSE to nowPlaying
+                self._send_to_nowplaying("PAUSE")
+                
+            else:
+                print("[Engine] Facilitation OFF")
+                
+                # Unmute audio
+                if self.audio_enabled and self.audio_controller:
+                    print("[Engine] Unmuting audio")
+                    self.audio_controller.unmute()
+                
+                # Send UNPAUSE to nowPlaying
+                self._send_to_nowplaying("UNPAUSE")
+            
+            return {"status": "ok", "facilitation_mode": self.facilitation_mode}
+            
+        except Exception as e:
+            print(f"[Engine] Facilitation toggle error: {e}")
+            return {"status": "error", "message": str(e)}
+    
+    def _handle_volume_control(self, action: str) -> dict:
+        """Handle volume control commands."""
+        try:
+            if not self.audio_enabled or not self.audio_controller:
+                return {"status": "error", "message": "Audio not available"}
+            
+            if action == "UP":
+                self.audio_controller.adjust_volume(10)
+            elif action == "DOWN":
+                self.audio_controller.adjust_volume(-10)
+            elif action == "MUTE":
+                self.audio_controller.toggle_mute()
+            else:
+                return {"status": "error", "message": f"Unknown action: {action}"}
+            
+            volume = self.audio_controller.get_volume()
+            return {"status": "ok", "volume": volume}
+            
+        except Exception as e:
+            print(f"[Engine] Volume control error: {e}")
+            return {"status": "error", "message": str(e)}
+    
+    def _send_to_nowplaying(self, command: str):
+        """Send command to nowPlaying display."""
+        try:
+            with socket.create_connection((PI_IP, PI_PORT), timeout=3.0) as sock:
+                sock.sendall(command.encode('utf-8'))
+                print(f"[Engine] Sent to nowPlaying: {command}")
+        except ConnectionRefusedError:
+            print(f"[Engine] nowPlaying not responding ({PI_IP}:{PI_PORT})")
+        except socket.timeout:
+            print(f"[Engine] nowPlaying timeout ({PI_IP}:{PI_PORT})")
+        except Exception as e:
+            print(f"[Engine] nowPlaying send error: {e}")
+
     def navigate_to_clip(self, clip_name):
         """Navigate to the slide(s) associated with the given clip name."""
         if clip_name not in self.slide_dictionary:
@@ -385,6 +622,14 @@ class SimplePPEngine:
         """
         if not self.audio_enabled or not self.audio_controller:
             return
+        
+        # Check facilitation mode - fade out and don't start new audio
+        with self.state_lock:
+            if self.facilitation_mode:
+                if self.audio_controller.is_playing():
+                    self.audio_controller.fade_out()
+                    self.current_audio_category = None
+                return
         
         # Don't play audio for credits or translated movies with subtitles
         if is_credits or is_translated:
@@ -472,7 +717,6 @@ class SimplePPEngine:
                     # Determine visibility
                     is_credits = "credits" in (clip_name or "").lower()
 
-                    #this is not correct fetching from metadata
                     is_translated = str(metadata.get('translated-movie', '')).lower() == 'true'
                     print(f"[Engine] is_credits: {is_credits}, is_translated: {is_translated}")
                     
@@ -482,7 +726,6 @@ class SimplePPEngine:
                     if is_credits:
                         self.overlay_manager.hide_all()
                     elif is_translated:
-                        # Ensure subtitles are fetched/cached locally and use local path
                         # print(f"[Subtitles] Translated clip detected: {clip_name}")
                         local_meta = metadata.copy()
                         if metadata.get('caption'):

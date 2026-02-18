@@ -6,17 +6,20 @@
 
 #include <leds.cpp>
 #include <tofs.cpp>
-#include <audio.cpp>
+//#include <audio.cpp>
+
+void resetSections();
+bool allSectionsComplete();
 
 bool sectionsCompleted[TOTAL_TOFS];
 
-int timeout = 30000;
+long unsigned int timeout = 30000;
 int lastInteract;
 
 void setup()
 {
   setupLEDs();
-  setupAudio();
+  //setupAudio();
   setupTOFSerial();
 
   for (uint8_t i = 0; i < TOTAL_TOFS; i++)
@@ -29,15 +32,19 @@ void loop()
 {
   readTOFData();
   printTOFDistance();
-
-  delay(10);
+  delay(1000);
 
   uint8_t tofDone = tofTriggered();
+
   if (tofDone != -1)
   {
     if (!sectionsCompleted[tofDone])
     {
+      Serial.print("ToF ");
+      Serial.print(tofDone);
+      Serial.print(" completed: ");
       sectionsCompleted[tofDone] = true;
+      Serial.println(sectionsCompleted[tofDone]);
     }
     lastInteract = millis();
   }
@@ -49,7 +56,7 @@ void loop()
   if (millis() - lastInteract > timeout)
   {
     resetSections();
-    resetGraph();
+    resetGraphLights();
   }
 
   // If all sections have been completed, do completion

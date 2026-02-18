@@ -154,13 +154,31 @@ class AudioController:
             print("[Audio] Waiting for MPV to initialize...")
             time.sleep(3)
             
-            # Verify socket exists
+            # Verify socket exists and has proper permissions
             check_socket = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", f"test -S {self.mpv_socket} && echo 'SOCKET_OK'"]
             result = subprocess.run(check_socket, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
             
             if result.returncode == 0 and b'SOCKET_OK' in result.stdout:
-                self.is_initialized = True
-                print("[Audio] MPV initialized successfully - socket ready")
+                # Check socket permissions
+                check_perms = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", f"ls -l {self.mpv_socket}"]
+                perm_result = subprocess.run(check_perms, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
+                perm_info = perm_result.stdout.decode('utf-8', 'ignore').strip()
+                print(f"[Audio] Socket permissions: {perm_info}")
+                
+                # Test that we can read/write to the socket
+                test_cmd = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", 
+                                      f"echo '{{\"command\":[\"get_property\",\"volume\"]}}' | socat - UNIX-CONNECT:{self.mpv_socket}"]
+                test_result = subprocess.run(test_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
+                
+                if test_result.returncode == 0:
+                    response = test_result.stdout.decode('utf-8', 'ignore').strip()
+                    print(f"[Audio] Socket test response: {response}")
+                    self.is_initialized = True
+                    print("[Audio] ✓ MPV initialized successfully - socket ready and responding")
+                else:
+                    error = test_result.stderr.decode('utf-8', 'ignore').strip()
+                    print(f"[Audio] ERROR: Socket exists but not responding: {error}")
+                    self.is_initialized = False
             else:
                 print(f"[Audio] ERROR: MPV socket not found at {self.mpv_socket}")
                 self.is_initialized = False
@@ -202,15 +220,18 @@ class AudioController:
             if found_keys:
                 ssh_base += ["-i", found_keys[0]]
             
-            # Convert command to JSON with newline (MPV requires this)
+            # Convert command to JSON with newline (MPV IPC protocol requires newline)
             json_cmd = json.dumps(command_dict)
             
-            # Use UNIX socket connection via socat
-            socket_cmd = f"echo '{json_cmd}' | socat - UNIX-CONNECT:{self.mpv_socket}"
+            # Use printf to properly handle JSON escaping and ensure newline
+            # Escape single quotes in JSON for shell safety
+            json_escaped = json_cmd.replace("'", "'\"'\"'")
+            socket_cmd = f"printf '%s\\n' '{json_escaped}' | socat - UNIX-CONNECT:{self.mpv_socket}"
             
             if debug:
-                print(f"[Audio DEBUG] Sending command: {json_cmd}")
-                print(f"[Audio DEBUG] Socket command: {socket_cmd}")
+                print(f"[Audio DEBUG] Original command dict: {command_dict}")
+                print(f"[Audio DEBUG] JSON command: {json_cmd}")
+                print(f"[Audio DEBUG] Socket path: {self.mpv_socket}")
             
             ssh_cmd = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", socket_cmd]
             
@@ -221,18 +242,35 @@ class AudioController:
                 timeout=5
             )
             
+            stdout_text = result.stdout.decode('utf-8', 'ignore').strip()
+            stderr_text = result.stderr.decode('utf-8', 'ignore').strip()
+            
             if debug:
                 print(f"[Audio DEBUG] Return code: {result.returncode}")
-                if result.stdout:
-                    print(f"[Audio DEBUG] stdout: {result.stdout.decode('utf-8', 'ignore').strip()}")
-                if result.stderr:
-                    print(f"[Audio DEBUG] stderr: {result.stderr.decode('utf-8', 'ignore').strip()}")
+                if stdout_text:
+                    print(f"[Audio DEBUG] MPV response: {stdout_text}")
+                if stderr_text:
+                    print(f"[Audio DEBUG] stderr: {stderr_text}")
             
             if result.returncode != 0:
-                error = result.stderr.decode('utf-8', 'ignore').strip()
-                if error:
-                    print(f"[Audio] Command error: {error}")
+                if stderr_text:
+                    print(f"[Audio] ✗ Command failed: {stderr_text}")
+                else:
+                    print(f"[Audio] ✗ Command failed with code {result.returncode}")
                 return False
+            
+            # Check if MPV returned an error in the response
+            if stdout_text:
+                try:
+                    response = json.loads(stdout_text)
+                    if response.get('error') != 'success' and 'error' in response:
+                        print(f"[Audio] ✗ MPV error: {response.get('error')}")
+                        return False
+                    elif debug:
+                        print(f"[Audio DEBUG] ✓ MPV acknowledged: {response}")
+                except json.JSONDecodeError:
+                    if debug:
+                        print(f"[Audio DEBUG] Non-JSON response: {stdout_text}")
             
             return True
             
@@ -273,18 +311,19 @@ class AudioController:
         
         if success:
             self.current_track = filename
-            if debug:
-                print(f"[Audio] Successfully loaded: {filename}")
+            print(f"[Audio] ✓ Playing: {filename}")
             
             # Set loop mode if requested
             if loop:
                 time.sleep(0.2)  # Give loadfile time to process
                 loop_cmd = {"command": ["set_property", "loop-file", "inf"]}
-                loop_success = self._send_mpv_command(loop_cmd)
-                if loop_success and debug:
-                    print(f"[Audio] Loop mode enabled")
+                loop_success = self._send_mpv_command(loop_cmd, debug=debug)
+                if loop_success:
+                    print(f"[Audio] ✓ Loop mode enabled")
+                else:
+                    print(f"[Audio] ⚠ Warning: Could not enable loop mode")
         else:
-            print(f"[Audio] Failed to load: {filename}")
+            print(f"[Audio] ✗ Failed to load: {filename}")
         
         return success
     
@@ -298,7 +337,9 @@ class AudioController:
         
         if success:
             self.current_track = None
-            print("[Audio] Stopped playback")
+            print("[Audio] ✓ Stopped playback")
+        else:
+            print("[Audio] ✗ Failed to stop playback")
         
         return success
     
@@ -363,7 +404,135 @@ class AudioController:
         success = self._send_mpv_command(command)
         
         if success:
-            print(f"[Audio] Volume set to {volume}")
+            print(f"[Audio] ✓ Volume set to {volume}%")
+        else:
+            print(f"[Audio] ✗ Failed to set volume")
+        
+        return success
+    
+    def get_volume(self):
+        """
+        Get current playback volume from MPV.
+        
+        Returns:
+            int: Current volume (0-100) or None if failed
+        """
+        if not self.is_initialized:
+            return None
+        
+        try:
+            command = {"command": ["get_property", "volume"]}
+            
+            # Send command and capture response
+            ssh_base = [
+                "ssh",
+                "-o", "StrictHostKeyChecking=no",
+                "-o", "BatchMode=yes",
+                "-o", "ConnectTimeout=5"
+            ]
+            
+            found_keys = self._find_ssh_keys()
+            if found_keys:
+                ssh_base += ["-i", found_keys[0]]
+            
+            json_cmd = json.dumps(command)
+            json_escaped = json_cmd.replace("'", "'\"'\"'")
+            socket_cmd = f"printf '%s\\n' '{json_escaped}' | socat - UNIX-CONNECT:{self.mpv_socket}"
+            ssh_cmd = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", socket_cmd]
+            
+            result = subprocess.run(
+                ssh_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=5
+            )
+            
+            if result.returncode == 0 and result.stdout:
+                response = json.loads(result.stdout.decode('utf-8', 'ignore').strip())
+                volume = response.get('data')
+                if volume is not None:
+                    return int(volume)
+            
+            return None
+            
+        except Exception as e:
+            print(f"[Audio] Failed to get volume: {e}")
+            return None
+    
+    def adjust_volume(self, delta):
+        """
+        Adjust volume by delta amount.
+        
+        Args:
+            delta: Amount to adjust (positive or negative)
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        current = self.get_volume()
+        if current is None:
+            return False
+        
+        new_volume = max(0, min(100, current + delta))
+        return self.set_volume(new_volume)
+    
+    def mute(self):
+        """
+        Mute audio playback.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.is_initialized:
+            return False
+        
+        command = {"command": ["set_property", "mute", True]}
+        success = self._send_mpv_command(command)
+        
+        if success:
+            print("[Audio] ✓ Muted")
+        else:
+            print("[Audio] ✗ Failed to mute")
+        
+        return success
+    
+    def unmute(self):
+        """
+        Unmute audio playback.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.is_initialized:
+            return False
+        
+        command = {"command": ["set_property", "mute", False]}
+        success = self._send_mpv_command(command)
+        
+        if success:
+            print("[Audio] ✓ Unmuted")
+        else:
+            print("[Audio] ✗ Failed to unmute")
+        
+        return success
+    
+    def toggle_mute(self):
+        """
+        Toggle mute state.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not self.is_initialized:
+            return False
+        
+        command = {"command": ["cycle", "mute"]}
+        success = self._send_mpv_command(command)
+        
+        if success:
+            print("[Audio] ✓ Mute toggled")
+        else:
+            print("[Audio] ✗ Failed to toggle mute")
         
         return success
     

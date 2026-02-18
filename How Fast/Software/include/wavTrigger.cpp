@@ -9,16 +9,26 @@
 // **************************************************************
 
 #include "wavTrigger.h"
+#include <SoftwareSerial.h>
+
+// Software Serial pins.
+#define SOUND_RXPIN 9
+#define SOUND_TXPIN 10
+
+SoftwareSerial soundSerial(SOUND_RXPIN, SOUND_TXPIN);
 
 // **************************************************************
 void wavTrigger::start(void)
 {
+    // Define pin modes for TX and RX
+    pinMode(SOUND_RXPIN, INPUT);
+    pinMode(SOUND_TXPIN, OUTPUT);
 
     uint8_t txbuf[5];
 
     versionRcvd = false;
     sysinfoRcvd = false;
-    WTSerial.begin(57600);
+    soundSerial.begin(57600);
     flush();
 
     // Request version string
@@ -27,7 +37,7 @@ void wavTrigger::start(void)
     txbuf[2] = 0x05;
     txbuf[3] = CMD_GET_VERSION;
     txbuf[4] = EOM;
-    WTSerial.write(txbuf, 5);
+    soundSerial.write(txbuf, 5);
 
     // Request system info
     txbuf[0] = SOM1;
@@ -35,7 +45,7 @@ void wavTrigger::start(void)
     txbuf[2] = 0x05;
     txbuf[3] = CMD_GET_SYS_INFO;
     txbuf[4] = EOM;
-    WTSerial.write(txbuf, 5);
+    soundSerial.write(txbuf, 5);
 }
 
 // **************************************************************
@@ -52,8 +62,8 @@ void wavTrigger::flush(void)
     {
         voiceTable[i] = 0xffff;
     }
-    while (WTSerial.available())
-        dat = WTSerial.read();
+    while (soundSerial.available())
+        dat = soundSerial.read();
 }
 
 // **************************************************************
@@ -66,9 +76,9 @@ void wavTrigger::update(void)
     uint16_t track;
 
     rxMsgReady = false;
-    while (WTSerial.available() > 0)
+    while (soundSerial.available() > 0)
     {
-        dat = WTSerial.read();
+        dat = soundSerial.read();
         if ((rxCount == 0) && (dat == SOM1))
         {
             rxCount++;
@@ -173,7 +183,7 @@ void wavTrigger::update(void)
 
         } // if (rxMsgReady)
 
-    } // while (WTSerial.available() > 0)
+    } // while (soundSerial.available() > 0)
 }
 
 // **************************************************************
@@ -206,7 +216,7 @@ void wavTrigger::masterGain(int gain)
     txbuf[4] = (uint8_t)vol;
     txbuf[5] = (uint8_t)(vol >> 8);
     txbuf[6] = EOM;
-    WTSerial.write(txbuf, 7);
+    soundSerial.write(txbuf, 7);
 }
 
 // **************************************************************
@@ -221,7 +231,7 @@ void wavTrigger::setAmpPwr(bool enable)
     txbuf[3] = CMD_AMP_POWER;
     txbuf[4] = enable;
     txbuf[5] = EOM;
-    WTSerial.write(txbuf, 6);
+    soundSerial.write(txbuf, 6);
 }
 
 // **************************************************************
@@ -236,7 +246,7 @@ void wavTrigger::setReporting(bool enable)
     txbuf[3] = CMD_SET_REPORTING;
     txbuf[4] = enable;
     txbuf[5] = EOM;
-    WTSerial.write(txbuf, 6);
+    soundSerial.write(txbuf, 6);
 }
 
 // **************************************************************
@@ -355,7 +365,7 @@ void wavTrigger::trackControl(int trk, int code)
     txbuf[5] = (uint8_t)trk;
     txbuf[6] = (uint8_t)(trk >> 8);
     txbuf[7] = EOM;
-    WTSerial.write(txbuf, 8);
+    soundSerial.write(txbuf, 8);
 }
 
 // **************************************************************
@@ -373,7 +383,7 @@ void wavTrigger::trackControl(int trk, int code, bool lock)
     txbuf[6] = (uint8_t)(trk >> 8);
     txbuf[7] = lock;
     txbuf[8] = EOM;
-    WTSerial.write(txbuf, 9);
+    soundSerial.write(txbuf, 9);
 }
 
 // **************************************************************
@@ -387,7 +397,7 @@ void wavTrigger::stopAllTracks(void)
     txbuf[2] = 0x05;
     txbuf[3] = CMD_STOP_ALL;
     txbuf[4] = EOM;
-    WTSerial.write(txbuf, 5);
+    soundSerial.write(txbuf, 5);
 }
 
 // **************************************************************
@@ -401,7 +411,7 @@ void wavTrigger::resumeAllInSync(void)
     txbuf[2] = 0x05;
     txbuf[3] = CMD_RESUME_ALL_SYNC;
     txbuf[4] = EOM;
-    WTSerial.write(txbuf, 5);
+    soundSerial.write(txbuf, 5);
 }
 
 // **************************************************************
@@ -421,7 +431,7 @@ void wavTrigger::trackGain(int trk, int gain)
     txbuf[6] = (uint8_t)vol;
     txbuf[7] = (uint8_t)(vol >> 8);
     txbuf[8] = EOM;
-    WTSerial.write(txbuf, 9);
+    soundSerial.write(txbuf, 9);
 }
 
 // **************************************************************
@@ -444,7 +454,7 @@ void wavTrigger::trackFade(int trk, int gain, int time, bool stopFlag)
     txbuf[9] = (uint8_t)(time >> 8);
     txbuf[10] = stopFlag;
     txbuf[11] = EOM;
-    WTSerial.write(txbuf, 12);
+    soundSerial.write(txbuf, 12);
 }
 
 // **************************************************************
@@ -462,7 +472,7 @@ void wavTrigger::samplerateOffset(int offset)
     txbuf[4] = (uint8_t)off;
     txbuf[5] = (uint8_t)(off >> 8);
     txbuf[6] = EOM;
-    WTSerial.write(txbuf, 7);
+    soundSerial.write(txbuf, 7);
 }
 
 // **************************************************************
@@ -477,5 +487,5 @@ void wavTrigger::setTriggerBank(int bank)
     txbuf[3] = CMD_SET_TRIGGER_BANK;
     txbuf[4] = (uint8_t)bank;
     txbuf[5] = EOM;
-    WTSerial.write(txbuf, 6);
+    soundSerial.write(txbuf, 6);
 }

@@ -105,6 +105,13 @@ CRGB *section7Array = &ledStrip[NUM_STRIP_SECTION0 + NUM_STRIP_SECTION1 + NUM_ST
 CRGB *section8Array = &ledStrip[NUM_STRIP_SECTION0 + NUM_STRIP_SECTION1 + NUM_STRIP_SECTION2 + NUM_STRIP_SECTION3 + NUM_STRIP_SECTION4 + NUM_STRIP_SECTION5 + NUM_STRIP_SECTION6 + NUM_STRIP_SECTION7];
 CRGB *section9Array = &ledStrip[NUM_STRIP_SECTION0 + NUM_STRIP_SECTION1 + NUM_STRIP_SECTION2 + NUM_STRIP_SECTION3 + NUM_STRIP_SECTION4 + NUM_STRIP_SECTION5 + NUM_STRIP_SECTION6 + NUM_STRIP_SECTION7 + NUM_STRIP_SECTION8];
 
+// Declare functions.
+void defaultRingColor();
+void lightLEDSection(uint8_t section);
+void resetGraphLights();
+int gameFinishedLightsRainbow(int countdown);
+int gameFinishedLightsBreathing(int countdown);
+
 void setupLEDs()
 {
     FastLED.addLeds<NEOPIXEL, LED_STRIP_PIN>(ledStrip, TOTAL_LED_STRIP);

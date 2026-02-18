@@ -13,7 +13,7 @@ from engine import SimplePPEngine
 from pp_init import initialize_all
 from audio_init import initialize_audio
 
-PI_IP = "10.10.51.111"
+PI_IP = "10.10.51.111" #NETWORK
 PI_PORT = 4096
 
 def initialize_cache_and_playlist():
@@ -21,7 +21,7 @@ def initialize_cache_and_playlist():
     Connects to SOS to get the current playlist name,
     then initializes the CacheManager and syncs if necessary.
     """
-    host = "10.10.51.98"
+    host = "10.10.51.98" #NETWORK
     port = 2468
     
     print("Connecting to SOS for initialization...")

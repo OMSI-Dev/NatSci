@@ -4,8 +4,6 @@ wavTrigger wTrig;
 
 void setupAudio()
 {
-    Serial.begin(9600);
-
     // If the Arduino is powering the WAV Trigger, we should wait for the WAV
     //  Trigger to finish reset before trying to send commands.
     delay(1000);

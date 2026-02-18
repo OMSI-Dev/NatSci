@@ -132,6 +132,7 @@ class SubtitleManager:
         self.last_index2 = -1
         self.gui_overlay = gui_overlay
         self.current_clip_name = None  # Track current clip to detect changes
+        self.transition_gap_tolerance = 0.25  # seconds; bridge tiny SRT gaps for seamless transitions
         
     def load_subtitles_for_clip(self, metadata):
         """Load subtitles from metadata dict."""
@@ -205,13 +206,27 @@ class SubtitleManager:
                 current_sub = sub
                 break
         
-        # If no active subtitle, clear accumulation and return empty
+        # If no active subtitle, optionally bridge tiny gaps before next subtitle
         if not current_sub:
+            if accumulator:
+                next_sub = None
+                for sub in subtitles:
+                    if sub['start_time'] > current_time:
+                        next_sub = sub
+                        break
+
+                if next_sub and (next_sub['start_time'] - current_time) <= self.transition_gap_tolerance:
+                    return " ".join(accumulator)
+
             accumulator.clear()
+            if is_secondary:
+                self.last_index2 = -1
+            else:
+                self.last_index = -1
             return ""
             
         # If new subtitle
-        if current_sub['index'] != last_index:
+        if current_sub['index'] != last_index or not accumulator:
             last_index = current_sub['index']
             new_text = current_sub['text'].replace('\n', ' ')
             
