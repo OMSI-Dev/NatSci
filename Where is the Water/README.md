@@ -1,7 +1,7 @@
 # Where is the Water Details
 ## Theory of Operation
 
-Where is the Water is an augmented reality sandbox that projects depth data onto the sandbox's surface. The Kinect v2 and the projector are stationed above the sandbox. The Kinect detects the depth of the sandbox in real time as visitors interact with it and the projector displays the live, textured feed over the sandbox to mimic mountains and rivers / valleys that are created by the visitors.
+Where is the Water is an augmented reality sandbox built from SensiLab's open source Unity software that projects depth data onto the sandbox's surface. The Kinect v2 and the projector are stationed above the sandbox. The Kinect detects the depth of the sandbox in real time as visitors interact with it and the projector displays the live, textured feed over the sandbox to mimic mountains and rivers / valleys that are created by the visitors.
 
 There is a wooden tool with a circular graphic on the end. When held over the sandbox, the program will create rain where the tool is held over. The rain flows based on the depth of the sandbox and creates lakes where defined by the levels in the physical sandbox. There is a button to clear the water, mimicking a drought. When the button is pushed, all the water that was projected over the sandbox at the time that the button is pushed will dissipate. Any rain that is created after the button is pushed will not be cleared until the button is pushed again, ie if a visitor is creating rain at the moment that someone pushes the button to clear it, the rain that the visitor is currently creating will remain as the rest of the water that was built up will dissipate.
 
