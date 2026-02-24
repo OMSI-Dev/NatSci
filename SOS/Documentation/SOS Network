@@ -1,0 +1,25 @@
+SOS Wifi Settings.
+
+**Not Broadcast**
+SOS_WIFI2G
+hologram6gnarly-cube_loved
+
+SOS_WIFI5G
+hologram6gnarly-cube_loved
+
+DCHP - off
+Router = 10.0.0.5
+Subnet = 255.255.255.0
+DNS = 10.0.0.5
+
+PJ1 = 10.0.0.10
+PJ2 = 10.0.0.11
+PJ3 = 10.0.0.12
+pj4 = 10.0.0.13
+
+SOS1 = 10.0.0.15
+SOS2 = 10.0.0.16
+SOS Ring = 10.0.0.17
+Now Playing = 10.0.0.18
+
+PW: golden_Duck!%
