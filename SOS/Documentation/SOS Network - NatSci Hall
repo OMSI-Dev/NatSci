@@ -11,7 +11,7 @@ Router Infomation:
 PW: golden_Duck!%
 DCHP = off - All IPs need to be set manually.
 Router = 10.0.0.5
-Subnet = 255.255.255.0
+Subnet = 255.255.255.0 (/24)
 DNS = 10.0.0.5
 
 PJ1 = 10.0.0.10
