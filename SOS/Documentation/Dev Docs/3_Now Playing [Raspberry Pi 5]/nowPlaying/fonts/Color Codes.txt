@@ -1,2 +1,0 @@
-Primary text color: #FFFFF
-Secondary text color: #83D5FA

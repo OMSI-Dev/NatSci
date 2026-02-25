@@ -1,0 +1,2 @@
+# Check for boot errors 
+sudo dmesg -T --color=always --level=err,warn  | more

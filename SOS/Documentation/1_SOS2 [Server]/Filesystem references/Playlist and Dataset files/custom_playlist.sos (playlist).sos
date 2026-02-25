@@ -1,0 +1,9 @@
+include = /shared/sos/media/extras/lro_evolution_moon/playlist.sos
+
+include = /shared/sos/media/astronomy/moon_phases/playlist.sos
+
+include = /shared/sos/media/land/blue_marble/blue_marble/playlist.sos
+
+include = /shared/sos/media/astronomy/pluto/playlist.sos
+
+include = /shared/sos/media/land/blue_marble/blue_marble/playlist_audio.sos

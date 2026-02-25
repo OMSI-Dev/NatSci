@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOS Facilitation Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        h1 {
+            color: #1e293b;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        /* Facilitation Toggle */
+        .facilitation-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .facilitation-label {
+            color: #475569;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 80px;
+            height: 40px;
+            background: #cbd5e1;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.3s;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .toggle-switch.active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 32px;
+            height: 32px;
+            background: white;
+            border-radius: 50%;
+            transition: left 0.3s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active::after {
+            left: 44px;
+        }
+
+        .toggle-status {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .toggle-status.active {
+            color: #059669;
+        }
+
+        /* Advanced Settings */
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+            user-select: none;
+        }
+
+        .settings-header:hover {
+            background: #e2e8f0;
+        }
+
+        .settings-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .settings-icon {
+            font-size: 24px;
+            transition: transform 0.3s;
+        }
+
+        .settings-icon.holding {
+            animation: pulse 0.5s ease-in-out;
+            color: #7e22ce;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .expand-icon {
+            font-size: 20px;
+            color: #64748b;
+            transition: transform 0.3s;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        .settings-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out, opacity 0.3s;
+            opacity: 0;
+        }
+
+        .settings-content.expanded {
+            max-height: 300px;
+            opacity: 1;
+            margin-bottom: 15px;
+        }
+
+        .volume-controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .volume-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .volume-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .volume-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .volume-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-volume-up {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .btn-volume-down {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+        }
+
+        .btn-mute {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            color: white;
+        }
+
+        /* Secret Menu */
+        .secret-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .secret-menu.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .secret-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+        }
+
+        .secret-menu.active .secret-content {
+            transform: scale(1);
+        }
+
+        .secret-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .secret-header h2 {
+            color: #7e22ce;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .secret-header p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .secret-section {
+            margin-bottom: 25px;
+        }
+
+        .secret-section h3 {
+            color: #334155;
+            font-size: 16px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .fx-soundboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .fx-btn {
+            padding: 15px;
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .fx-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+        }
+
+        .audio-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .audio-option {
+            padding: 12px 15px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            color: #334155;
+        }
+
+        .audio-option:hover {
+            background: #e0e7ff;
+            border-color: #6366f1;
+            color: #4f46e5;
+        }
+
+        .audio-option.selected {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            border-color: #4f46e5;
+            color: white;
+        }
+
+        .close-secret {
+            margin-top: 25px;
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .close-secret:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Console/Log */
+        .console-section {
+            margin-top: 25px;
+        }
+
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .console-header h3 {
+            color: #334155;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .clear-btn {
+            padding: 6px 12px;
+            background: #f1f5f9;
+            color: #64748b;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .console {
+            background: #1e293b;
+            color: #10b981;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 180px;
+            overflow-y: auto;
+            line-height: 1.6;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .console .error {
+            color: #ef4444;
+        }
+
+        .console .warning {
+            color: #f59e0b;
+        }
+
+        .console .info {
+            color: #60a5fa;
+        }
+
+        .console .success {
+            color: #10b981;
+        }
+
+        /* Status Indicator */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.active {
+            background: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .status-text {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* Scrollbar styling */
+        .console::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .console::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 4px;
+        }
+
+        .console::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        .console::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Tooltips */
+        [data-tooltip] {
+            position: relative;
+        }
+
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 6px 10px;
+            background: #1e293b;
+            color: white;
+            font-size: 12px;
+            border-radius: 6px;
+            white-space: nowrap;
+            margin-bottom: 5px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🌐 SOS Control Panel</h1>
+            <p class="subtitle">Science on a Sphere • Facilitation Controls</p>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot" id="connectionDot"></div>
+                <span class="status-text" id="connectionStatus">Connecting...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-text">Vol: <strong id="statusVolume">--</strong></span>
+            </div>
+        </div>
+
+        <!-- Facilitation Toggle -->
+        <div class="facilitation-section">
+            <div class="facilitation-label">Facilitation Mode</div>
+            <div class="toggle-container">
+                <div class="toggle-switch" id="facilitationToggle" onclick="toggleFacilitation()" data-tooltip="Pause display & mute audio"></div>
+                <div class="toggle-status" id="toggleStatus">OFF</div>
+            </div>
+        </div>
+
+        <!-- Advanced Settings -->
+        <div class="settings-section">
+            <div class="settings-header" onclick="toggleSettings()">
+                <div class="settings-title">
+                    <span class="settings-icon" id="settingsIcon" 
+                          onmousedown="startHold()" 
+                          onmouseup="endHold()" 
+                          onmouseleave="endHold()"
+                          ontouchstart="startHold()" 
+                          ontouchend="endHold()"
+                          data-tooltip="Hold for secret menu">⚙️</span>
+                    <span>Advanced Settings</span>
+                </div>
+                <span class="expand-icon" id="expandIcon">▼</span>
+            </div>
+            <div class="settings-content" id="settingsContent">
+                <div class="volume-controls">
+                    <div class="volume-display">
+                        <div class="volume-label">Volume Level</div>
+                        <div class="volume-value" id="volumeDisplay">--</div>
+                    </div>
+                    <div class="volume-buttons">
+                        <button class="btn btn-volume-up" onclick="adjustVolume('UP')" data-tooltip="Increase volume">
+                            Vol ↑
+                        </button>
+                        <button class="btn btn-volume-down" onclick="adjustVolume('DOWN')" data-tooltip="Decrease volume">
+                            Vol ↓
+                        </button>
+                        <button class="btn btn-mute" onclick="adjustVolume('MUTE')" data-tooltip="Toggle mute">
+                            🔇 Mute
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console -->
+        <div class="console-section">
+            <div class="console-header">
+                <h3>Console</h3>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console" id="console">
+                <div class="info">[INFO] SOS Control Panel initialized</div>
+                <div class="info">[INFO] Connecting to engine...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secret Menu -->
+    <div class="secret-menu" id="secretMenu">
+        <div class="secret-content">
+            <div class="secret-header">
+                <h2>🔐 Secret Menu</h2>
+                <p>Advanced Controls & Features</p>
+            </div>
+
+            <div class="secret-section">
+                <h3>🎵 FX Soundboard</h3>
+                <div class="fx-soundboard">
+                    <button class="fx-btn" onclick="playFX(1)">FX 1</button>
+                    <button class="fx-btn" onclick="playFX(2)">FX 2</button>
+                    <button class="fx-btn" onclick="playFX(3)">FX 3</button>
+                    <button class="fx-btn" onclick="playFX(4)">FX 4</button>
+                    <button class="fx-btn" onclick="playFX(5)">FX 5</button>
+                    <button class="fx-btn" onclick="playFX(6)">FX 6</button>
+                </div>
+            </div>
+
+            <div class="secret-section">
+                <h3>🎧 Audio Source Selector</h3>
+                <div class="audio-selector">
+                    <div class="audio-option selected" onclick="selectAudio(this, 'default')">
+                        Default Audio Track
+                    </div>
+                    <div class="audio-option" onclick="selectAudio(this, 'ambient')">
+                        Ambient Soundscape
+                    </div>
+                    <div class="audio-option" onclick="selectAudio(this, 'narration')">
+                        Narration Only
+                    </div>
+                    <div class="audio-option" onclick="selectAudio(this, 'music')">
+                        Music Only
+                    </div>
+                </div>
+            </div>
+
+            <button class="close-secret" onclick="closeSecretMenu()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // BACKEND SOCKET COMMUNICATION (UNCHANGED)
+        // ============================================
+        const ENGINE_IP = 'localhost';  // Change to '10.10.51.98' for production
+        const ENGINE_PORT = '5000';
+        
+        let holdTimer = null;
+        let isHolding = false;
+        let facilitationEnabled = false;
+
+        // Console logging
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            const consoleElement = document.getElementById('console');
+            const line = document.createElement('div');
+            line.className = className;
+            line.textContent = `[${timestamp}] ${message}`;
+            consoleElement.appendChild(line);
+            consoleElement.scrollTop = consoleElement.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '<div class="info">[INFO] Console cleared</div>';
+        }
+
+        // Update status displays
+        function updateStatus(data) {
+            if (data.facilitation_mode !== undefined) {
+                facilitationEnabled = data.facilitation_mode;
+                updateFacilitationUI();
+            }
+            if (data.volume !== undefined) {
+                document.getElementById('volumeDisplay').textContent = data.volume + '%';
+                document.getElementById('statusVolume').textContent = data.volume + '%';
+            }
+            if (data.muted !== undefined) {
+                // Could show mute status here if needed
+            }
+            
+            // Update connection status
+            document.getElementById('connectionDot').classList.add('active');
+            document.getElementById('connectionStatus').textContent = 'Connected';
+        }
+
+        // Send command to engine (SOCKET FUNCTION - UNCHANGED)
+        async function sendCommand(commandData) {
+            const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+            log(`Sending: ${JSON.stringify(commandData)}`, 'info');
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(commandData)
+                });
+
+                const data = await response.json();
+                log(`Response: ${JSON.stringify(data)}`, 'info');
+                
+                updateStatus(data);
+                
+                if (data.status === 'ok') {
+                    log('✓ Command successful', 'success');
+                } else {
+                    log(`✗ Error: ${data.message || 'Unknown error'}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`✗ Error: ${error.message}`, 'error');
+                document.getElementById('connectionDot').classList.remove('active');
+                document.getElementById('connectionStatus').textContent = 'Disconnected';
+                
+                if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                    log('Make sure engine.py is running', 'warning');
+                }
+            }
+        }
+
+        // ============================================
+        // UI INTERACTIONS
+        // ============================================
+
+        // Facilitation Toggle
+        function toggleFacilitation() {
+            facilitationEnabled = !facilitationEnabled;
+            updateFacilitationUI();
+            sendCommand({
+                command: 'FACILITATION_TOGGLE',
+                enable: facilitationEnabled
+            });
+        }
+
+        function updateFacilitationUI() {
+            const toggle = document.getElementById('facilitationToggle');
+            const status = document.getElementById('toggleStatus');
+            
+            if (facilitationEnabled) {
+                toggle.classList.add('active');
+                status.classList.add('active');
+                status.textContent = 'ON';
+            } else {
+                toggle.classList.remove('active');
+                status.classList.remove('active');
+                status.textContent = 'OFF';
+            }
+        }
+
+        // Advanced Settings Toggle
+        function toggleSettings() {
+            const content = document.getElementById('settingsContent');
+            const icon = document.getElementById('expandIcon');
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            } else {
+                content.classList.add('expanded');
+                icon.classList.add('expanded');
+                // Refresh volume when opening
+                sendCommand({ command: 'GET_STATE' });
+            }
+        }
+
+        // Volume Control
+        function adjustVolume(action) {
+            sendCommand({
+                command: 'VOLUME_CONTROL',
+                action: action
+            });
+        }
+
+        // Secret Menu (Hold Detection)
+        function startHold() {
+            isHolding = true;
+            const icon = document.getElementById('settingsIcon');
+            icon.classList.add('holding');
+            
+            holdTimer = setTimeout(() => {
+                if (isHolding) {
+                    openSecretMenu();
+                    log('Secret menu accessed', 'warning');
+                }
+            }, 1500); // Hold for 1.5 seconds
+        }
+
+        function endHold() {
+            isHolding = false;
+            clearTimeout(holdTimer);
+            const icon = document.getElementById('settingsIcon');
+            icon.classList.remove('holding');
+        }
+
+        function openSecretMenu() {
+            document.getElementById('secretMenu').classList.add('active');
+        }
+
+        function closeSecretMenu() {
+            document.getElementById('secretMenu').classList.remove('active');
+        }
+
+        // Close secret menu when clicking outside
+        document.getElementById('secretMenu').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSecretMenu();
+            }
+        });
+
+        // Secret Menu Functions (Placeholders)
+        function playFX(number) {
+            log(`FX Sound ${number} triggered (not implemented)`, 'warning');
+            // TODO: Implement FX sound playback
+        }
+
+        function selectAudio(element, source) {
+            // Remove selected class from all options
+            document.querySelectorAll('.audio-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            // Add to clicked option
+            element.classList.add('selected');
+            log(`Audio source changed to: ${source} (not implemented)`, 'warning');
+            // TODO: Implement audio source switching
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        // Get initial state on load
+        setTimeout(() => {
+            log('Requesting initial state...', 'info');
+            sendCommand({ command: 'GET_STATE' });
+        }, 1000);
+
+        // Optional: Auto-refresh state every 30 seconds
+        // setInterval(() => {
+        //     sendCommand({ command: 'GET_STATE' });
+        // }, 30000);
+
+        // Keyboard shortcut for secret menu (optional)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+                openSecretMenu();
+            }
+        });
+    </script>
+</body>
+</html>
