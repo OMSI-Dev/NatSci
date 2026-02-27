@@ -1,2 +1,50 @@
 # Issue starting 'Start SOS' - app does not recognize display :2 with secondary display plugged into the dedicated projector graphics card
 
+(Step 1: ) Find the BusID of the secondary GPU (M4000)
+lspci | grep -i vga
+
+(Step 2: ) Modify the xorg.conf 
+sudo nano /etc/X11/xorg.conf
+
+(2a: ) Replace the ServerLayout section
+
+Section "ServerLayout"
+    Identifier     "Layout"
+    Screen      0  "Screen0" 0 0
+    Screen      1  "Screen1" RightOf "Screen0" #<-- Only added line
+    InputDevice    "Keyboard" "CoreKeyboard"
+    InputDevice    "Mouse" "CorePointer"
+EndSection
+
+(2b: ) Add new sections to the bottom of file
+Section "Monitor"
+    Identifier     "Monitor1"
+    HorizSync       30.0 - 83.0
+    VertRefresh     56.0 - 76.0
+EndSection
+
+Section "Device"
+    Identifier     "Device1"
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    BoardName      "Quadro M4000"
+    BusID          "PCI:3:0:0"
+    Option         "NoLogo" "1"
+    Option         "ProbeAllGpus" "false"
+EndSection
+
+Section "Screen"
+    Identifier     "Screen1"
+    Device         "Device1"
+    Monitor        "Monitor1"
+    DefaultDepth    24
+    SubSection "Display"
+        Depth       24
+    EndSubSection
+EndSection
+
+(Step 3: ) Restart display manager
+**Warning** Save any files before running command, user will be logged out and all software automatically closed
+sudo systemctl restart display-manager
+
+        Depth       24
