@@ -1,5 +1,7 @@
 # Issue starting 'Start SOS' - app does not recognize display :2 with secondary display plugged into the dedicated projector graphics card
 
+# Issue unresolved as of 3/2/26, all steps below have been attempted and reverted 
+
 (Step 1: ) Find the BusID of the secondary GPU (M4000)
 lspci | grep -i vga
 
