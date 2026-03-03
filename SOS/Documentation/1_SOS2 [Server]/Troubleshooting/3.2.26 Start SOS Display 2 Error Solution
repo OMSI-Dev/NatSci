@@ -1,0 +1,58 @@
+# Documented below are the steps followed to solve the Display 2: error when attempting to launch 'Start SOS'
+# Three of the four projectors are connected via HDMI to DVI adapters to the Quadro M4000. 
+# The primary consistent error when initializing Display 2: manually via the command 'sudo /usr/bin/X :2 vt3 -sharevts -config xorg-projectors-twinview.conf -noreset -dpms -s 0 &'
+  # NVIDIA(GPU-0): Failed to acquire modesetting permission.
+  # NVIDIA(GPU-1): Failed to acquire modesetting permission.
+  
+(Step 1: ) Modify rc.local 
+Note - a previous fix was made in this file, but the lines were commented out 
+
+SUBSYSTEM=="drm", KERNEL=="card2", TAG+="seat", ENV{ID_SEAT}="seat0"
+SUBSYSTEM=="drm", KERNEL=="card1", TAG+="seat", ENV{ID_SEAT}="seat1"
+
+(Step 2: ) Confirm format of projector configuration file 
+
+sos@sos2:~$ cat  /etc/X11/xorg-projectors-twinview.conf
+# xorg-4projectors-1920x1200.conf
+
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen      0  "Screen0" 0 0
+EndSection
+
+Section "ServerFlags"
+    #Option         "Xinerama" "1"
+    Option         "AutoAddDevices"      "false"
+    Option         "AutoEnableDevices"   "false"
+    Option         "AllowEmptyInput"   "true"
+EndSection
+
+Section "Device"
+    Identifier     "Device0"
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    BoardName      "Quadro M4000"
+    BusID          "PCI:3:0:0"
+    #Option         "TwinView" "1"
+    #Option         "ConnectedMonitor" "DFP-0,DFP-1,DFP-2,DFP-3"
+    #Option         "metamodes" "DFP-2: 1920x1200 +0+0, DFP-3: 1920x1200 +1920+0, DFP-0: 1920x1200 +0+1200, DFP-1: 1920x1200 +1920+1200"
+    Option         "ModeDebug" "false"
+    #Option         "CustomEDID" "DFP:/etc/X11/projectors/panasonic-edid.bin"
+    Option	   "NoLogo"
+    Option	   "ProbeAllGpus" "false"
+EndSection
+
+Section "Screen"
+    Identifier     "Screen0"
+    Device         "Device0"
+    Monitor        "GenericMonitor"
+    #Option		"ConnectedMonitor" "DFP-0,DFP-1,DFP-2,DFP-3"
+EndSection
+
+Section "Monitor"
+    Identifier     "Monitor0"
+EndSection
+
+Section "Extensions"
+    Option         "Composite" "Disable"
+EndSection
