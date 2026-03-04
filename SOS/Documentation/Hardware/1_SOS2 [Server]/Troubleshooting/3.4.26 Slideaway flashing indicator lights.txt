@@ -1,0 +1,3 @@
+(Issue: ) No visual feedback/signal while the server is booted. ssh is enabled, with no clear display errors
+
+(Solution: ) Locate the 'Update' toggle on the monitor, verify its status to OFF -> "Normal"
