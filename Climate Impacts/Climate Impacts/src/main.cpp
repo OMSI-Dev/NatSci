@@ -5,14 +5,14 @@ Aaron De Lanty
 
 Read button presses to play 2 sets of audio English and Spanish.
 
-The audio is being channel split using a Tsnami board.
+The audio is being channel split using a Tsunami board.
 
 */
 
 #include <Arduino.h>
+#include <pins.h>
 #include <Bounce2.h>
 #include <AudioControl.h>
-#include <pins.h>
 #include <buttons.h>
 
 void setup()
@@ -21,6 +21,8 @@ void setup()
     attachButtons();
     startAudioPlayer();
     Serial.begin(9600);
+    pinMode(13, OUTPUT);
+    digitalWrite(13, HIGH);
 }
 
 void loop()

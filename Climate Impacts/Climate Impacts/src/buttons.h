@@ -1,3 +1,4 @@
+#include <Timer.h>
 
 Bounce2::Button btn1 = Bounce2::Button();
 Bounce2::Button btn2 = Bounce2::Button();
@@ -34,6 +35,10 @@ Bounce2::Button btn5 = Bounce2::Button();
 
 uint8_t btn1State = 0, btn2State = 0, btn3State = 0, btn4State = 0, btn5State = 0;
 
+MoToTimer btn1Timeout, btn2Timeout, btn3Timeout, btn4Timeout, btn5Timeout;
+
+uint16_t timeout = 200;
+
 void attachButtons()
 {
     btn1.attach(btnInput1, INPUT_PULLUP);
@@ -68,7 +73,7 @@ void buttonUpdate()
 
 void buttonPress()
 {
-    if (btn1.isPressed())
+    if (btn1.isPressed() && !btn1Timeout.running())
     {
         switch (btn1State)
         {
@@ -92,9 +97,11 @@ void buttonPress()
         default:
             break;
         }
+
+        btn1Timeout.setTime(timeout);
     }
 
-    if (btn2.isPressed())
+    if (btn2.isPressed() && !btn2Timeout.running())
     {
         switch (btn2State)
         {
@@ -118,9 +125,10 @@ void buttonPress()
         default:
             break;
         }
+        btn2Timeout.setTime(timeout);
     }
 
-    if (btn3.isPressed())
+    if (btn3.isPressed() && !btn3Timeout.running())
     {
         switch (btn3State)
         {
@@ -144,9 +152,10 @@ void buttonPress()
         default:
             break;
         }
+        btn3Timeout.setTime(timeout);
     }
 
-    if (btn4.isPressed())
+    if (btn4.isPressed() && !btn4Timeout.running())
     {
         switch (btn4State)
         {
@@ -170,9 +179,10 @@ void buttonPress()
         default:
             break;
         }
+        btn4Timeout.setTime(timeout);
     }
 
-    if (btn5.isPressed())
+    if (btn5.isPressed() && !btn5Timeout.running())
     {
         switch (btn5State)
         {
@@ -196,5 +206,6 @@ void buttonPress()
         default:
             break;
         }
+        btn5Timeout.setTime(timeout);
     }
 }

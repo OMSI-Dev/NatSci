@@ -23,7 +23,6 @@ void turnOffAudio()
  */
 void playAudio(uint8_t track, uint8_t channel)
 {
-  // plat track 1 on ch1
   audioOut.trackPlayPoly(track, channel, 0);
 }
 
