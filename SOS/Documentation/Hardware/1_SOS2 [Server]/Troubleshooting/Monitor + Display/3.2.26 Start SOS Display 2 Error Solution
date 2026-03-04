@@ -19,5 +19,3 @@ Simplified to let the driver auto-detect connected displays
 
 3. GDM Multi-Seat (/etc/gdm3/custom.conf)
 Added MultiSeat=false under [daemon] to prevent GDM from hijacking seat1 and disrupting the main session.
-Bonus Fix — Input Devices (/etc/X11/xorg.conf)
-Replaced the broken evdev driver with libinput for keyboard and mouse, restoring main display interactivity.

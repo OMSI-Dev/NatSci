@@ -104,7 +104,7 @@ class CacheManager:
         
         return result
 
-    def get_server_modification_date(self, playlist_path, host="10.10.51.98"): #NETWORK
+    def get_server_modification_date(self, playlist_path, host="10.0.0.16"): #NETWORK
         """Get the last modified date of the playlist file on the SOS server via SSH."""
         try:
             command = f'ssh sos@{host} "stat -c %y \\"{playlist_path}\\""'
@@ -161,7 +161,7 @@ class CacheManager:
         except Exception: pass
         
         # Try SCP (SOS Server)
-        sos_ip = "10.10.51.98" #NETWORK
+        sos_ip = "10.0.0.16" #NETWORK
         ssh_user = "sos"  # Authenticated user verified by client
         
         found_keys = []

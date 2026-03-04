@@ -80,7 +80,7 @@ class OverlayManager:
         self.app.processEvents()
 
 
-SOS_IP = "10.10.51.98" #NETWORK
+SOS_IP = "10.0.0.16" #NETWORK
 SOS_PORT = 2468
 PI_IP = "10.10.51.111" #NETWORK
 PI_PORT = 4096
@@ -787,13 +787,12 @@ class SimplePPEngine:
         except Exception as e:
             print(f"[Engine] Error closing overlays: {e}")
         
-        # Stop audio
+        # Stop audio and close MPV
         try:
-            if self.audio_controller and hasattr(self.audio_controller, 'is_playing'):
-                if self.audio_controller.is_playing():
-                    self.audio_controller.fade_out()
+            if self.audio_controller and hasattr(self.audio_controller, 'close'):
+                self.audio_controller.close()
         except Exception as e:
-            print(f"[Engine] Error stopping audio: {e}")
+            print(f"[Engine] Error closing audio: {e}")
         
         # Close socket
         if self.sock:

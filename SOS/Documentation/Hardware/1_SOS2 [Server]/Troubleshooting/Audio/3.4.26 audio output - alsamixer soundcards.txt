@@ -1,0 +1,3 @@
+(Issue: ) alsamixer is non-responsive/does not output sound 
+
+(Solution: ) Use pulseaudio. The system is upgraded and configured to use this framework. 

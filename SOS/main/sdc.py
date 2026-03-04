@@ -21,7 +21,7 @@ def initialize_cache_and_playlist():
     Connects to SOS to get the current playlist name,
     then initializes the CacheManager and syncs if necessary.
     """
-    host = "10.10.51.98" #NETWORK
+    host = "10.0.0.16" #NETWORK
     port = 2468
     
     print("Connecting to SOS for initialization...")
@@ -160,17 +160,19 @@ if __name__ == '__main__':
     finally:
         print("\n[SDC] Cleaning up...")
         
-        # Close LibreOffice (with error handling)
+        # Close LibreOffice — engine._cleanup() handles this on normal exit;
+        # this guard catches any path where the engine did not run or crashed before cleanup.
         try:
-            if pp and hasattr(pp, 'close'):
+            if pp and hasattr(pp, 'launched') and pp.launched:
                 pp.close()
                 print("[SDC] LibreOffice closed.")
         except Exception as e:
             print(f"[SDC] Error closing LibreOffice: {e}")
-        
-        # Close audio controller
+
+        # Close audio / MPV — engine._cleanup() calls close() on normal interrupt;
+        # this ensures MPV is killed if the engine never started or exited abnormally.
         try:
-            if audio_controller and hasattr(audio_controller, 'close'):
+            if audio_controller and hasattr(audio_controller, 'is_initialized') and audio_controller.is_initialized:
                 audio_controller.close()
                 print("[SDC] Audio controller closed.")
         except Exception as e:

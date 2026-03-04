@@ -15,7 +15,7 @@ from audio_access import AudioController
 AUDIO_CSV = r"\\sos2\AuxShare\audio\audio-list.csv"
 
 # SOS2 SSH Configuration
-SOS2_IP = "10.10.51.98" #NETWORK
+SOS2_IP = "10.0.0.16" #NETWORK
 SOS2_USER = "sos"
 SOS2_AUDIO_PATH = "/AuxShare/audio/mp3"
 
