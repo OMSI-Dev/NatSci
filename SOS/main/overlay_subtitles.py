@@ -808,6 +808,16 @@ class SubtitleOverlay(QWidget):
         """Check if the overlay is visible."""
         return self.isVisible()
     
+    def instant_hide(self):
+        """Instantly hide the overlay for a clean dataset transition (no fade animation)."""
+        if self.fade_animation:
+            self.fade_animation.stop()
+        self.subtitle_label.setText("")
+        self.subtitle_label2.setText("")
+        self.hide()
+        self.current_subtitle = ""
+        self.current_subtitle2 = ""
+
     def start(self):
         """Show the overlay window with fade-in animation."""
         # Use window opacity for fade (doesn't conflict with blur effects on child widgets)
@@ -817,10 +827,10 @@ class SubtitleOverlay(QWidget):
         
         # Fade in animation using window opacity
         self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
-        self.fade_animation.setDuration(400)  # 400ms fade-in
+        self.fade_animation.setDuration(250)  # Fast fade-in for reactive feel
         self.fade_animation.setStartValue(0.0)
         self.fade_animation.setEndValue(1.0)
-        self.fade_animation.setEasingCurve(QEasingCurve.InOutQuad)
+        self.fade_animation.setEasingCurve(QEasingCurve.OutQuad)
         self.fade_animation.start()
         
         QApplication.processEvents()

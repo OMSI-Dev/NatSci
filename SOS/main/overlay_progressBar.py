@@ -4,6 +4,7 @@ Displays only the progress bar with timestamp at the bottom of the screen.
 """
 
 import os
+import time
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QProgressBar, QGraphicsBlurEffect, QSizePolicy
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QFont, QPainter, QPen, QColor, QFontDatabase
@@ -129,10 +130,10 @@ class ProgressBarOverlay(QWidget):
     Every parameter directly affects what you see - no hidden layout surprises.
     """
     
-    def __init__(self, position='bottom', y_offset=0,
-                 margin_left=100, margin_right=100, margin_bottom=22,
+    def __init__(self, position='bottom', y_offset=-22,
+                 margin_left=90, margin_right=90, margin_bottom=22,
                  bar_height=7, bar_color='#ffffff',
-                 bg_color='#000000', bg_opacity=125, bg_blur=7,
+                 bg_color='#000000', bg_opacity=0, bg_blur=7,
                  bg_extra_width=20, bg_extra_height=20,
                  border_radius=6,
                  timestamp_spacing=15, timestamp_font=None, timestamp_size=16):
@@ -225,7 +226,9 @@ class ProgressBarOverlay(QWidget):
             bg_height
         )
         
-        if self.bg_blur > 0:
+        if self.bg_opacity == 0:
+            self.background.hide()
+        elif self.bg_blur > 0:
             blur_effect = QGraphicsBlurEffect()
             blur_effect.setBlurRadius(self.bg_blur)
             self.background.setGraphicsEffect(blur_effect)
@@ -282,9 +285,23 @@ class ProgressBarOverlay(QWidget):
         
         self.move(0, max(0, y))
     
+    def reset(self, total_duration=None):
+        """Hard-reset to 0:00 for a clean transition to a new clip."""
+        self.current_time = 0.0
+        self.target_time = 0.0
+        self.last_update_timestamp = time.time()
+        if total_duration is not None:
+            self.total_duration = total_duration
+            self.time_total.setText(self._format_time(total_duration))
+            bar_width = self.width() - self.margin_left - self.margin_right
+            timestamp_y = self.bg_blur + (self.bg_extra_height // 2) + self.bar_height + self.timestamp_spacing
+            self.time_total.adjustSize()
+            self.time_total.move(self.margin_left + bar_width - self.time_total.width(), timestamp_y)
+        self.time_current.setText(self._format_time(0.0))
+        self.progress_bar.setValue(0)
+
     def update_progress(self, current_time, total_duration, slide_count=1):
         """Update progress data."""
-        import time
         now = time.time()
         
         if abs(current_time - self.current_time) > 2.0 or self.total_duration <= 0:
@@ -310,7 +327,6 @@ class ProgressBarOverlay(QWidget):
             return
         
         # Interpolate time
-        import time
         now = time.time()
         elapsed = now - self.last_update_timestamp
         predicted_time = min(self.target_time + elapsed, self.total_duration)
@@ -347,10 +363,10 @@ class ProgressBarOverlay(QWidget):
         self.raise_()
         
         self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
-        self.fade_animation.setDuration(400)
+        self.fade_animation.setDuration(200)  # Fast fade-in for reactive feel
         self.fade_animation.setStartValue(0.0)
         self.fade_animation.setEndValue(1.0)
-        self.fade_animation.setEasingCurve(QEasingCurve.InOutQuad)
+        self.fade_animation.setEasingCurve(QEasingCurve.OutQuad)
         self.fade_animation.start()
         
         QApplication.processEvents()

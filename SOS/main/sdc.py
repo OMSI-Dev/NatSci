@@ -15,6 +15,7 @@ from audio_init import initialize_audio
 
 PI_IP = "10.10.51.111" #NETWORK
 PI_PORT = 4096
+NOWPLAYING_ENABLED = False  # Set True when the Pi display is physically connected
 
 def initialize_cache_and_playlist():
     """
@@ -140,14 +141,18 @@ if __name__ == '__main__':
             print("[Audio] Audio config up to date, using cache")
         
     # 4. Initialize nowPlaying
-    print("\nInitializing nowPlaying...")
-    initialize_nowplaying(cache_mgr)
+    if NOWPLAYING_ENABLED:
+        print("\nInitializing nowPlaying...")
+        initialize_nowplaying(cache_mgr)
+    else:
+        print("\n[nowPlaying] Disabled (NOWPLAYING_ENABLED=False) - skipping init")
 
     # 5. Start Engine
     print("\nStarting Optimized Engine...")
     print("=" * 60)
     
-    engine = SimplePPEngine(pp, slide_dictionary, cache_mgr, audio_controller)
+    engine = SimplePPEngine(pp, slide_dictionary, cache_mgr, audio_controller,
+                             nowplaying_enabled=NOWPLAYING_ENABLED)
     
     try:
         engine.run()

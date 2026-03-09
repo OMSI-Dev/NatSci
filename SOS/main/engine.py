@@ -60,6 +60,19 @@ class OverlayManager:
             self.progress_overlay.stop()
             self.subtitle_overlay.stop()
             self.mode = "HIDDEN"
+
+    def instant_clear(self):
+        """Instantly clear all overlays for a clean dataset transition (no fade)."""
+        anim = getattr(self.progress_overlay, 'fade_animation', None)
+        if anim:
+            anim.stop()
+        self.subtitle_overlay.instant_hide()
+        self.progress_overlay.hide()
+        self.mode = "HIDDEN"
+
+    def reset_progress(self, total_duration):
+        """Seed the progress bar at 0:00 for a new clip, bypassing the mode-guard."""
+        self.progress_overlay.reset(total_duration)
             
     def update_progress(self, current_time, total_duration, slide_count=1):
         """Update progress bar data."""
@@ -176,7 +189,8 @@ class SimplePPEngine:
     - Navigates LibreOffice
     """
     
-    def __init__(self, pp, slide_dictionary, cache_manager, audio_controller=None):
+    def __init__(self, pp, slide_dictionary, cache_manager, audio_controller=None,
+                 nowplaying_enabled=True):
         """
         Initialize the engine.
         
@@ -185,11 +199,13 @@ class SimplePPEngine:
             slide_dictionary: Dict mapping clip names to slide numbers
             cache_manager: Initialized CacheManager instance
             audio_controller: Optional AudioController instance
+            nowplaying_enabled: Set False to skip all Pi nowPlaying socket calls
         """
         self.pp = pp
         self.slide_dictionary = slide_dictionary
         self.cache_manager = cache_manager
         self.audio_controller = audio_controller
+        self.nowplaying_enabled = nowplaying_enabled
         self.running = True
         self.current_slide = -1
         self.sock = None
@@ -317,6 +333,8 @@ class SimplePPEngine:
 
     def _send_nowplaying_message(self, message: str) -> None:
         """Send a nowPlaying socket message to the Pi."""
+        if not self.nowplaying_enabled:
+            return
         try:
             with socket.create_connection((PI_IP, PI_PORT), timeout=2.0) as pi_sock:
                 pi_sock.sendall(message.encode('utf-8'))
@@ -582,6 +600,8 @@ class SimplePPEngine:
     
     def _send_to_nowplaying(self, command: str):
         """Send command to nowPlaying display."""
+        if not self.nowplaying_enabled:
+            return
         try:
             with socket.create_connection((PI_IP, PI_PORT), timeout=3.0) as sock:
                 sock.sendall(command.encode('utf-8'))
@@ -707,45 +727,52 @@ class SimplePPEngine:
                 if clip_number and clip_name != self.last_clip_name:
                     print(f"\n[Clip {clip_number}] {clip_name}")
                     self.last_clip_name = clip_name
-                    self.navigate_to_clip(clip_name or "")
-                    self.update_nowPlaying(clip_number)
-                    
-                    # Update Overlay State
+
+                    # Resolve metadata and clip type BEFORE navigation so transitions are concurrent
                     metadata = self.cache_manager.get(clip_name) if clip_name else {}
                     self.current_duration = float(metadata.get('duration', 180.0)) if metadata else 180.0
-                    
-                    # Determine visibility
                     is_credits = "credits" in (clip_name or "").lower()
-
                     is_translated = str(metadata.get('translated-movie', '')).lower() == 'true'
                     print(f"[Engine] is_credits: {is_credits}, is_translated: {is_translated}")
-                    
+
+                    # Initiate overlay transition BEFORE slide navigation so animations are concurrent
+                    if is_credits:
+                        # Fade out overlays at the same moment the credits slide loads
+                        self.overlay_manager.hide_all()
+                    else:
+                        # Instantly clear old subtitle/overlay state for a clean new-dataset appearance
+                        self.overlay_manager.instant_clear()
+
+                    # Navigate to new slide (overlay fade-out runs concurrently)
+                    self.navigate_to_clip(clip_name or "")
+                    self.update_nowPlaying(clip_number)
+
                     # Manage audio playback based on clip type
                     self.manage_audio(clip_name, is_credits, is_translated)
-                    
-                    if is_credits:
-                        self.overlay_manager.hide_all()
-                    elif is_translated:
-                        # print(f"[Subtitles] Translated clip detected: {clip_name}")
-                        local_meta = metadata.copy()
-                        if metadata.get('caption'):
-                            path1 = self.cache_manager.fetch_subtitle_file(metadata['caption'])
-                            if path1: local_meta['caption'] = path1
-                        if metadata.get('caption2'):
-                            path2 = self.cache_manager.fetch_subtitle_file(metadata['caption2'])
-                            if path2: local_meta['caption2'] = path2
-                            
-                        self.overlay_manager.show_subtitles_and_progress()
-                        self.subtitle_manager.load_subtitles_for_clip(local_meta)
-                        
-                        # Update titles from CSV
-                        spanish_title, english_title = self.cache_manager.get_clip_titles(clip_name)
-                        print(f"[Engine] Title Logic - Name: '{clip_name}', EN: '{english_title}', ES: '{spanish_title}'")
-                        # Rule 2a: English Title above Col 1 (Left), Spanish Title above Col 2 (Right)
-                        self.overlay_manager.update_titles(english_title, spanish_title)
-                    else:
-                        self.overlay_manager.hide_all() # Hide titles if not translated
-                        self.overlay_manager.show_progress_only()
+
+                    if not is_credits:
+                        # Seed progress at 0:00 immediately — before next frame poll
+                        # so the bar appears with the correct timestamp instantly
+                        self.overlay_manager.reset_progress(self.current_duration)
+
+                        if is_translated:
+                            local_meta = metadata.copy()
+                            if metadata.get('caption'):
+                                path1 = self.cache_manager.fetch_subtitle_file(metadata['caption'])
+                                if path1: local_meta['caption'] = path1
+                            if metadata.get('caption2'):
+                                path2 = self.cache_manager.fetch_subtitle_file(metadata['caption2'])
+                                if path2: local_meta['caption2'] = path2
+
+                            self.overlay_manager.show_subtitles_and_progress()
+                            self.subtitle_manager.load_subtitles_for_clip(local_meta)
+
+                            # Update titles from CSV
+                            spanish_title, english_title = self.cache_manager.get_clip_titles(clip_name)
+                            print(f"[Engine] Title Logic - Name: '{clip_name}', EN: '{english_title}', ES: '{spanish_title}'")
+                            self.overlay_manager.update_titles(english_title, spanish_title)
+                        else:
+                            self.overlay_manager.show_progress_only()
                 
                 # 4. Update Progress & Subtitles
                 current_frame = self.get_frame_number()
