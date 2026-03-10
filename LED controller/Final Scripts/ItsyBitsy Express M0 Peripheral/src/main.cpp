@@ -9,7 +9,7 @@ Only display data from the Teensy. Do not display anything if data is not being 
 #include <Wire.h>
 
 #define LED_PIN 5
-#define NUM_LEDS 5  // Adjust this to match your LED strip length
+#define NUM_LEDS 800  // Adjust this to match your LED strip length
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 #define I2C_ADDRESS 0x08  // I2C peripheral address

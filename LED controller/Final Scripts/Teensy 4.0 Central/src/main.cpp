@@ -7,7 +7,7 @@ Send LED data to Trinket to display on WS2812B LED strip.
 #include <Wire.h>
 
 #define I2C_ADDRESS 0x08  // Address of the ItsyBitsy peripheral
-#define NUM_LEDS 5        // Number of LEDs on the strip
+#define NUM_LEDS 800       // Number of LEDs on the strip
 
 uint8_t ledData[NUM_LEDS * 3];  // RGB data for all LEDs
 
