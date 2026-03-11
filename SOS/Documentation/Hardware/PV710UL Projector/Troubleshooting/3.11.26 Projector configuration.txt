@@ -1,0 +1,8 @@
+Issue: Projector control is malfunctioning. Assignment within the SOS software is incorrect. One projector controls two. The projector configuration file needs to be configured. 
+
+sudo nano /etc/X11/xorg-projectors-twinview.conf
+
+ update the Device section to:
+```
+Option         "ConnectedMonitor" "DP-7,DP-1,DP-3,DP-5"
+Option         "metamodes" "DP-7: 1920x1200 +0+0, DP-1: 1920x1200 +1920+0, DP-3: 1920x1200 +0+1200, DP-5: 1920x1200 +1920+1200"

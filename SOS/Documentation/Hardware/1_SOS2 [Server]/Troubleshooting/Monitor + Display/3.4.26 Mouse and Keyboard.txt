@@ -5,14 +5,19 @@
 (Step 1: ) List all devices and event ids
 ls -la /dev/input/by-id/
 
+*Device name ending in 'event-kbd' is the KEYBOARD. Note the event # listed.
+*Device name ending in 'event-mouse' is the MOUSE. Note the event # listed.
+
 (Step 2: )
 sudo nano /etc/X11/xorg.conf
 
 (Step 3: ) Ensure keyboard input device is assigned to the associated event as listed from the output in the previous step
 
-*'usb-ATEN_International_Co._Ltd_CL6700_V1.1.107-event-kbd' is the keyboard device
-
 (Step 4: ) Ensure mouse input device is assigned to the associated event as listed from the output in the previous step
 
 (Step 5: ) Restart display manager
 sudo systemctl restart display-manager
+
+
+Log:
+3-10-26 (Mouse: event7/Keyboard: event6)
