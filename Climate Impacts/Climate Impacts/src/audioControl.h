@@ -30,3 +30,8 @@ void stopAudioTrack(uint8_t track)
 {
   audioOut.trackStop(track);
 }
+
+bool isPlaying(uint8_t track)
+{
+  return audioOut.isTrackPlaying(track);
+}

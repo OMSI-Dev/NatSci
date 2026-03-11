@@ -37,7 +37,19 @@ uint8_t btn1State = 0, btn2State = 0, btn3State = 0, btn4State = 0, btn5State = 
 
 MoToTimer btn1Timeout, btn2Timeout, btn3Timeout, btn4Timeout, btn5Timeout;
 
-uint16_t timeout = 200;
+MoToTimer btn1EngPlayingTimeout, btn1SpanPlayingTimeout, btn2EngPlayingTimeout, btn2SpanPlayingTimeout, btn3EngPlayingTimeout, btn3SpanPlayingTimeout, btn4PlayingTimeout, btn5EngPlayingTimeout, btn5SpanPlayingTimeout;
+
+int audio1SpanTimeout = 29000;
+int audio1EngTimeout = 27000;
+int audio2SpanTimeout = 38000;
+int audio2EngTimeout = 31000;
+int audio3SpanTimeout = 37000;
+int audio3EngTimeout = 34000;
+int audio4Timeout = 30000;
+int audio5EngTimeout = 25000;
+int audio5SpanTimeout = 32000;
+
+uint16_t timeout = 400;
 
 void attachButtons()
 {
@@ -73,6 +85,7 @@ void buttonUpdate()
 
 void buttonPress()
 {
+    // **************** BUTTON 1 ****************
     if (btn1.isPressed() && !btn1Timeout.running())
     {
         switch (btn1State)
@@ -80,6 +93,8 @@ void buttonPress()
         case 0:
             // play English
             playAudio(btn1English, btn1Channel);
+            btn1EngPlayingTimeout.setTime(audio1EngTimeout);
+            btn1SpanPlayingTimeout.stop();
             btn1State = 1;
             break;
 
@@ -87,6 +102,8 @@ void buttonPress()
             // play Spanish
             stopAudioTrack(btn1English);
             playAudio(btn1Spanish, btn1Channel);
+            btn1EngPlayingTimeout.stop();
+            btn1SpanPlayingTimeout.setTime(audio1SpanTimeout);
             btn1State = 2;
             break;
         case 2:
@@ -101,6 +118,14 @@ void buttonPress()
         btn1Timeout.setTime(timeout);
     }
 
+    // Make sure button resets to English after audio is finished,
+    // even if it was playing Spanish.
+    if (!btn1EngPlayingTimeout.running() && !btn1SpanPlayingTimeout.running())
+    {
+        btn1State = 0;
+    }
+
+    // **************** BUTTON 2 ****************
     if (btn2.isPressed() && !btn2Timeout.running())
     {
         switch (btn2State)
@@ -108,6 +133,8 @@ void buttonPress()
         case 0:
             // play English
             playAudio(btn2English, btn2Channel);
+            btn2EngPlayingTimeout.setTime(audio2EngTimeout);
+            btn2SpanPlayingTimeout.stop();
             btn2State = 1;
             break;
 
@@ -115,6 +142,8 @@ void buttonPress()
             // play Spanish
             stopAudioTrack(btn2English);
             playAudio(btn2Spanish, btn2Channel);
+            btn2EngPlayingTimeout.stop();
+            btn2SpanPlayingTimeout.setTime(audio2SpanTimeout);
             btn2State = 2;
             break;
         case 2:
@@ -128,6 +157,14 @@ void buttonPress()
         btn2Timeout.setTime(timeout);
     }
 
+    // Make sure button resets to English after audio is finished,
+    // even if it was playing Spanish.
+    if (!btn2EngPlayingTimeout.running() && !btn2SpanPlayingTimeout.running())
+    {
+        btn2State = 0;
+    }
+
+    // **************** BUTTON 3 ****************
     if (btn3.isPressed() && !btn3Timeout.running())
     {
         switch (btn3State)
@@ -135,6 +172,8 @@ void buttonPress()
         case 0:
             // play English
             playAudio(btn3English, btn3Channel);
+            btn3EngPlayingTimeout.setTime(audio3EngTimeout);
+            btn3SpanPlayingTimeout.stop();
             btn3State = 1;
             break;
 
@@ -142,6 +181,8 @@ void buttonPress()
             // play Spanish
             stopAudioTrack(btn3English);
             playAudio(btn3Spanish, btn3Channel);
+            btn3SpanPlayingTimeout.stop();
+            btn3EngPlayingTimeout.setTime(audio3EngTimeout);
             btn3State = 2;
             break;
         case 2:
@@ -155,6 +196,14 @@ void buttonPress()
         btn3Timeout.setTime(timeout);
     }
 
+    // Make sure button resets to English after audio is finished,
+    // even if it was playing Spanish.
+    if (!btn3EngPlayingTimeout.running() && !btn3SpanPlayingTimeout.running())
+    {
+        btn3State = 0;
+    }
+
+    // **************** BUTTON 4 ****************
     if (btn4.isPressed() && !btn4Timeout.running())
     {
         switch (btn4State)
@@ -180,8 +229,17 @@ void buttonPress()
             break;
         }
         btn4Timeout.setTime(timeout);
+        btn4PlayingTimeout.setTime(audio4Timeout);
     }
 
+    // Make sure button resets to English after audio is finished,
+    // even if it was playing Spanish.
+    if (!btn4PlayingTimeout.running())
+    {
+        btn4State = 0;
+    }
+
+    // **************** BUTTON 5 ****************
     if (btn5.isPressed() && !btn5Timeout.running())
     {
         switch (btn5State)
@@ -190,12 +248,16 @@ void buttonPress()
             // play English
             playAudio(btn5English, btn5Channel);
             btn5State = 1;
+            btn5EngPlayingTimeout.setTime(audio5EngTimeout);
+            btn5SpanPlayingTimeout.stop();
             break;
 
         case 1:
             // play Spanish
             stopAudioTrack(btn5English);
             playAudio(btn5Spanish, btn5Channel);
+            btn5EngPlayingTimeout.stop();
+            btn5SpanPlayingTimeout.setTime(audio5SpanTimeout);
             btn5State = 2;
             break;
         case 2:
@@ -207,5 +269,12 @@ void buttonPress()
             break;
         }
         btn5Timeout.setTime(timeout);
+    }
+
+    // Make sure button resets to English after audio is finished,
+    // even if it was playing Spanish.
+    if (!btn5EngPlayingTimeout.running() && !btn5SpanPlayingTimeout.running())
+    {
+        btn5State = 0;
     }
 }
