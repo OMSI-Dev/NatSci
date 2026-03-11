@@ -22,6 +22,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 SerialCom="*uid://cohtgm67fwcl5"
+SheetManager="*uid://cc4045a7m6j60"
 
 [dotnet]
 

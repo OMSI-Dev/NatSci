@@ -8,10 +8,12 @@ public partial class QRGenerator : Node2D
 	private Node qrHelper;
 	private HttpRequest httpRequest;
 	
-	private List<string> urls = new List<string>();
+	private List<string> nationalUrls = new List<string>();
+	private List<string> localUrls = new List<string>();
 	private int currentIndex = 0;
 	
-	private const string csvUrl = "https://docs.google.com/spreadsheets/d/1pv89RwITOwscfeXnz-TUFJJm-rpUkeqtwnS6BAnKR7Q/export?format=csv&gid=0";
+	private const string nationalOrgs = "https://docs.google.com/spreadsheets/d/1FrKFvzm02qJgdBJrcD_JOeaR5KWCMJ2zyb5PUP1pHw4/gviz/tq?tqx=out:csv&gid=1578975206&tq=select%20H";
+	private const string localOrgs =  "https://docs.google.com/spreadsheets/d/1FrKFvzm02qJgdBJrcD_JOeaR5KWCMJ2zyb5PUP1pHw4/gviz/tq?tqx=out:csv&gid=1578975206&tq=select%20K";
 	
 	public override void _Ready() {
 		// set references to nodes
@@ -21,9 +23,13 @@ public partial class QRGenerator : Node2D
 		
 		GD.Print("Fetching latest version of CSV from Google Spreadsheet...");
 		
-		var err = httpRequest.Request(csvUrl);
-		if(err != Error.Ok) {
-			GD.PrintErr("Failed to start HTTP request:", err);
+		var err0 = httpRequest.Request(nationalOrgs);
+		if(err0 != Error.Ok) {
+			GD.PrintErr("Failed to start HTTP request:", err0);
+		}
+		var err1 = httpRequest.Request(nationalOrgs);
+		if(err1 != Error.Ok) {
+			GD.PrintErr("Failed to start HTTP request:", err1);
 		}
 		
 		httpRequest.RequestCompleted += OnRequestCompleted;
@@ -77,11 +83,17 @@ public partial class QRGenerator : Node2D
 		
 			ParseCsv(csvContent);
 		
-			if(urls.Count > 0) {
+			if(nationalUrls.Count > 0) {
 				currentIndex = 0;
 				UpdateQRCode();
 			} else {
-				GD.PrintErr("No valid URL parsed from CSV.");
+				GD.PrintErr("No valid National URL parsed from CSV.");
+			}
+			if(localUrls.Count > 0) {
+				currentIndex = 0;
+				UpdateQRCode();
+			} else {
+				GD.PrintErr("No valid Local URL parsed from CSV.");
 			}
 		} else {
 			GD.PrintErr($"HTTP Error: {responseCode}");
@@ -89,7 +101,8 @@ public partial class QRGenerator : Node2D
 	}
 	
 	private void ParseCsv(string csv) {
-		urls.Clear();
+		nationalUrls.Clear();
+		localUrls.Clear();
 		
 		string[] lines = csv.Split('\n');
 		
