@@ -23,3 +23,7 @@ SOS1 = 10.0.0.15
 SOS2 = 10.0.0.16
 SOS Ring = 10.0.0.17
 Now Playing = 10.0.0.18
+
+story theater mixer = 10.0.0.20
+SOS mixer = 10.0.0.21
+password = goldenDUCK!
