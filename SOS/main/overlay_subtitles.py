@@ -284,6 +284,7 @@ class SubtitleOverlay(QWidget):
                  left_title_color="#ffffff", right_title_color='#ffffff',
                  title_bg_opacity=150, title_alignment='center',
                  title_vertical_padding=0,
+                 title_top_padding=200,
                  title_horizontal_padding=30,
                  show_debug_borders=False,
 
@@ -294,7 +295,7 @@ class SubtitleOverlay(QWidget):
                  fuzzy_bg_margin_left=80,
                  fuzzy_bg_margin_right=80,
                  fuzzy_bg_margin_top=100,
-                 fuzzy_bg_margin_bottom=150,
+                 fuzzy_bg_margin_bottom=250,
                  fuzzy_bg_feather_strength = 30,
                  fuzzy_bg_feather_distance=60,
                  fuzzy_bg_border_radius=20,
@@ -347,6 +348,7 @@ class SubtitleOverlay(QWidget):
         self.title_bg_opacity = title_bg_opacity
         self.title_alignment = title_alignment
         self.title_vertical_padding = title_vertical_padding
+        self.title_top_padding = title_top_padding
         self.title_horizontal_padding = title_horizontal_padding
         
         # Fuzzy background parameters
@@ -524,8 +526,8 @@ class SubtitleOverlay(QWidget):
             self.left_column.setStyleSheet("background: transparent;")
         
         # Always create Left title label, hide if not initially shown
-        if self.title_vertical_padding > 0:
-            left_layout.addSpacing(self.title_vertical_padding)  # Space above title
+        if self.title_top_padding > 0:
+            left_layout.addSpacing(self.title_top_padding)  # Space above title
         self.left_title_label = QLabel(self.left_title)
         title_weight = QFont.Bold if self.title_font_bold else QFont.Normal
         self.left_title_label.setFont(QFont(self.title_font_family, self.title_font_size, title_weight))
@@ -601,8 +603,8 @@ class SubtitleOverlay(QWidget):
             self.right_column.setStyleSheet("background: transparent;")
         
         # Always create Right title label, hide if not initially shown
-        if self.title_vertical_padding > 0:
-            right_layout.addSpacing(self.title_vertical_padding)  # Space above title
+        if self.title_top_padding > 0:
+            right_layout.addSpacing(self.title_top_padding)  # Space above title
         self.right_title_label = QLabel(self.right_title)
         title_weight = QFont.Bold if self.title_font_bold else QFont.Normal
         self.right_title_label.setFont(QFont(self.title_font_family, self.title_font_size, title_weight))

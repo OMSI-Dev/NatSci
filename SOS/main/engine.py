@@ -3,6 +3,7 @@ SOS2 Engine
 Connects to SOS server and controls LibreOffice Impress via CacheManager lookups.
 """
 
+import re
 import socket
 import time
 import sys
@@ -524,10 +525,30 @@ class SimplePPEngine:
                     return {
                         "status": "ok",
                         "facilitation_mode": self.facilitation_mode,
+                        "current_clip": self.current_clip_number,
                         "volume": self.audio_controller.get_volume() if self.audio_enabled else None,
                         "audio_enabled": self.audio_enabled
                     }
-            
+
+            elif command == "GET_PLAYLIST":
+                return self._handle_get_playlist()
+
+            elif command == "DATASET_NEXT":
+                return self._sos_nav_command('next_clip\n')
+
+            elif command == "DATASET_PREV":
+                return self._sos_nav_command('prev_clip\n')
+
+            elif command == "DATASET_PLAY":
+                clip_number = data.get("clip_number")
+                if clip_number is None:
+                    return {"status": "error", "message": "Missing clip_number"}
+                return self._sos_nav_command(f'play {clip_number}\n')
+
+            elif command == "GET_CURRENT_CLIP":
+                with self.state_lock:
+                    return {"status": "ok", "current_clip": self.current_clip_number}
+
             else:
                 return {"status": "error", "message": f"Unknown command: {command}"}
                 
@@ -536,6 +557,81 @@ class SimplePPEngine:
         except Exception as e:
             return {"status": "error", "message": f"Error: {str(e)}"}
     
+    def _sos_nav_command(self, command: str) -> dict:
+        """Send a navigation command to SOS via a fresh socket connection."""
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(4.0)
+            sock.connect((SOS_IP, SOS_PORT))
+            sock.sendall(b'enable\n')
+            recv_data(sock, timeout_idle=0.5)
+            sock.sendall(command.encode('utf-8'))
+            data = recv_data(sock, timeout_idle=1.0)
+            sock.close()
+            response = data.decode('utf-8', 'ignore').strip()
+            print(f"[Engine] SOS nav '{command.strip()}' -> '{response}'")
+            return {"status": "ok"}
+        except Exception as e:
+            print(f"[Engine] SOS nav command failed: {e}")
+            return {"status": "error", "message": str(e)}
+
+    def _handle_get_playlist(self) -> dict:
+        """Return all clips in the current playlist with display names."""
+        try:
+            clips = []
+            with self.state_lock:
+                current_clip = self.current_clip_number
+
+            # Fast path: use in-memory cache if available
+            if self.cache_manager and self.cache_manager.current_playlist:
+                playlist_clips = self.cache_manager.current_playlist.get('clips', [])
+                for idx, clip in enumerate(playlist_clips, start=1):
+                    clip_name = clip.get('name', '')
+                    metadata = self.cache_manager.get(clip_name) or {}
+                    display_name = metadata.get('movie-title', clip_name)
+                    clips.append({"clip_number": idx, "name": display_name})
+                playlist_path = self.cache_manager.current_playlist.get('path', '') or ''
+                playlist_name = playlist_path.rsplit('/', 1)[-1].rsplit('.', 1)[0] if playlist_path else ''
+                return {"status": "ok", "clips": clips, "current_clip": current_clip, "playlist_name": playlist_name}
+
+            # Fallback: query SOS directly (following get_playlist_info.py pattern)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(8.0)
+            sock.connect((SOS_IP, SOS_PORT))
+            sock.sendall(b'enable\n')
+            recv_data(sock, timeout_idle=0.5)
+
+            # Get playlist name first (as in get_playlist_info.py)
+            sock.sendall(b'get_playlist_name\n')
+            data = recv_data(sock, timeout_idle=1.0)
+            playlist_path = data.decode('utf-8', 'ignore').strip()
+            playlist_name = playlist_path.rsplit('/', 1)[-1].rsplit('.', 1)[0] if playlist_path else ''
+
+            sock.sendall(b'get_clip_count\n')
+            data = recv_data(sock, timeout_idle=1.0)
+            clip_count = int(data.decode('utf-8', 'ignore').strip())
+
+            if current_clip is None:
+                sock.sendall(b'get_clip_number\n')
+                data = recv_data(sock, timeout_idle=1.0)
+                raw = data.decode('utf-8', 'ignore').strip()
+                current_clip = int(raw) if raw.isdigit() else None
+
+            for i in range(1, clip_count + 1):
+                sock.sendall(f'get_all_name_value_pairs {i}\n'.encode('utf-8'))
+                data = recv_data(sock, timeout_idle=1.0)
+                nvp = data.decode('utf-8', 'ignore').strip()
+                m = re.search(r'\bname\s+\{([^}]+)\}', nvp) or re.search(r'\bname\s+(\S+)', nvp)
+                name = m.group(1) if m else f"Clip {i}"
+                clips.append({"clip_number": i, "name": name})
+
+            sock.close()
+            return {"status": "ok", "clips": clips, "current_clip": current_clip, "playlist_name": playlist_name}
+
+        except Exception as e:
+            print(f"[Engine] Get playlist error: {e}")
+            return {"status": "error", "message": str(e)}
+
     def _toggle_facilitation(self, enable: bool) -> dict:
         """Toggle facilitation mode."""
         try:
@@ -692,15 +788,26 @@ class SimplePPEngine:
         next_track = self.cache_manager.get_next_audio_track(major_category)
         
         if next_track:
-            # Play the new track
+            # Play the new track, with one fallback retry on failure
             success = self.audio_controller.play_audio(next_track, loop=True)
-            
+
+            if not success:
+                print(f"[Audio] Failed to play: {next_track} — trying fallback track")
+                fallback_track = self.cache_manager.get_next_audio_track(major_category)
+                if fallback_track and fallback_track != next_track:
+                    success = self.audio_controller.play_audio(fallback_track, loop=True)
+                    if success:
+                        next_track = fallback_track
+                        print(f"[Audio] Fallback succeeded: {fallback_track}")
+                    else:
+                        print(f"[Audio] Fallback also failed: {fallback_track} — audio skipped for this clip")
+                else:
+                    print(f"[Audio] No alternative fallback track available — audio skipped for this clip")
+
             if success:
                 self.current_audio_category = major_category
                 self.cache_manager.update_last_played(major_category, next_track)
                 print(f"[Audio] Now playing: {next_track} (category: {major_category})")
-            else:
-                print(f"[Audio] Failed to play: {next_track}")
         else:
             print(f"[Audio] No audio tracks available for category: {major_category}")
     

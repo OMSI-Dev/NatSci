@@ -1,3 +1,5 @@
+<!-- Located on SOS server in /var/www/html/sos/index.html -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,148 +11,166 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
 
         body {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            background: #edecea;
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
-            padding: 20px;
+            align-items: flex-start;
+            padding: 30px 20px;
         }
 
         .container {
-            background: rgba(255, 255, 255, 0.98);
-            border-radius: 24px;
-            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
-            padding: 40px;
-            max-width: 600px;
+            background: #ffffff;
+            border-radius: 0;
+            box-shadow: none;
+            border: 1px solid #c8c4be;
+            padding: 24px;
+            max-width: 560px;
             width: 100%;
-            backdrop-filter: blur(10px);
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 35px;
+            text-align: left;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #cc0000;
         }
 
         h1 {
-            color: #1e293b;
-            font-size: 32px;
+            color: #1a1a1a;
+            font-size: 16px;
             font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
+            margin-bottom: 2px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
         }
 
         .subtitle {
-            color: #64748b;
-            font-size: 15px;
+            color: #999;
+            font-size: 11px;
             font-weight: 400;
+            letter-spacing: 0.5px;
         }
 
         /* Facilitation Toggle */
         .facilitation-section {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 25px;
-            text-align: center;
+            background: #f7f5f2;
+            border: 1px solid #ddd;
+            border-radius: 0;
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .facilitation-label {
-            color: #475569;
-            font-size: 14px;
-            font-weight: 600;
+            color: #cc0000;
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 15px;
         }
 
         .toggle-container {
             display: inline-flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
         }
 
         .toggle-switch {
             position: relative;
-            width: 80px;
-            height: 40px;
-            background: #cbd5e1;
-            border-radius: 20px;
+            width: 52px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 0;
             cursor: pointer;
-            transition: background 0.3s;
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: background 0.2s;
+            border: 1px solid #bbb;
         }
 
         .toggle-switch.active {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: #cc0000;
+            border-color: #aa0000;
         }
 
         .toggle-switch::after {
             content: '';
             position: absolute;
-            top: 4px;
-            left: 4px;
-            width: 32px;
-            height: 32px;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
             background: white;
-            border-radius: 50%;
-            transition: left 0.3s;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            border-radius: 0;
+            transition: left 0.2s;
         }
 
         .toggle-switch.active::after {
-            left: 44px;
+            left: 29px;
         }
 
         .toggle-status {
-            font-size: 20px;
+            font-size: 12px;
             font-weight: 700;
-            color: #1e293b;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .toggle-status.active {
-            color: #059669;
+            color: #cc0000;
         }
 
-        /* Advanced Settings */
-        .settings-header {
+        /* Panel headers (shared by settings + dataset) */
+        .settings-header,
+        .dataset-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 20px;
-            background: #f1f5f9;
-            border-radius: 12px;
+            padding: 9px 12px;
+            background: #f7f5f2;
+            border: 1px solid #ddd;
+            border-left: 3px solid #cc0000;
             cursor: pointer;
-            margin-bottom: 10px;
-            transition: all 0.3s;
+            margin-bottom: 1px;
+            transition: background 0.15s;
             user-select: none;
         }
 
-        .settings-header:hover {
-            background: #e2e8f0;
+        .settings-header:hover,
+        .dataset-header:hover {
+            background: #f0ede8;
         }
 
-        .settings-title {
+        .settings-title,
+        .dataset-title {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            color: #334155;
+            gap: 7px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #cc0000;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .settings-icon {
-            font-size: 24px;
-            transition: transform 0.3s;
+            font-size: 14px;
+            transition: none;
         }
 
         .settings-icon.holding {
             animation: pulse 0.5s ease-in-out;
-            color: #7e22ce;
+            color: #cc3366;
         }
 
         @keyframes pulse {
@@ -159,93 +179,105 @@
         }
 
         .expand-icon {
-            font-size: 20px;
-            color: #64748b;
-            transition: transform 0.3s;
+            font-size: 11px;
+            color: #999;
+            transition: transform 0.25s;
+            font-style: normal;
         }
 
         .expand-icon.expanded {
-            transform: rotate(180deg);
+            transform: rotate(90deg);
         }
 
         .settings-content {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.4s ease-in-out, opacity 0.3s;
+            transition: max-height 0.35s ease-in-out, opacity 0.25s;
             opacity: 0;
         }
 
         .settings-content.expanded {
             max-height: 300px;
             opacity: 1;
-            margin-bottom: 15px;
+            margin-bottom: 8px;
         }
 
         .volume-controls {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            border: 2px solid #e2e8f0;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-top: none;
+            padding: 14px 16px;
         }
 
         .volume-display {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
         }
 
         .volume-label {
-            font-size: 12px;
-            color: #64748b;
+            font-size: 10px;
+            color: #999;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
+            letter-spacing: 1px;
+            margin-bottom: 3px;
         }
 
         .volume-value {
-            font-size: 36px;
+            font-size: 28px;
             font-weight: 700;
-            color: #1e293b;
+            color: #1a1a1a;
         }
 
         .volume-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
+            gap: 6px;
         }
 
         .btn {
-            padding: 15px 20px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 9px 14px;
+            border: 1px solid #bbb;
+            border-radius: 0;
+            font-size: 12px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: background 0.15s, border-color 0.15s;
+            background: #f7f5f2;
+            color: #1a1a1a;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            background: #edecea;
+            border-color: #999;
         }
 
         .btn:active {
-            transform: translateY(0);
+            background: #e0ddd8;
         }
 
         .btn-volume-up {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
+            border-color: #cc0000;
+            color: #cc0000;
+        }
+
+        .btn-volume-up:hover {
+            background: #fff0f0;
         }
 
         .btn-volume-down {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            color: white;
+            border-color: #cc0000;
+            color: #cc0000;
+        }
+
+        .btn-volume-down:hover {
+            background: #fff0f0;
         }
 
         .btn-mute {
-            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-            color: white;
+            border-color: #aaa;
+            color: #555;
         }
 
         /* Secret Menu */
@@ -255,15 +287,14 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(180, 170, 160, 0.7);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s;
-            backdrop-filter: blur(5px);
+            transition: opacity 0.2s;
         }
 
         .secret-menu.active {
@@ -272,248 +303,380 @@
         }
 
         .secret-content {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 500px;
+            background: #fff;
+            border: 1px solid #c8c4be;
+            border-radius: 0;
+            padding: 24px;
+            max-width: 480px;
             width: 90%;
-            transform: scale(0.9);
-            transition: transform 0.3s;
-            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
-        }
-
-        .secret-menu.active .secret-content {
-            transform: scale(1);
+            box-shadow: none;
         }
 
         .secret-header {
-            text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #cc0000;
         }
 
         .secret-header h2 {
-            color: #7e22ce;
-            font-size: 28px;
-            margin-bottom: 8px;
+            color: #cc0000;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 2px;
         }
 
         .secret-header p {
-            color: #64748b;
-            font-size: 14px;
+            color: #999;
+            font-size: 11px;
         }
 
         .secret-section {
-            margin-bottom: 25px;
+            margin-bottom: 18px;
         }
 
         .secret-section h3 {
-            color: #334155;
-            font-size: 16px;
-            margin-bottom: 12px;
-            font-weight: 600;
+            color: #cc0000;
+            font-size: 10px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #e8e4df;
+            padding-bottom: 4px;
         }
 
         .fx-soundboard {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            gap: 6px;
         }
 
         .fx-btn {
-            padding: 15px;
-            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
+            padding: 10px;
+            background: #f7f5f2;
+            color: #1a1a1a;
+            border: 1px solid #bbb;
+            border-radius: 0;
+            font-size: 11px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transition: background 0.15s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .fx-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+            background: #edecea;
+            border-color: #cc0000;
+            color: #cc0000;
         }
 
         .audio-selector {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 4px;
         }
 
         .audio-option {
-            padding: 12px 15px;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
+            padding: 8px 12px;
+            background: #f7f5f2;
+            border: 1px solid #ddd;
+            border-radius: 0;
             cursor: pointer;
-            transition: all 0.2s;
-            font-size: 14px;
-            color: #334155;
+            transition: background 0.15s;
+            font-size: 12px;
+            color: #1a1a1a;
         }
 
         .audio-option:hover {
-            background: #e0e7ff;
-            border-color: #6366f1;
-            color: #4f46e5;
+            background: #fce8ee;
+            border-color: #cc3366;
+            color: #cc3366;
         }
 
         .audio-option.selected {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            border-color: #4f46e5;
-            color: white;
+            background: #fce8ee;
+            border-color: #cc3366;
+            border-left: 3px solid #cc3366;
+            color: #cc3366;
+            font-weight: 700;
         }
 
         .close-secret {
-            margin-top: 25px;
+            margin-top: 16px;
             width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 9px;
+            background: #f7f5f2;
+            color: #1a1a1a;
+            border: 1px solid #bbb;
+            border-radius: 0;
+            font-size: 11px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: background 0.15s;
         }
 
         .close-secret:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            background: #edecea;
+            border-color: #999;
         }
 
         /* Console/Log */
         .console-section {
-            margin-top: 25px;
+            margin-top: 12px;
         }
 
         .console-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 4px;
         }
 
         .console-header h3 {
-            color: #334155;
-            font-size: 14px;
-            font-weight: 600;
+            color: #cc0000;
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
         }
 
         .clear-btn {
-            padding: 6px 12px;
-            background: #f1f5f9;
-            color: #64748b;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
+            padding: 3px 9px;
+            background: #f7f5f2;
+            color: #999;
+            border: 1px solid #ccc;
+            border-radius: 0;
+            font-size: 10px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background 0.15s;
         }
 
         .clear-btn:hover {
-            background: #e2e8f0;
-            color: #475569;
+            background: #edecea;
+            color: #555;
         }
 
         .console {
-            background: #1e293b;
+            background: #1a1a1a;
             color: #10b981;
-            border-radius: 10px;
-            padding: 15px;
+            border-radius: 0;
+            border: 1px solid #333;
+            padding: 10px 12px;
             font-family: 'Monaco', 'Courier New', monospace;
-            font-size: 12px;
-            max-height: 180px;
+            font-size: 11px;
+            max-height: 160px;
             overflow-y: auto;
-            line-height: 1.6;
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+            line-height: 1.5;
         }
 
-        .console .error {
-            color: #ef4444;
-        }
-
-        .console .warning {
-            color: #f59e0b;
-        }
-
-        .console .info {
-            color: #60a5fa;
-        }
-
-        .console .success {
-            color: #10b981;
-        }
+        .console .error { color: #ef4444; }
+        .console .warning { color: #f59e0b; }
+        .console .info { color: #60a5fa; }
+        .console .success { color: #10b981; }
 
         /* Status Indicator */
         .status-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 16px;
-            background: #f8fafc;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 13px;
+            padding: 7px 12px;
+            background: #f7f5f2;
+            border: 1px solid #ddd;
+            margin-bottom: 8px;
+            font-size: 11px;
         }
 
         .status-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 7px;
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #64748b;
+            width: 7px;
+            height: 7px;
+            border-radius: 0;
+            background: #bbb;
         }
 
         .status-dot.active {
-            background: #10b981;
-            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+            background: #cc0000;
             animation: blink 2s infinite;
         }
 
         @keyframes blink {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+            50% { opacity: 0.35; }
         }
 
         .status-text {
-            color: #64748b;
-            font-weight: 500;
+            color: #999;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         /* Scrollbar styling */
-        .console::-webkit-scrollbar {
-            width: 8px;
+        .console::-webkit-scrollbar { width: 6px; }
+        .console::-webkit-scrollbar-track { background: #111; }
+        .console::-webkit-scrollbar-thumb { background: #333; }
+        .console::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Dataset Panel */
+        .dataset-panel {
+            margin-bottom: 8px;
         }
 
-        .console::-webkit-scrollbar-track {
-            background: #0f172a;
-            border-radius: 4px;
+        .dataset-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease-in-out, opacity 0.25s;
+            opacity: 0;
         }
 
-        .console::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 4px;
+        .dataset-content.expanded {
+            max-height: 600px;
+            opacity: 1;
+            margin-bottom: 8px;
         }
 
-        .console::-webkit-scrollbar-thumb:hover {
-            background: #475569;
+        .dataset-inner {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-top: none;
+            padding: 14px 16px;
+        }
+
+        .dataset-nav {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+
+        .btn-prev,
+        .btn-next {
+            border-color: #cc0000;
+            color: #cc0000;
+        }
+
+        .btn-prev:hover,
+        .btn-next:hover {
+            background: #fff0f0;
+        }
+
+        .dataset-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .dataset-list-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-refresh {
+            padding: 3px 9px;
+            background: #f7f5f2;
+            color: #999;
+            border: 1px solid #ccc;
+            border-radius: 0;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background 0.15s;
+        }
+
+        .btn-refresh:hover {
+            background: #edecea;
+        }
+
+        .dataset-list {
+            max-height: 260px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dataset-list::-webkit-scrollbar { width: 5px; }
+        .dataset-list::-webkit-scrollbar-track { background: #f7f5f2; }
+        .dataset-list::-webkit-scrollbar-thumb { background: #ccc; }
+
+        .clip-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 10px;
+            background: #fff;
+            border-bottom: 1px solid #e8e4df;
+            cursor: pointer;
+            transition: background 0.12s;
+            text-align: left;
+        }
+
+        .clip-item:last-child {
+            border-bottom: none;
+        }
+
+        .clip-item:hover {
+            background: #fce8ee;
+        }
+
+        .clip-item.active {
+            background: #fce8ee;
+            border-left: 3px solid #cc3366;
+        }
+
+        .clip-num {
+            font-size: 10px;
+            font-weight: 700;
+            color: #bbb;
+            min-width: 22px;
+        }
+
+        .clip-item.active .clip-num {
+            color: #cc3366;
+        }
+
+        .clip-name {
+            font-size: 12px;
+            font-weight: 400;
+            color: #1a1a1a;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .clip-item.active .clip-name {
+            color: #cc3366;
+            font-weight: 700;
+        }
+
+        .dataset-status {
+            padding: 16px;
+            color: #bbb;
+            font-size: 11px;
+            text-align: center;
         }
 
         /* Tooltips */
-        [data-tooltip] {
-            position: relative;
-        }
+        [data-tooltip] { position: relative; }
 
         [data-tooltip]:hover::after {
             content: attr(data-tooltip);
@@ -521,14 +684,15 @@
             bottom: 100%;
             left: 50%;
             transform: translateX(-50%);
-            padding: 6px 10px;
-            background: #1e293b;
-            color: white;
-            font-size: 12px;
-            border-radius: 6px;
+            padding: 4px 8px;
+            background: #333;
+            color: #fff;
+            font-size: 10px;
+            border-radius: 0;
             white-space: nowrap;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             z-index: 100;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
@@ -536,8 +700,8 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>🌐 SOS Control Panel</h1>
-            <p class="subtitle">Science on a Sphere • Facilitation Controls</p>
+            <h1>SOS Control Panel</h1>
+            <p class="subtitle">Science on a Sphere &nbsp;•&nbsp; Facilitation Controls</p>
         </div>
 
         <!-- Status Bar -->
@@ -564,16 +728,16 @@
         <div class="settings-section">
             <div class="settings-header" onclick="toggleSettings()">
                 <div class="settings-title">
-                    <span class="settings-icon" id="settingsIcon" 
-                          onmousedown="startHold()" 
-                          onmouseup="endHold()" 
+                    <span class="settings-icon" id="settingsIcon"
+                          onmousedown="startHold()"
+                          onmouseup="endHold()"
                           onmouseleave="endHold()"
-                          ontouchstart="startHold()" 
+                          ontouchstart="startHold(event)"
                           ontouchend="endHold()"
-                          data-tooltip="Hold for secret menu">⚙️</span>
+                          data-tooltip="Hold for secret menu">»</span>
                     <span>Advanced Settings</span>
                 </div>
-                <span class="expand-icon" id="expandIcon">▼</span>
+                <span class="expand-icon" id="expandIcon">›</span>
             </div>
             <div class="settings-content" id="settingsContent">
                 <div class="volume-controls">
@@ -596,6 +760,32 @@
             </div>
         </div>
 
+        <!-- Dataset Control -->
+        <div class="dataset-panel">
+            <div class="dataset-header" onclick="toggleDataset()">
+                <div class="dataset-title">
+                    <span>»</span>
+                    <span>Dataset Control</span>
+                </div>
+                <span class="expand-icon" id="datasetExpandIcon">›</span>
+            </div>
+            <div class="dataset-content" id="datasetContent">
+                <div class="dataset-inner">
+                    <div class="dataset-nav">
+                        <button class="btn btn-prev" onclick="prevClip()" data-tooltip="Previous dataset">← Prev</button>
+                        <button class="btn btn-next" onclick="nextClip()" data-tooltip="Next dataset">Next →</button>
+                    </div>
+                    <div class="dataset-list-header">
+                        <span class="dataset-list-label">Playlist<span id="playlistNameDisplay" style="font-weight:400;color:#555;text-transform:none;letter-spacing:0;margin-left:5px;"></span></span>
+                        <button class="btn-refresh" onclick="loadPlaylist()">↻ Refresh</button>
+                    </div>
+                    <div class="dataset-list" id="datasetList">
+                        <div class="dataset-status">Open to load playlist…</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Console -->
         <div class="console-section">
             <div class="console-header">
@@ -613,12 +803,12 @@
     <div class="secret-menu" id="secretMenu">
         <div class="secret-content">
             <div class="secret-header">
-                <h2>🔐 Secret Menu</h2>
-                <p>Advanced Controls & Features</p>
+                <h2>» Secret Menu</h2>
+                <p>Advanced Controls &amp; Features</p>
             </div>
 
             <div class="secret-section">
-                <h3>🎵 FX Soundboard</h3>
+                <h3>» FX Soundboard</h3>
                 <div class="fx-soundboard">
                     <button class="fx-btn" onclick="playFX(1)">FX 1</button>
                     <button class="fx-btn" onclick="playFX(2)">FX 2</button>
@@ -630,7 +820,7 @@
             </div>
 
             <div class="secret-section">
-                <h3>🎧 Audio Source Selector</h3>
+                <h3>» Audio Source Selector</h3>
                 <div class="audio-selector">
                     <div class="audio-option selected" onclick="selectAudio(this, 'default')">
                         Default Audio Track
@@ -655,7 +845,7 @@
         // ============================================
         // BACKEND SOCKET COMMUNICATION (UNCHANGED)
         // ============================================
-        const ENGINE_IP = 'localhost';  // Change to '10.10.51.98' for production
+        const ENGINE_IP = 'localhost'; 
         const ENGINE_PORT = '5000';
         
         let holdTimer = null;
@@ -741,10 +931,13 @@
         function toggleFacilitation() {
             facilitationEnabled = !facilitationEnabled;
             updateFacilitationUI();
-            sendCommand({
-                command: 'FACILITATION_TOGGLE',
-                enable: facilitationEnabled
-            });
+            fetch(`http://${ENGINE_IP}:${ENGINE_PORT}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: 'FACILITATION_TOGGLE', enable: facilitationEnabled })
+            }).then(r => r.json()).then(data => {
+                if (data.status !== 'ok') log(`Facilitation error: ${data.message}`, 'error');
+            }).catch(err => log(`Facilitation error: ${err.message}`, 'error'));
         }
 
         function updateFacilitationUI() {
@@ -759,6 +952,180 @@
                 toggle.classList.remove('active');
                 status.classList.remove('active');
                 status.textContent = 'OFF';
+            }
+        }
+
+        // ============================================
+        // DATASET CONTROL
+        // ============================================
+
+        let datasetLoaded = false;
+        let currentClipNumber = null;
+
+        function toggleDataset() {
+            const content = document.getElementById('datasetContent');
+            const icon = document.getElementById('datasetExpandIcon');
+            const isExpanding = !content.classList.contains('expanded');
+
+            if (isExpanding) {
+                content.classList.add('expanded');
+                icon.classList.add('expanded');
+                if (!datasetLoaded) loadPlaylist();
+                else pollCurrentClip();
+            } else {
+                content.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            }
+        }
+
+        async function loadPlaylist() {
+            const listEl = document.getElementById('datasetList');
+            listEl.innerHTML = '<div class="dataset-status">Loading…</div>';
+            log('Fetching playlist from SOS...', 'info');
+
+            try {
+                const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'GET_PLAYLIST' })
+                });
+                const data = await response.json();
+
+                if (data.status !== 'ok' || !data.clips || data.clips.length === 0) {
+                    listEl.innerHTML = '<div class="dataset-status">No playlist loaded.</div>';
+                    log(`Playlist fetch failed: ${data.message || 'No clips'}`, 'error');
+                    return;
+                }
+
+                currentClipNumber = data.current_clip;
+                renderPlaylist(data.clips, data.current_clip);
+                datasetLoaded = true;
+                if (data.playlist_name) {
+                    document.getElementById('playlistNameDisplay').textContent = '— ' + data.playlist_name;
+                }
+                log(`Loaded ${data.clips.length} clips from "${data.playlist_name || 'unknown'}". Current: #${data.current_clip}`, 'success');
+
+            } catch (err) {
+                listEl.innerHTML = '<div class="dataset-status">Failed to load. Is engine running?</div>';
+                log(`Playlist load error: ${err.message}`, 'error');
+            }
+        }
+
+        function renderPlaylist(clips, currentClip) {
+            const listEl = document.getElementById('datasetList');
+            listEl.innerHTML = '';
+            clips.forEach(clip => {
+                const item = document.createElement('div');
+                item.className = 'clip-item' + (clip.clip_number === currentClip ? ' active' : '');
+                item.id = `clip-${clip.clip_number}`;
+                item.onclick = () => playClip(clip.clip_number);
+                item.innerHTML = `<span class="clip-num">#${clip.clip_number}</span><span class="clip-name" title="${clip.name}">${clip.name}</span>`;
+                listEl.appendChild(item);
+            });
+            scrollToActiveClip();
+        }
+
+        function scrollToActiveClip() {
+            if (currentClipNumber === null) return;
+            const el = document.getElementById(`clip-${currentClipNumber}`);
+            if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+
+        function setActiveClip(clipNumber) {
+            document.querySelectorAll('.clip-item').forEach(el => el.classList.remove('active'));
+            const el = document.getElementById(`clip-${clipNumber}`);
+            if (el) {
+                el.classList.add('active');
+                currentClipNumber = clipNumber;
+                el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        }
+
+        async function pollCurrentClip() {
+            try {
+                const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'GET_CURRENT_CLIP' })
+                });
+                const data = await response.json();
+                if (data.status === 'ok' && data.current_clip !== null) {
+                    setActiveClip(data.current_clip);
+                }
+            } catch (err) { /* silent */ }
+        }
+
+        async function playClip(clipNumber) {
+            log(`Playing clip #${clipNumber}...`, 'info');
+            try {
+                const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'DATASET_PLAY', clip_number: clipNumber })
+                });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    setActiveClip(clipNumber);
+                    log(`▶ Playing clip #${clipNumber}`, 'success');
+                } else {
+                    log(`Failed to play clip #${clipNumber}: ${data.message}`, 'error');
+                }
+            } catch (err) {
+                log(`Play error: ${err.message}`, 'error');
+            }
+        }
+
+        async function nextClip() {
+            log('Navigating to next clip...', 'info');
+            try {
+                const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'DATASET_NEXT' })
+                });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    log('→ Next clip', 'success');
+                    setTimeout(pollCurrentClip, 800);
+                } else {
+                    log(`Next clip error: ${data.message}`, 'error');
+                }
+            } catch (err) {
+                log(`Next clip error: ${err.message}`, 'error');
+            }
+        }
+
+        async function prevClip() {
+            log('Navigating to previous clip...', 'info');
+            try {
+                const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'DATASET_PREV' })
+                });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    log('← Previous clip', 'success');
+                    setTimeout(pollCurrentClip, 800);
+                } else {
+                    log(`Prev clip error: ${data.message}`, 'error');
+                }
+            } catch (err) {
+                log(`Prev clip error: ${err.message}`, 'error');
+            }
+        }
+
+        // Also update GET_STATE to sync current clip highlight when it changes
+        const _origUpdateStatus = updateStatus;
+        function updateStatus(data) {
+            _origUpdateStatus(data);
+            if (data.current_clip !== undefined && data.current_clip !== null && datasetLoaded) {
+                setActiveClip(data.current_clip);
             }
         }
 
@@ -787,7 +1154,8 @@
         }
 
         // Secret Menu (Hold Detection)
-        function startHold() {
+        function startHold(e) {
+            if (e) e.preventDefault();
             isHolding = true;
             const icon = document.getElementById('settingsIcon');
             icon.classList.add('holding');
@@ -843,10 +1211,20 @@
         // INITIALIZATION
         // ============================================
 
-        // Get initial state on load
-        setTimeout(() => {
-            log('Requesting initial state...', 'info');
-            sendCommand({ command: 'GET_STATE' });
+        // Quietly probe engine on load — page remains functional if engine is offline
+        setTimeout(async () => {
+            try {
+                const response = await fetch(`http://${ENGINE_IP}:${ENGINE_PORT}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'GET_STATE' })
+                });
+                const data = await response.json();
+                updateStatus(data);
+                log('Engine connected', 'success');
+            } catch (err) {
+                log('Engine offline — controls will activate when connected', 'warning');
+            }
         }, 1000);
 
         // Optional: Auto-refresh state every 30 seconds

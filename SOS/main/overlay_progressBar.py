@@ -130,9 +130,9 @@ class ProgressBarOverlay(QWidget):
     Every parameter directly affects what you see - no hidden layout surprises.
     """
     
-    def __init__(self, position='bottom', y_offset=-22,
-                 margin_left=90, margin_right=90, margin_bottom=22,
-                 bar_height=7, bar_color='#ffffff',
+    def __init__(self, position='bottom', y_offset=87,
+                 margin_left=210, margin_right=210, margin_bottom=25,
+                 bar_height=12, bar_color='#ffffff',
                  bg_color='#000000', bg_opacity=0, bg_blur=7,
                  bg_extra_width=20, bg_extra_height=20,
                  border_radius=6,
