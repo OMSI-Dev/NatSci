@@ -7,17 +7,28 @@ import os
 import csv
 import re
 from pp_access import PowerPointShowController
+from config import get_config
 
+# Load configuration
+config = get_config()
 
 # ============================================================================
 # GLOBAL CONFIGURATION
 # ============================================================================
 
-# Path to the .odp presentation file in SOS2 folder
-ODP_FILE = r"\\sos2\AuxShare\documents\noaa_presentation.odp"
+# Get paths from configuration
+documents_dir = config.get('paths.documents_dir', r'\\sos2\AuxShare\documents')
+data_dir = config.get('paths.data_dir', r'\\sos2\AuxShare\data')
 
-# Path to the CSV database file for slide mappings
-SLIDE_DATABASE = r"\\sos2\AuxShare\data\sos_datasets.csv"
+ODP_FILE = config.get_full_path('presentation')
+if ODP_FILE is None:
+    # Fallback to constructed path if not in config
+    ODP_FILE = os.path.join(documents_dir, 'noaa_presentation.odp')
+
+SLIDE_DATABASE = config.get_full_path('dataset_csv')
+if SLIDE_DATABASE is None:
+    # Fallback to constructed path if not in config
+    SLIDE_DATABASE = os.path.join(data_dir, 'SOS_datasets.csv')
 
 # ============================================================================
 # FUNCTIONS

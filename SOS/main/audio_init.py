@@ -6,18 +6,23 @@ Loads audio file mappings and initializes the MPV Audio Controller.
 import os
 import csv
 from audio_access import AudioController
+from config import get_config
+
+# Load configuration
+config = get_config()
 
 # ============================================================================
 # GLOBAL CONFIGURATION
 # ============================================================================
 
-# Path to the audio CSV file on SOS2
-AUDIO_CSV = r"\\sos2\AuxShare\audio\audio-list.csv"
+# Get paths from configuration
+base_share = config.get('paths.audio_dir', r'\\sos2\AuxShare\audio')
+AUDIO_CSV = os.path.join(base_share, 'audio-list.csv')
 
-# SOS2 SSH Configuration
-SOS2_IP = "10.0.0.16" #NETWORK
-SOS2_USER = "sos"
-SOS2_AUDIO_PATH = "/AuxShare/audio/mp3"
+# SOS2 SSH Configuration from config
+SOS2_IP = config.get('sos.ip', '10.0.0.16')
+SOS2_USER = config.get('sos.user', 'sos')
+SOS2_AUDIO_PATH = config.get('audio.remote_path', '/AuxShare/audio/mp3')
 
 # ============================================================================
 # FUNCTIONS

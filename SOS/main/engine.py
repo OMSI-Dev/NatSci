@@ -13,6 +13,11 @@ import atexit
 from PyQt5.QtWidgets import QApplication
 from overlay_subtitles import SubtitleManager, SubtitleOverlay
 from overlay_progressBar import ProgressBarOverlay
+from config import get_config
+from config.constants import *
+
+# Load configuration
+config = get_config()
 
 class OverlayManager:
     """
@@ -94,10 +99,11 @@ class OverlayManager:
         self.app.processEvents()
 
 
-SOS_IP = "10.0.0.16" #NETWORK
-SOS_PORT = 2468
-PI_IP = "10.10.51.111" #NETWORK
-PI_PORT = 4096
+# Network configuration from config system
+SOS_IP = config.get('sos.ip', '10.0.0.16')
+SOS_PORT = config.get('sos.port', SOS_PORT_DEFAULT)
+PI_IP = config.get('pi.ip', '10.10.51.111')
+PI_PORT = config.get('pi.port', PI_PORT_DEFAULT)
 ENGINE_QUERY_PORT = 4097  # Port for Pi to query engine state
 HTTP_SERVER_PORT = 5000  # Port for HTTP facilitation interface
 
@@ -106,11 +112,11 @@ def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
     buffer = bytearray()
     orig_timeout = sock.gettimeout()
     try:
-        sock.settimeout(0.2)
+        sock.settimeout(SOS_SOCKET_POLL_TIMEOUT)
         start = time.time()
         while True:
             try:
-                chunk = sock.recv(4096)
+                chunk = sock.recv(SOCKET_BUFFER_SIZE)
                 if chunk:
                     buffer.extend(chunk)
                     start = time.time()
@@ -390,7 +396,7 @@ class SimplePPEngine:
             server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_sock.bind(('0.0.0.0', ENGINE_QUERY_PORT))
             server_sock.listen(1)
-            server_sock.settimeout(1.0)  # Allow periodic checks of self.running
+            server_sock.settimeout(SERVER_ACCEPT_TIMEOUT)  # Allow periodic checks of self.running
             
             print(f"[Engine] Query server listening on port {ENGINE_QUERY_PORT}")
             
@@ -400,7 +406,7 @@ class SimplePPEngine:
                     print(f"[Engine] Query connection from {addr}")
                     
                     with conn:
-                        conn.settimeout(2.0)
+                        conn.settimeout(CLIENT_CONNECTION_TIMEOUT)
                         try:
                             # Receive request
                             data = conn.recv(1024).decode('utf-8', 'ignore').strip()
@@ -447,7 +453,7 @@ class SimplePPEngine:
             server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_sock.bind(('0.0.0.0', HTTP_SERVER_PORT))
             server_sock.listen(5)
-            server_sock.settimeout(1.0)
+            server_sock.settimeout(SERVER_ACCEPT_TIMEOUT)
             
             print(f"[Engine] HTTP server ready on port {HTTP_SERVER_PORT}")
             
@@ -559,7 +565,7 @@ class SimplePPEngine:
         """Send a navigation command to SOS via a fresh socket connection."""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(4.0)
+            sock.settimeout(SOS_CONNECTION_TIMEOUT)
             sock.connect((SOS_IP, SOS_PORT))
             sock.sendall(b'enable\n')
             recv_data(sock, timeout_idle=0.5)
@@ -594,7 +600,7 @@ class SimplePPEngine:
 
             # Fallback: query SOS directly (following get_playlist_info.py pattern)
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(8.0)
+            sock.settimeout(SOS_QUERY_TIMEOUT)
             sock.connect((SOS_IP, SOS_PORT))
             sock.sendall(b'enable\n')
             recv_data(sock, timeout_idle=0.5)
@@ -645,7 +651,7 @@ class SimplePPEngine:
                     if self.audio_controller.is_playing():
                         print("[Engine] Fading out audio...")
                         self.audio_controller.fade_out()
-                        time.sleep(2.2)  # Wait for fade
+                        time.sleep(SUBTITLE_FADE_WAIT)  # Wait for fade
                     
                     print("[Engine] Muting audio")
                     self.audio_controller.mute()
@@ -818,7 +824,7 @@ class SimplePPEngine:
         # Fade out current audio if playing
         if self.audio_controller.is_playing():
             self.audio_controller.fade_out()
-            time.sleep(0.5)  # Brief pause between tracks
+            time.sleep(AUDIO_TRACK_PAUSE)  # Brief pause between tracks
         
         # Get the next track for this category
         next_track = self.cache_manager.get_next_audio_track(major_category)
@@ -915,7 +921,7 @@ class SimplePPEngine:
                         
                         if is_translated:
                             # Small delay for custom moviesets to ease transition from credits
-                            time.sleep(0.3)
+                            time.sleep(PRESENTATION_TRANSITION_DELAY)
                             
                             # Show overlays for translated movies
                             self.overlay_manager.show_subtitles_and_progress()
@@ -979,7 +985,7 @@ class SimplePPEngine:
                         self.deferred_operations_done = True
                         self.pending_clip_number = None
 
-                time.sleep(0.05) # 20 FPS for smoother updates
+                time.sleep(ENGINE_LOOP_SLEEP) # 20 FPS for smoother updates
                 
         except KeyboardInterrupt:
             print("\n[Engine] Keyboard interrupt")
