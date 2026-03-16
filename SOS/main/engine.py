@@ -45,13 +45,13 @@ class OverlayManager:
         """Display only the progress bar."""
         if self.mode != "PROGRESS_ONLY":
             self.subtitle_overlay.hide()
-            self.progress_overlay.start() # Ensure it's visible/raised
+            self.progress_overlay.start_instant() # Instant appearance for responsiveness
             self.mode = "PROGRESS_ONLY"
             
     def show_subtitles_and_progress(self):
         """Display both subtitles and progress bar."""
         if self.mode != "SUBTITLES_AND_PROGRESS":
-            self.progress_overlay.start()
+            self.progress_overlay.start_instant() # Instant appearance for responsiveness
             self.subtitle_overlay.start()
             self.mode = "SUBTITLES_AND_PROGRESS"
             
@@ -236,10 +236,21 @@ class SimplePPEngine:
         self.overlay_manager = OverlayManager()
         self.subtitle_manager = SubtitleManager(gui_overlay=self.overlay_manager.subtitle_overlay)
         
-        # Timing state
+        # Timing state - using internal timer instead of frames
         self.clip_start_time = None
         self.last_clip_name = None
-        self.current_duration = 0
+        self.DATASET_DURATION = 60.0  # Default 1-minute duration for regular datasets
+        self.current_clip_duration = 60.0  # Actual duration of current clip (varies for translated movies)
+        
+        # Deferred operations state (to allow progress bar to animate immediately)
+        self.pending_clip_number = None
+        self.pending_clip_name = None
+        self.pending_metadata = None
+        self.pending_is_credits = False
+        self.pending_is_translated = False
+        self.deferred_operations_done = True
+        self.deferred_operations_countdown = 0  # Delay operations by N iterations
+        self.deferred_operations_thread = None  # Background thread for slow operations
         
         # Start query server thread
         self.query_server_thread = threading.Thread(target=self._run_query_server, daemon=True)
@@ -312,25 +323,12 @@ class SimplePPEngine:
             print(f"Error getting clip info: {e}")
             return None, None
 
-    def get_frame_number(self):
-        """Get current frame number from SOS."""
-        if not self.sock: return 0
-        try:
-            self.sock.sendall(b'get_frame_number\n')
-            data = self.sock.recv(1024)
-            val = data.decode('utf-8', 'ignore').strip()
-            return int(val) if val.isdigit() else 0
-        except: return 0
-            
-    def get_frame_rate(self):
-        """Get frame rate from SOS."""
-        if not self.sock: return 30.0
-        try:
-            self.sock.sendall(b'get_frame_rate\n')
-            data = self.sock.recv(1024)
-            val = data.decode('utf-8', 'ignore').strip().split()[0]
-            return float(val) if val else 30.0
-        except: return 30.0
+    def get_elapsed_time(self):
+        """Get elapsed time since clip started (capped at current clip duration)."""
+        if self.clip_start_time is None:
+            return 0.0
+        elapsed = time.time() - self.clip_start_time
+        return min(elapsed, self.current_clip_duration)  # Cap at current clip's duration
 
     def _send_nowplaying_message(self, message: str) -> None:
         """Send a nowPlaying socket message to the Pi."""
@@ -726,6 +724,44 @@ class SimplePPEngine:
             self.pp.goto(target_slide)
             self.current_slide = target_slide
     
+    def _execute_deferred_operations_background(self):
+        """Execute slow operations in background thread so they don't block progress bar animation."""
+        try:
+            print(f"[Engine] [Background Thread] Starting deferred operations")
+            
+            # NowPlaying update
+            if self.pending_clip_number is not None:
+                nowplaying_start = time.time()
+                self.update_nowPlaying(self.pending_clip_number)
+                print(f"[Engine] [Background] NowPlaying update took {time.time() - nowplaying_start:.3f}s")
+
+            # Audio management
+            if self.pending_clip_name is not None:
+                audio_start = time.time()
+                self.manage_audio(self.pending_clip_name, self.pending_is_credits, self.pending_is_translated)
+                print(f"[Engine] [Background] Audio management took {time.time() - audio_start:.3f}s")
+
+            # Subtitle loading (translated movies only)
+            if self.pending_is_translated and not self.pending_is_credits and self.pending_metadata:
+                subtitle_start = time.time()
+                local_meta = self.pending_metadata.copy()
+                if self.pending_metadata.get('caption'):
+                    path1 = self.cache_manager.fetch_subtitle_file(self.pending_metadata['caption'])
+                    if path1: local_meta['caption'] = path1
+                if self.pending_metadata.get('caption2'):
+                    path2 = self.cache_manager.fetch_subtitle_file(self.pending_metadata['caption2'])
+                    if path2: local_meta['caption2'] = path2
+
+                self.subtitle_manager.load_subtitles_for_clip(local_meta)
+                print(f"[Engine] [Background] Subtitle loading took {time.time() - subtitle_start:.3f}s")
+            
+            print("[Engine] [Background Thread] All deferred operations complete")
+                
+        except Exception as e:
+            print(f"[Engine] [Background Thread] Error in deferred operations: {e}")
+            import traceback
+            traceback.print_exc()
+    
     def manage_audio(self, clip_name, is_credits, is_translated):
         """
         Manage audio playback based on clip metadata.
@@ -834,60 +870,92 @@ class SimplePPEngine:
                 if clip_number and clip_name != self.last_clip_name:
                     print(f"\n[Clip {clip_number}] {clip_name}")
                     self.last_clip_name = clip_name
-
+                    
                     # Resolve metadata and clip type BEFORE navigation so transitions are concurrent
                     metadata = self.cache_manager.get(clip_name) if clip_name else {}
-                    self.current_duration = float(metadata.get('duration', 180.0)) if metadata else 180.0
                     is_credits = "credits" in (clip_name or "").lower()
                     is_translated = str(metadata.get('translated-movie', '')).lower() == 'true'
+                    
+                    # Determine duration: use metadata duration for translated movies, else default 60s
+                    if is_translated and metadata.get('duration'):
+                        duration_raw = metadata.get('duration', 60.0)
+                        # Handle both int and float duration values
+                        if isinstance(duration_raw, str):
+                            try:
+                                self.current_clip_duration = float(duration_raw)
+                            except ValueError:
+                                self.current_clip_duration = self.DATASET_DURATION
+                        else:
+                            self.current_clip_duration = float(duration_raw)
+                        print(f"[Engine] Custom movieset duration: {self.current_clip_duration} seconds")
+                    else:
+                        self.current_clip_duration = self.DATASET_DURATION
+                    
                     print(f"[Engine] is_credits: {is_credits}, is_translated: {is_translated}")
 
-                    # Initiate overlay transition BEFORE slide navigation so animations are concurrent
-                    if is_credits:
-                        # Fade out overlays at the same moment the credits slide loads
-                        self.overlay_manager.hide_all()
-                    else:
-                        # Instantly clear old subtitle/overlay state for a clean new-dataset appearance
-                        self.overlay_manager.instant_clear()
+                    # Instantly clear old overlay state for a clean transition
+                    self.overlay_manager.instant_clear()
 
-                    # Navigate to new slide (overlay fade-out runs concurrently)
+                    # Navigate to new slide FIRST (this blocks for ~7 seconds)
+                    slide_start = time.time()
                     self.navigate_to_clip(clip_name or "")
-                    self.update_nowPlaying(clip_number)
+                    print(f"[Engine] Slide navigation took {time.time() - slide_start:.3f}s")
+                    
+                    # START TIMER NOW - right after navigation completes, before showing progress bar
+                    self.clip_start_time = time.time()
+                    print(f"[Engine] Internal timer started at {self.clip_start_time}")
 
-                    # Manage audio playback based on clip type
-                    self.manage_audio(clip_name, is_credits, is_translated)
-
+                    # SHOW PROGRESS BAR IMMEDIATELY after navigation (not before!)
                     if not is_credits:
-                        # Seed progress at 0:00 immediately — before next frame poll
-                        # so the bar appears with the correct timestamp instantly
-                        self.overlay_manager.reset_progress(self.current_duration)
-
+                        # Seed progress at 0:00 and show immediately
+                        self.overlay_manager.reset_progress(self.current_clip_duration)
+                        
+                        # Update progress to 0 to force initial render
+                        self.overlay_manager.update_progress(0.0, self.current_clip_duration)
+                        
                         if is_translated:
-                            local_meta = metadata.copy()
-                            if metadata.get('caption'):
-                                path1 = self.cache_manager.fetch_subtitle_file(metadata['caption'])
-                                if path1: local_meta['caption'] = path1
-                            if metadata.get('caption2'):
-                                path2 = self.cache_manager.fetch_subtitle_file(metadata['caption2'])
-                                if path2: local_meta['caption2'] = path2
-
+                            # Small delay for custom moviesets to ease transition from credits
+                            time.sleep(0.3)
+                            
+                            # Show overlays for translated movies
                             self.overlay_manager.show_subtitles_and_progress()
-                            self.subtitle_manager.load_subtitles_for_clip(local_meta)
-
-                            # Update titles from CSV
+                            
+                            # Update titles from CSV (fast operation - do it now)
                             spanish_title, english_title = self.cache_manager.get_clip_titles(clip_name)
                             print(f"[Engine] Title Logic - Name: '{clip_name}', EN: '{english_title}', ES: '{spanish_title}'")
                             self.overlay_manager.update_titles(english_title, spanish_title)
                         else:
+                            # Show progress bar instantly for non-translated datasets
                             self.overlay_manager.show_progress_only()
+                        
+                        # Force MULTIPLE UI update cycles to ensure progress bar is rendered
+                        for _ in range(5):
+                            self.qapp.processEvents()
+                            self.overlay_manager.process_events()
+                        
+                        print(f"[Engine] *** PROGRESS BAR VISIBLE at T+{time.time() - self.clip_start_time:.3f}s ***")
+                    else:
+                        # Keep overlays hidden for credits
+                        print("[Engine] Credits detected - overlays remain hidden")
+
+                    # Set flags for deferred operations to happen AFTER several iterations
+                    # This allows the progress bar to animate for ~0.5s before blocking operations
+                    self.pending_clip_number = clip_number
+                    self.pending_clip_name = clip_name
+                    self.pending_metadata = metadata
+                    self.pending_is_credits = is_credits
+                    self.pending_is_translated = is_translated
+                    self.deferred_operations_done = False
+                    self.deferred_operations_countdown = 10  # Wait 10 iterations (~0.5s) before executing
+                    print("[Engine] Deferred operations scheduled for 0.5s from now")
                 
-                # 4. Update Progress & Subtitles
-                current_frame = self.get_frame_number()
-                fps = self.get_frame_rate()
-                current_time = current_frame / fps if fps > 0 else 0
+                # 4. Update Progress & Subtitles using internal timer
+                # This happens EVERY iteration, regardless of deferred operations
+                # Get elapsed time from internal timer (automatically capped at current clip duration)
+                current_time = self.get_elapsed_time()
                 
-                # Push updates to UI
-                self.overlay_manager.update_progress(current_time, self.current_duration)
+                # Push updates to UI with actual clip duration (60s for regular, variable for translated movies)
+                self.overlay_manager.update_progress(current_time, self.current_clip_duration)
                 
                 # Subtitles (if enabled, manager will verify time and update overlay)
                 if self.overlay_manager.mode == "SUBTITLES_AND_PROGRESS":
@@ -895,6 +963,21 @@ class SimplePPEngine:
                 
                 # Process Qt events for smooth UI
                 self.overlay_manager.process_events()
+                
+                # Handle deferred operations countdown - decrement each iteration
+                if not self.deferred_operations_done and self.deferred_operations_countdown > 0:
+                    self.deferred_operations_countdown -= 1
+                    if self.deferred_operations_countdown == 0:
+                        print(f"[Engine] Launching deferred operations in background thread at T+{time.time() - self.clip_start_time:.3f}s")
+                        # Launch operations in background thread so they don't block progress animation
+                        self.deferred_operations_thread = threading.Thread(
+                            target=self._execute_deferred_operations_background,
+                            daemon=True
+                        )
+                        self.deferred_operations_thread.start()
+                        # Mark as done immediately so we don't launch again
+                        self.deferred_operations_done = True
+                        self.pending_clip_number = None
 
                 time.sleep(0.05) # 20 FPS for smoother updates
                 

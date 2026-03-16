@@ -166,10 +166,8 @@ class ProgressBarOverlay(QWidget):
         
         # State
         self.current_time = 0.0
-        self.total_duration = 0.0
+        self.total_duration = 60.0  # Default to 1 minute
         self.slide_count = 1
-        self.target_time = 0.0
-        self.last_update_timestamp = 0.0
         self.fade_animation = None
         
         # Setup
@@ -288,30 +286,32 @@ class ProgressBarOverlay(QWidget):
     def reset(self, total_duration=None):
         """Hard-reset to 0:00 for a clean transition to a new clip."""
         self.current_time = 0.0
-        self.target_time = 0.0
-        self.last_update_timestamp = time.time()
         if total_duration is not None:
             self.total_duration = total_duration
-            self.time_total.setText(self._format_time(total_duration))
-            bar_width = self.width() - self.margin_left - self.margin_right
-            timestamp_y = self.bg_blur + (self.bg_extra_height // 2) + self.bar_height + self.timestamp_spacing
-            self.time_total.adjustSize()
-            self.time_total.move(self.margin_left + bar_width - self.time_total.width(), timestamp_y)
+        # Support variable durations (60s for regular, custom for translated movies)
+        
+        self.time_total.setText(self._format_time(self.total_duration))
         self.time_current.setText(self._format_time(0.0))
         self.progress_bar.setValue(0)
+        
+        # Reposition total time label
+        bar_width = self.width() - self.margin_left - self.margin_right
+        timestamp_y = self.bg_blur + (self.bg_extra_height // 2) + self.bar_height + self.timestamp_spacing
+        self.time_total.adjustSize()
+        self.time_total.move(self.margin_left + bar_width - self.time_total.width(), timestamp_y)
+        
+        # Force immediate visual update
+        self.repaint()
+        QApplication.processEvents()
 
     def update_progress(self, current_time, total_duration, slide_count=1):
-        """Update progress data."""
-        now = time.time()
-        
-        if abs(current_time - self.current_time) > 2.0 or self.total_duration <= 0:
-            self.current_time = current_time
-        
-        self.target_time = current_time
+        """Update progress data directly from engine's internal timer."""
+        # Cap current_time at total_duration to ensure we never exceed the clip's max duration
+        self.current_time = min(current_time, total_duration)
         self.total_duration = total_duration
         self.slide_count = slide_count
-        self.last_update_timestamp = now
         
+        # Update total time display
         self.time_total.setText(self._format_time(total_duration))
         self.progress_bar.set_tick_count(slide_count)
         
@@ -320,24 +320,18 @@ class ProgressBarOverlay(QWidget):
         bar_width = self.width() - self.margin_left - self.margin_right
         timestamp_y = self.bg_blur + (self.bg_extra_height // 2) + self.bar_height + self.timestamp_spacing
         self.time_total.move(self.margin_left + bar_width - self.time_total.width(), timestamp_y)
-    
-    def _update(self):
-        """Update display every frame."""
-        if self.total_duration <= 0:
-            return
         
-        # Interpolate time
-        now = time.time()
-        elapsed = now - self.last_update_timestamp
-        predicted_time = min(self.target_time + elapsed, self.total_duration)
-        self.current_time = predicted_time
-        
-        # Update UI
+        # Update UI immediately with the provided time
         self.time_current.setText(self._format_time(self.current_time))
-        
         if self.total_duration > 0:
             progress = int((self.current_time / self.total_duration) * 10000)
             self.progress_bar.setValue(min(10000, max(0, progress)))
+    
+    def _update(self):
+        """Keep Qt responsive - actual updates happen in update_progress()."""
+        # No longer doing time interpolation here - engine provides exact time
+        # This timer just keeps the Qt event loop responsive
+        pass
     
     def _format_time(self, seconds):
         """Format seconds as M:SS or H:MM:SS."""
@@ -369,6 +363,22 @@ class ProgressBarOverlay(QWidget):
         self.fade_animation.setEasingCurve(QEasingCurve.OutQuad)
         self.fade_animation.start()
         
+        QApplication.processEvents()
+    
+    def start_instant(self):
+        """Show instantly without fade animation for immediate responsiveness."""
+        self._position_window()
+        self.setWindowOpacity(1.0)
+        self.show()
+        self.raise_()
+        self.activateWindow()
+        
+        # Force immediate rendering with multiple event cycles
+        for _ in range(5):
+            QApplication.processEvents()
+        
+        # Force repaint
+        self.repaint()
         QApplication.processEvents()
     
     def stop(self):
