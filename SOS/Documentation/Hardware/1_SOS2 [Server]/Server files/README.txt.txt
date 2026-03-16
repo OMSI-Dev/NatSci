@@ -1,0 +1,1 @@
+The files found in this directory are examples of referenced files used by the B-link to run the engine. These files are found on the SOS2 server, directly related to the NOAA database for data visualization on the globe. 
