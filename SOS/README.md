@@ -5,21 +5,21 @@
 ## Overview
 
 This system provides synchronized control of:
-- 🌐 **NOAA SOS Server** - Real-time communication with Science on a Sphere
-- 📊 **LibreOffice Impress** - Automated presentation navigation
-- 🎬 **PyQt5 Overlays** - Progress bars and dual-language subtitles
-- 🎵 **Remote Audio** - MPV playback with category-based ambient soundscapes
-- 📱 **Now Playing Display** - Raspberry Pi-based audience information display
-- 🌐 **HTTP API** - Web-based facilitation controls
+-  **NOAA SOS Server** - Real-time communication with Science on a Sphere
+-  **LibreOffice Impress** - Automated presentation navigation
+-  **PyQt5 Overlays** - Progress bars and dual-language subtitles
+-  **Remote Audio** - MPV playback with category-based ambient soundscapes
+-  **Now Playing Display** - Raspberry Pi-based audience information display
+-  **HTTP API** - Web-based facilitation controls
 
 ## Features
 
-✓ **Intelligent Caching** - Minimizes server queries for fast response times  
-✓ **Dual-Language Subtitles** - English and Spanish side-by-side for custom movies  
-✓ **Ambient Audio** - Category-based background music with smooth fades  
-✓ **Facilitation Mode** - Quick mute/pause controls via web interface  
-✓ **Progress Tracking** - Real-time progress bar with slide markers  
-✓ **Automatic Recovery** - Self-healing SSH and MPV connections  
+ ** Caching** - Minimizes server queries for fast response times  
+ **Dual-Language Subtitles** - English and Spanish side-by-side for custom movies  
+ **Ambient Audio** - Category-based background music with smooth fades  
+ **Facilitation Mode** - Quick mute/pause controls via web interface  
+ **Progress Tracking** - Real-time progress bar with slide markers  
+ **Automatic Recovery** - Self-healing SSH and MPV connections  
 
 ## Quick Start
 
