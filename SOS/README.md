@@ -14,7 +14,7 @@ This system provides synchronized control of:
 
 ## Features
 
- ** Caching** - Minimizes server queries for fast response times  
+ **Caching** - Minimizes server queries for fast response times  
  **Dual-Language Subtitles** - English and Spanish side-by-side for custom movies  
  **Ambient Audio** - Category-based background music with smooth fades  
  **Facilitation Mode** - Quick mute/pause controls via web interface  
