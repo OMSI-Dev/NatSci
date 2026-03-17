@@ -21,7 +21,7 @@ def get_inter_font():
         return _INTER_FONT_NAME
     
     try:
-        font_path = r'\\sos2\AuxShare\assets\Inter_18pt-Medium.ttf'
+        font_path = r'\\10.0.0.16\AuxShare\assets\Inter_18pt-Medium.ttf'
         if os.path.exists(font_path):
             font_id = QFontDatabase.addApplicationFont(font_path)
             if font_id != -1:

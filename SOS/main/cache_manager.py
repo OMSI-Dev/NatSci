@@ -20,12 +20,12 @@ class CacheManager:
     """
     
     def __init__(self, 
-                 playlist_cache_path=r'\\sos2\AuxShare\cache\playlist_cache.JSON', 
-                 metadata_cache_path=r'\\sos2\AuxShare\cache\clip_metadata_cache.JSON',
-                 subtitle_cache_dir=r'\\sos2\AuxShare\cache\subtitles',
-                 dataset_csv_path=r'\\sos2\AuxShare\data\SOS_datasets.csv',
-                 audio_config_path=r'\\sos2\AuxShare\audio\audio-config.JSON',
-                 audio_csv_path=r'\\sos2\AuxShare\audio\audio-list.csv'):
+                 playlist_cache_path=r'\\10.0.0.16\AuxShare\cache\playlist_cache.JSON', 
+                 metadata_cache_path=r'\\10.0.0.16\AuxShare\cache\clip_metadata_cache.JSON',
+                 subtitle_cache_dir=r'\\10.0.0.16\AuxShare\cache\subtitles',
+                 dataset_csv_path=r'\\10.0.0.16\AuxShare\data\SOS_datasets.csv',
+                 audio_config_path=r'\\10.0.0.16\AuxShare\audio\audio-config.JSON',
+                 audio_csv_path=r'\\10.0.0.16\AuxShare\audio\audio-list.csv'):
         
         self.playlist_cache_file = playlist_cache_path
         self.metadata_cache_file = metadata_cache_path

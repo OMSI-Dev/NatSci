@@ -16,7 +16,7 @@ config = get_config()
 # ============================================================================
 
 # Get paths from configuration
-base_share = config.get('paths.audio_dir', r'\\sos2\AuxShare\audio')
+base_share = config.get('paths.audio_dir', r'\\10.0.0.16\AuxShare\audio')
 AUDIO_CSV = os.path.join(base_share, 'audio-list.csv')
 
 # SOS2 SSH Configuration from config

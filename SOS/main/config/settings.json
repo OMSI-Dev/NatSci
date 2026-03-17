@@ -19,12 +19,12 @@
   },
   
   "paths": {
-    "base_share": "\\\\sos2\\AuxShare",
-    "cache_dir": "\\\\sos2\\AuxShare\\cache",
-    "audio_dir": "\\\\sos2\\AuxShare\\audio",
-    "documents_dir": "\\\\sos2\\AuxShare\\documents",
-    "data_dir": "\\\\sos2\\AuxShare\\data",
-    "assets_dir": "\\\\sos2\\AuxShare\\assets"
+    "base_share": "\\\\10.0.0.16\\AuxShare",
+    "cache_dir": "\\\\10.0.0.16\\AuxShare\\cache",
+    "audio_dir": "\\\\10.0.0.16\\AuxShare\\audio",
+    "documents_dir": "\\\\10.0.0.16\\AuxShare\\documents",
+    "data_dir": "\\\\10.0.0.16\\AuxShare\\data",
+    "assets_dir": "\\\\10.0.0.16\\AuxShare\\assets"
   },
   
   "files": {

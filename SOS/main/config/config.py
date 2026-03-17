@@ -69,15 +69,14 @@ class Config:
             
             # Paths - Network Shares (Windows UNC paths)
             'paths': {
-                'base_share': r'\\sos2\AuxShare',
-                'cache_dir': r'\\sos2\AuxShare\cache',
-                'audio_dir': r'\\sos2\AuxShare\audio',
-                'documents_dir': r'\\sos2\AuxShare\documents',
-                'data_dir': r'\\sos2\AuxShare\data',
-                'assets_dir': r'\\sos2\AuxShare\assets'
+                'base_share': r'\\10.0.0.16\AuxShare',
+                'cache_dir': r'\\10.0.0.16\AuxShare\cache',
+                'audio_dir': r'\\10.0.0.16\AuxShare\audio',
+                'documents_dir': r'\\10.0.0.16\AuxShare\documents',
+                'data_dir': r'\\10.0.0.16\AuxShare\data',
+                'assets_dir': r'\\10.0.0.16\AuxShare\assets'
             },
             
-            # Files
             'files': {
                 'playlist_cache': 'playlist_cache.JSON',
                 'metadata_cache': 'clip_metadata_cache.JSON',
@@ -212,7 +211,7 @@ class Config:
             >>> config.get('sos.ip')
             '10.0.0.16'
             >>> config.get('paths.cache_dir')
-            '\\\\sos2\\AuxShare\\cache'
+            '\\\\10.0.0.16\\AuxShare\\cache'
         """
         keys = key_path.split('.')
         value = self._config
@@ -255,7 +254,7 @@ class Config:
             
         Examples:
             >>> config.get_full_path('playlist_cache')
-            '\\\\sos2\\AuxShare\\cache\\playlist_cache.JSON'
+            '\\\\10.0.0.16\\AuxShare\\cache\\playlist_cache.JSON'
         """
         filename = self._config['files'].get(file_key)
         if not filename:

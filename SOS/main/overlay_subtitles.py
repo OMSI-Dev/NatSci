@@ -22,7 +22,7 @@ def get_inter_font():
         return _INTER_FONT_NAME
     
     try:
-        font_path = r'\\sos2\AuxShare\assets\Inter_18pt-Medium.ttf'
+        font_path = r'\\10.0.0.16\AuxShare\assets\Inter_18pt-Medium.ttf'
         if os.path.exists(font_path):
             font_id = QFontDatabase.addApplicationFont(font_path)
             if font_id != -1:
@@ -47,7 +47,7 @@ def get_inter_bold_font():
         return _INTER_BOLD_FONT_NAME
     
     try:
-        font_path = r'\\sos2\AuxShare\assets\Inter_18pt-Bold.ttf'
+        font_path = r'\\10.0.0.16\AuxShare\assets\Inter_18pt-Bold.ttf'
         if os.path.exists(font_path):
             font_id = QFontDatabase.addApplicationFont(font_path)
             if font_id != -1:
@@ -80,7 +80,7 @@ def parse_srt_file(filepath):
              filepath = os.path.basename(filepath)
         else:
              # Try default cache dir construction just in case
-             cache_path = os.path.join(r'\\sos2\AuxShare\cache\subtitles', os.path.basename(filepath))
+             cache_path = os.path.join(r'\\10.0.0.16\AuxShare\cache\subtitles', os.path.basename(filepath))
              if os.path.exists(cache_path):
                  filepath = cache_path
              else:
@@ -155,7 +155,7 @@ class SubtitleManager:
         
         # Check cache path first (preferred)
         # Using the standard cache dir we defined in cache_manager
-        cache_dir = r'\\sos2\AuxShare\cache\subtitles'
+        cache_dir = r'\\10.0.0.16\AuxShare\cache\subtitles'
         
         caption_path = metadata.get('caption')
         if caption_path:

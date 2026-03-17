@@ -17,8 +17,8 @@ config = get_config()
 # ============================================================================
 
 # Get paths from configuration
-documents_dir = config.get('paths.documents_dir', r'\\sos2\AuxShare\documents')
-data_dir = config.get('paths.data_dir', r'\\sos2\AuxShare\data')
+documents_dir = config.get('paths.documents_dir', r'\\10.0.0.16\AuxShare\documents')
+data_dir = config.get('paths.data_dir', r'\\10.0.0.16\AuxShare\data')
 
 ODP_FILE = config.get_full_path('presentation')
 if ODP_FILE is None:
