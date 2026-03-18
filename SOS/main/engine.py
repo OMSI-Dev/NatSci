@@ -34,13 +34,13 @@ class OverlayManager:
         self.progress_overlay = ProgressBarOverlay()
         
         self.subtitle_overlay = SubtitleOverlay(
-            position='bottom',  # Changed from 'top' to avoid positioning issues
+            position='center',  # Center on screen vertically
             opacity=0.85,
-            y_offset=80,  # Offset above progress bar
+            y_offset=0,  # Centered position
             subtitle_font_size=28,
             subtitle_bg_opacity=150,
-            show_title_row=False,
-            parent_container_height=1.0  # Support entire length of the screen
+            subtitle_horizontal_padding=100,  # Increased horizontal padding
+            parent_container_height=0.4  # Container height for proper centering
         )
         
         # State

@@ -6,9 +6,9 @@ Adapted for usage in dev environment with OverlayManager.
 
 import re
 import os
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGraphicsBlurEffect
-from PyQt5.QtCore import Qt, QRect, QPropertyAnimation, QEasingCurve
-from PyQt5.QtGui import QFont, QFontMetrics, QFontDatabase
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel
+from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve
+from PyQt5.QtGui import QFont, QFontDatabase
 
 # Inter font loading (lazy - only loads when QApplication exists)
 _INTER_FONT_LOADED = False
@@ -35,30 +35,7 @@ def get_inter_font():
     _INTER_FONT_LOADED = True
     return _INTER_FONT_NAME
 
-# Inter Bold font loading (lazy - only loads when QApplication exists)
-_INTER_BOLD_FONT_LOADED = False
-_INTER_BOLD_FONT_NAME = 'Arial'  # Default fallback
 
-def get_inter_bold_font():
-    """Load Inter Bold font from the network share location (lazy loading)."""
-    global _INTER_BOLD_FONT_LOADED, _INTER_BOLD_FONT_NAME
-    
-    if _INTER_BOLD_FONT_LOADED:
-        return _INTER_BOLD_FONT_NAME
-    
-    try:
-        font_path = r'\\10.0.0.16\AuxShare\assets\Inter_18pt-Bold.ttf'
-        if os.path.exists(font_path):
-            font_id = QFontDatabase.addApplicationFont(font_path)
-            if font_id != -1:
-                font_families = QFontDatabase.applicationFontFamilies(font_id)
-                if font_families:
-                    _INTER_BOLD_FONT_NAME = font_families[0]
-    except Exception as e:
-        print(f"[Font] Warning: Could not load Inter Bold font: {e}")
-    
-    _INTER_BOLD_FONT_LOADED = True
-    return _INTER_BOLD_FONT_NAME
 
 def srt_time_to_seconds(timestamp):
     """Convert SRT timestamp to seconds."""
@@ -176,16 +153,6 @@ class SubtitleManager:
                  
     def _get_text(self, subtitles, current_time, accumulator_list, last_index_ref):
         """Helper to find text and handle accumulation logic."""
-        # Note: accumulator_list is a list object (mutable), so changes persist.
-        # last_index_ref is int, so we need to return the new value.
-        # But wait, python ints are immutable. 
-        # I need to handle state update.
-        # Actually my signature in update() was:
-        # text1 = self._get_text(self.subtitles, current_time, self.accumulator, self.last_index)
-        # That won't update self.last_index!
-        # I should change the method to use the instance variables directly based on an index/key?
-        # Or just have two separate methods or pass the attribute names?
-        # Let's just fix the logic in update() to handle the return values, similar to main/subtitles.py
         pass 
         
     def _find_subtitle_text(self, subtitles, current_time, is_secondary=False):
@@ -262,7 +229,7 @@ class SubtitleOverlay(QWidget):
     A transparent overlay window that shows only subtitles in various layouts.
     """
     
-    def __init__(self, position='center', opacity=0.85, y_offset=0,
+    def __init__(self, position='center', opacity=0.85, y_offset=100,
                  parent_container_width_percent=1.0, parent_container_height=1.0,
                  column_horizontal_padding=60, column_top_padding=35,
                  column_bottom_padding=20, column_height_percent=1.0,
@@ -275,36 +242,16 @@ class SubtitleOverlay(QWidget):
                  subtitle_alignment='center',
                  subtitle_font_bold=False,
                  subtitle_top_spacing=0,
-                 subtitle_horizontal_padding=45,
+                 subtitle_horizontal_padding=60,
 
                  text_padding=0,
-                 show_title_row=False, left_title='', right_title='',
-                 title_font_size=38,
-                 title_font_family=None, title_font_bold=True,
-                 left_title_color="#ffffff", right_title_color='#ffffff',
-                 title_bg_opacity=150, title_alignment='center',
-                 title_vertical_padding=0,
-                 title_top_padding=200,
-                 title_horizontal_padding=30,
                  show_debug_borders=False,
-
-                 # Fuzzy background parameters 
-                 fuzzy_bg_enabled=True,
-                 fuzzy_bg_color='#000000',
-                 fuzzy_bg_opacity=160,
-                 fuzzy_bg_margin_left=80,
-                 fuzzy_bg_margin_right=80,
-                 fuzzy_bg_margin_top=100,
-                 fuzzy_bg_margin_bottom=250,
-                 fuzzy_bg_feather_strength = 30,
-                 fuzzy_bg_feather_distance=60,
-                 fuzzy_bg_border_radius=20,
                  
                  # Vertical center line parameters
                  center_line_enabled=True,
                  center_line_color='#ffffff',
                  center_line_width=3,
-                 center_line_height_percent=.8,  # None = match fuzzy bg height
+                 center_line_height_percent=.8,
                  center_line_opacity=255):
         """
        
@@ -335,33 +282,6 @@ class SubtitleOverlay(QWidget):
         self.subtitle_top_spacing = subtitle_top_spacing
         self.subtitle_horizontal_padding = subtitle_horizontal_padding
         self.text_padding = text_padding
-        
-        # Title row parameters
-        self.show_title_row = show_title_row
-        self.left_title = left_title
-        self.right_title = right_title
-        self.title_font_size = title_font_size
-        self.title_font_family = title_font_family if title_font_family else get_inter_bold_font()
-        self.title_font_bold = title_font_bold
-        self.left_title_color = left_title_color
-        self.right_title_color = right_title_color
-        self.title_bg_opacity = title_bg_opacity
-        self.title_alignment = title_alignment
-        self.title_vertical_padding = title_vertical_padding
-        self.title_top_padding = title_top_padding
-        self.title_horizontal_padding = title_horizontal_padding
-        
-        # Fuzzy background parameters
-        self.fuzzy_bg_enabled = fuzzy_bg_enabled
-        self.fuzzy_bg_color = fuzzy_bg_color
-        self.fuzzy_bg_opacity = fuzzy_bg_opacity
-        self.fuzzy_bg_margin_left = fuzzy_bg_margin_left
-        self.fuzzy_bg_margin_right = fuzzy_bg_margin_right
-        self.fuzzy_bg_margin_top = fuzzy_bg_margin_top
-        self.fuzzy_bg_margin_bottom = fuzzy_bg_margin_bottom
-        self.fuzzy_bg_feather_strength = fuzzy_bg_feather_strength
-        self.fuzzy_bg_feather_distance = fuzzy_bg_feather_distance
-        self.fuzzy_bg_border_radius = fuzzy_bg_border_radius
         
         # Vertical center line parameters
         self.center_line_enabled = center_line_enabled
@@ -437,54 +357,12 @@ class SubtitleOverlay(QWidget):
         else:
             self.parent_container.setStyleSheet("background: transparent;")
         
-        # Create fuzzy background widget (behind columns)
-        if self.fuzzy_bg_enabled:
-            self.fuzzy_background = QWidget(self.parent_container)
-            
-            # Parse hex color
-            bg_color_hex = self.fuzzy_bg_color.lstrip('#')
-            bg_r = int(bg_color_hex[0:2], 16)
-            bg_g = int(bg_color_hex[2:4], 16)
-            bg_b = int(bg_color_hex[4:6], 16)
-            
-            # Set background style with opacity and rounded corners
-            self.fuzzy_background.setStyleSheet(f"""
-                QWidget {{
-                    background-color: rgba({bg_r}, {bg_g}, {bg_b}, {self.fuzzy_bg_opacity});
-                    border-radius: {self.fuzzy_bg_border_radius}px;
-                }}
-            """)
-            
-            # Apply blur effect for feathering
-            if self.fuzzy_bg_feather_strength > 0:
-                blur_effect = QGraphicsBlurEffect()
-                blur_effect.setBlurRadius(self.fuzzy_bg_feather_strength)
-                self.fuzzy_background.setGraphicsEffect(blur_effect)
-            
-            # Position and size background (will be updated in update_subtitles)
-            # Calculate size: parent minus margins
-            bg_width = parent_width - self.fuzzy_bg_margin_left - self.fuzzy_bg_margin_right
-            bg_height = self.calculated_container_height - self.fuzzy_bg_margin_top - self.fuzzy_bg_margin_bottom
-            self.fuzzy_background.setGeometry(
-                self.fuzzy_bg_margin_left,
-                self.fuzzy_bg_margin_top,
-                bg_width,
-                bg_height
-            )
-            self.fuzzy_background.lower()  # Send to back
+        # Create columns container (full parent width and height)
+        bg_width = parent_width
+        bg_height = self.calculated_container_height
         
-        # Calculate fuzzy background dimensions for columns container
-        bg_width = parent_width - self.fuzzy_bg_margin_left - self.fuzzy_bg_margin_right
-        bg_height = self.calculated_container_height - self.fuzzy_bg_margin_top - self.fuzzy_bg_margin_bottom
-        
-        # Create columns container to match fuzzy background dimensions
         self.columns_container = QWidget(self.parent_container)
-        self.columns_container.setGeometry(
-            self.fuzzy_bg_margin_left,
-            self.fuzzy_bg_margin_top,
-            bg_width,
-            bg_height
-        )
+        self.columns_container.setGeometry(0, 0, bg_width, bg_height)
         self.columns_container.setStyleSheet("background: transparent;")
         
         # Horizontal layout for two columns
@@ -525,41 +403,8 @@ class SubtitleOverlay(QWidget):
         else:
             self.left_column.setStyleSheet("background: transparent;")
         
-        # Always create Left title label, hide if not initially shown
-        if self.title_top_padding > 0:
-            left_layout.addSpacing(self.title_top_padding)  # Space above title
-        self.left_title_label = QLabel(self.left_title)
-        title_weight = QFont.Bold if self.title_font_bold else QFont.Normal
-        self.left_title_label.setFont(QFont(self.title_font_family, self.title_font_size, title_weight))
-        title_align = alignment_map.get(self.title_alignment.lower(), Qt.AlignCenter)
-        
-        # Create styled title without background or padding
-        title_style = f"""<div style='margin: 0; padding: 0;'><span style='color: {self.left_title_color}; margin: 0; padding: 0;'>{self.left_title}</span></div>"""
-        self.left_title_label.setText(title_style)
-        self.left_title_label.setAlignment(title_align | Qt.AlignTop)
-        self.left_title_label.setWordWrap(True)
-        self.left_title_label.setStyleSheet("background: transparent;")
-        self.left_title_label.setContentsMargins(0, 0, 0, 0)
-        
-        # Wrapper for title horizontal padding
-        title1_wrapper = QWidget()
-        title1_wrapper.setFixedHeight(150)  # Fixed height prevents layout shifts, sized for 2-line titles
-        title1_sub_layout = QVBoxLayout()
-        title1_sub_layout.setContentsMargins(self.title_horizontal_padding, 0, self.title_horizontal_padding, 0)
-        title1_sub_layout.setSpacing(0)
-        title1_sub_layout.addStretch()
-        title1_sub_layout.addWidget(self.left_title_label)
-        title1_sub_layout.addStretch()
-        title1_wrapper.setLayout(title1_sub_layout)
-        title1_wrapper.setVisible(self.show_title_row)
-        self.left_title_wrapper = title1_wrapper  # Store to toggle visibility
-        
-        left_layout.addWidget(title1_wrapper)
-        
-        # Add spacing between title and subtitle (or above subtitle if no title)
-        if self.show_title_row and self.title_vertical_padding > 0:
-            left_layout.addSpacing(self.title_vertical_padding)
-        elif not self.show_title_row and self.subtitle_top_spacing > 0:
+        # Add spacing above subtitle
+        if self.subtitle_top_spacing > 0:
             left_layout.addSpacing(self.subtitle_top_spacing)
         
         # Subtitle label with explicit horizontal padding
@@ -602,41 +447,8 @@ class SubtitleOverlay(QWidget):
         else:
             self.right_column.setStyleSheet("background: transparent;")
         
-        # Always create Right title label, hide if not initially shown
-        if self.title_top_padding > 0:
-            right_layout.addSpacing(self.title_top_padding)  # Space above title
-        self.right_title_label = QLabel(self.right_title)
-        title_weight = QFont.Bold if self.title_font_bold else QFont.Normal
-        self.right_title_label.setFont(QFont(self.title_font_family, self.title_font_size, title_weight))
-        title_align = alignment_map.get(self.title_alignment.lower(), Qt.AlignCenter)
-        
-        # Create styled title without background or padding
-        title_style = f"""<div style='margin: 0; padding: 0;'><span style='color: {self.right_title_color}; margin: 0; padding: 0;'>{self.right_title}</span></div>"""
-        self.right_title_label.setText(title_style)
-        self.right_title_label.setAlignment(title_align | Qt.AlignTop)
-        self.right_title_label.setWordWrap(True)
-        self.right_title_label.setStyleSheet("background: transparent;")
-        self.right_title_label.setContentsMargins(0, 0, 0, 0)
-        
-        # Wrapper for title horizontal padding
-        title2_wrapper = QWidget()
-        title2_wrapper.setFixedHeight(150)  # Fixed height prevents layout shifts, sized for 2-line titles
-        title2_sub_layout = QVBoxLayout()
-        title2_sub_layout.setContentsMargins(self.title_horizontal_padding, 0, self.title_horizontal_padding, 0)
-        title2_sub_layout.setSpacing(0)
-        title2_sub_layout.addStretch()
-        title2_sub_layout.addWidget(self.right_title_label)
-        title2_sub_layout.addStretch()
-        title2_wrapper.setLayout(title2_sub_layout)
-        title2_wrapper.setVisible(self.show_title_row)
-        self.right_title_wrapper = title2_wrapper  # Store to toggle visibility
-        
-        right_layout.addWidget(title2_wrapper)
-        
-        # Add spacing between title and subtitle (or above subtitle if no title)
-        if self.show_title_row and self.title_vertical_padding > 0:
-            right_layout.addSpacing(self.title_vertical_padding)
-        elif not self.show_title_row and self.subtitle_top_spacing > 0:
+        # Add spacing above subtitle
+        if self.subtitle_top_spacing > 0:
             right_layout.addSpacing(self.subtitle_top_spacing)
         
         # Spanish subtitle label with explicit horizontal padding
@@ -681,18 +493,12 @@ class SubtitleOverlay(QWidget):
                 }}
             """)
             
-            # Calculate height: match fuzzy bg if no custom height specified
-            if self.center_line_height_percent is None:
-                # Match fuzzy background height
-                line_height = bg_height
-                line_y = self.fuzzy_bg_margin_top
-            else:
-                # Use custom height percentage
-                line_height = int(bg_height * self.center_line_height_percent)
-                line_y = self.fuzzy_bg_margin_top + (bg_height - line_height) // 2
+            # Calculate height based on percentage
+            line_height = int(bg_height * self.center_line_height_percent)
+            line_y = (bg_height - line_height) // 2
             
             # Position horizontally centered within columns container
-            line_x = self.fuzzy_bg_margin_left + (bg_width - self.center_line_width) // 2
+            line_x = (bg_width - self.center_line_width) // 2
             
             self.center_line.setGeometry(
                 line_x,
@@ -769,42 +575,8 @@ class SubtitleOverlay(QWidget):
             self.subtitle_label2.setVisible(False)
 
     def update_titles(self, left_title="", right_title=""):
-        """Update the titles shown above the columns."""
-        if not hasattr(self, 'left_title_label') or not hasattr(self, 'right_title_label'):
-            return
-            
-        self.left_title = left_title
-        self.right_title = right_title
-        
-        if left_title:
-            # Simple HTML with title styling
-            font_weight = "font-weight: bold;" if self.title_font_bold else ""
-            title_html = f"""<div style='margin: 0; padding: 0;'><span style='color: {self.left_title_color}; font-family: {self.title_font_family}; font-size: {self.title_font_size}pt; margin: 0; padding: 0; {font_weight}'>{left_title}</span></div>"""
-            self.left_title_label.setText(title_html)
-            if hasattr(self, 'left_title_wrapper'):
-                self.left_title_wrapper.setVisible(True)
-            else:
-                self.left_title_label.setVisible(True)
-        else:
-            if hasattr(self, 'left_title_wrapper'):
-                self.left_title_wrapper.setVisible(False)
-            else:
-                self.left_title_label.setVisible(False)
-            
-        if right_title:
-            # Simple HTML with title styling
-            font_weight = "font-weight: bold;" if self.title_font_bold else ""
-            title_html = f"""<div style='margin: 0; padding: 0;'><span style='color: {self.right_title_color}; font-family: {self.title_font_family}; font-size: {self.title_font_size}pt; margin: 0; padding: 0; {font_weight}'>{right_title}</span></div>"""
-            self.right_title_label.setText(title_html)
-            if hasattr(self, 'right_title_wrapper'):
-                self.right_title_wrapper.setVisible(True)
-            else:
-                self.right_title_label.setVisible(True)
-        else:
-            if hasattr(self, 'right_title_wrapper'):
-                self.right_title_wrapper.setVisible(False)
-            else:
-                self.right_title_label.setVisible(False)
+        """Update titles - no-op since titles are removed."""
+        pass
     
     def is_active(self):
         """Check if the overlay is visible."""
