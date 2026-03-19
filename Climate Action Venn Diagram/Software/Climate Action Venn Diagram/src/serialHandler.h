@@ -1,14 +1,13 @@
+/*
+Climate Action Venn Diagram - Simplified Test Version
+Sends tag data over serial for testing
+*/
 
-
-/**
- * 
- * Sends a found tag to software to
- * 
- * 
- */
 void sendTag(uint8_t currentTag, uint8_t category)
 {
+    Serial.print("Category: ");
     Serial.print(category);
-    Serial.print(currentTag);
-    Serial.print('/n');
+    Serial.print(" | Tag: 0x");
+    Serial.print(currentTag, HEX);
+    Serial.println();
 }
