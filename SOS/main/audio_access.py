@@ -13,7 +13,7 @@ import os
 class AudioController:
     """Controller for MPV audio playback on remote SOS2 server."""
     
-    def __init__(self, sos2_ip="10.10.51.98", sos2_user="sos", audio_path="/opt/share/AuxShare/audio"): #NETWORK
+    def __init__(self, sos2_ip="10.0.0.16", sos2_user="sos", audio_path="/AuxShare/audio/mp3"): #NETWORK
         """
         Initialize the audio controller.
         
@@ -42,45 +42,55 @@ class AudioController:
             os.path.join(home, ".ssh", "id_ed25519"),
             os.path.join(home, ".ssh", "id_ecdsa")
         ]
-        
-        found_keys = [k for k in key_locations if os.path.exists(k)]
-        return found_keys
-    
+        return [k for k in key_locations if os.path.exists(k)]
+
+    def _ssh_base(self):
+        """Build the common SSH argument list (ConnectTimeout included)."""
+        args = [
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "BatchMode=yes",
+            "-o", "PasswordAuthentication=no",
+            "-o", "ConnectTimeout=5",
+        ]
+        found_keys = self._find_ssh_keys()
+        if found_keys:
+            args += ["-i", found_keys[0]]
+        return args
+
+    def _run_ssh(self, remote_cmd, timeout=10, capture=True):
+        """
+        Run a command on SOS2 via SSH.
+        Returns (returncode, stdout, stderr).
+        """
+        cmd = self._ssh_base() + [f"{self.sos2_user}@{self.sos2_ip}", remote_cmd]
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
+            stderr=subprocess.PIPE if capture else subprocess.DEVNULL,
+            timeout=timeout,
+        )
+        stdout = result.stdout.decode("utf-8", "ignore").strip() if capture else ""
+        stderr = result.stderr.decode("utf-8", "ignore").strip() if capture else ""
+        return result.returncode, stdout, stderr
+
     def _test_ssh_connection(self):
         """Test basic SSH connectivity to SOS2."""
         try:
-            ssh_base = [
-                "ssh",
-                "-o", "StrictHostKeyChecking=no",
-                "-o", "BatchMode=yes",
-                "-o", "PasswordAuthentication=no",
-                "-o", "ConnectTimeout=5"
-            ]
-            
             found_keys = self._find_ssh_keys()
             if found_keys:
-                ssh_base += ["-i", found_keys[0]]
                 print(f"[Audio] Using SSH key: {found_keys[0]}")
             else:
                 print("[Audio] WARNING: No SSH keys found")
-            
-            test_cmd = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", "echo 'SSH_OK'"]
-            
-            result = subprocess.run(
-                test_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=10
-            )
-            
-            if result.returncode == 0:
+
+            code, out, err = self._run_ssh("echo SSH_OK", timeout=10)
+            if code == 0 and "SSH_OK" in out:
                 print(f"[Audio] SSH connection to {self.sos2_ip} successful")
                 return True
             else:
-                error = result.stderr.decode('utf-8', 'ignore').strip()
-                print(f"[Audio] SSH connection failed: {error}")
+                print(f"[Audio] SSH connection failed: {err}")
                 return False
-                
+
         except Exception as e:
             print(f"[Audio] SSH test failed: {e}")
             return False
@@ -88,83 +98,67 @@ class AudioController:
     def _initialize_mpv(self):
         """Launch MPV on SOS2 with IPC socket for control."""
         print("[Audio] Initializing MPV on SOS2...")
-        
+
         try:
             # Test SSH connection first
             if not self._test_ssh_connection():
                 print("[Audio] Cannot initialize MPV - SSH connection failed")
                 self.is_initialized = False
                 return
-            
+
             # Check if socat is available
             print("[Audio] Checking for socat on SOS2...")
-            ssh_base = [
-                "ssh",
-                "-o", "StrictHostKeyChecking=no",
-                "-o", "BatchMode=yes",
-                "-o", "PasswordAuthentication=no"
-            ]
-            
-            found_keys = self._find_ssh_keys()
-            if found_keys:
-                ssh_base += ["-i", found_keys[0]]
-            
-            check_socat = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", "which socat"]
-            result = subprocess.run(check_socat, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
-            
-            if result.returncode != 0:
+            code, out, err = self._run_ssh("which socat", timeout=5)
+            if code != 0:
                 print("[Audio] ERROR: socat not found on SOS2. Install with: sudo apt-get install socat")
                 self.is_initialized = False
                 return
-            else:
-                print("[Audio] socat found")
-            
+            print(f"[Audio] socat found at: {out}")
+
             # Kill any existing MPV instances on the socket
             print("[Audio] Cleaning up old MPV instances...")
-            cleanup_cmd = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", 
-                                      f"pkill -f 'input-ipc-server={self.mpv_socket}' ; rm -f {self.mpv_socket}"]
-            subprocess.run(cleanup_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+            self._run_ssh(
+                f"pkill -f 'input-ipc-server={self.mpv_socket}' ; rm -f {self.mpv_socket}",
+                timeout=5, capture=False
+            )
             time.sleep(1)
-            
+
             # MPV command with IPC socket, idle mode, and no video
             mpv_cmd = (
-                f"nohup mpv --idle=yes --no-video --volume=50 "
+                f"nohup mpv --idle=yes --no-video --volume=100 "
                 f"--input-ipc-server={self.mpv_socket} "
                 f"--really-quiet > /dev/null 2>&1 &"
             )
-            
             print(f"[Audio] Starting MPV with command: {mpv_cmd}")
-            ssh_cmd = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", mpv_cmd]
-            
-            # Launch MPV in background
-            result = subprocess.run(
-                ssh_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=10
-            )
-            
-            if result.returncode != 0:
-                error = result.stderr.decode('utf-8', 'ignore').strip()
-                print(f"[Audio] MPV launch failed: {error}")
+            code, out, err = self._run_ssh(mpv_cmd, timeout=10)
+            if code != 0:
+                print(f"[Audio] MPV launch failed: {err}")
                 self.is_initialized = False
                 return
-            
+
             # Give MPV time to start and create socket
             print("[Audio] Waiting for MPV to initialize...")
             time.sleep(3)
-            
+
             # Verify socket exists
-            check_socket = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", f"test -S {self.mpv_socket} && echo 'SOCKET_OK'"]
-            result = subprocess.run(check_socket, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5)
-            
-            if result.returncode == 0 and b'SOCKET_OK' in result.stdout:
-                self.is_initialized = True
-                print("[Audio] MPV initialized successfully - socket ready")
-            else:
+            code, out, err = self._run_ssh(f"test -S {self.mpv_socket} && ls -l {self.mpv_socket}")
+            if code != 0 or not out:
                 print(f"[Audio] ERROR: MPV socket not found at {self.mpv_socket}")
                 self.is_initialized = False
-            
+                return
+            print(f"[Audio] Socket exists: {out}")
+
+            # Ping MPV via socket using printf (same method as _send_mpv_command)
+            ping_cmd = f"printf '%s\\n' '{{\"command\":[\"get_property\",\"volume\"]}}' | socat - UNIX-CONNECT:{self.mpv_socket}"
+            code, out, err = self._run_ssh(ping_cmd, timeout=5)
+            if code == 0 and out:
+                print(f"[Audio] Socket test response: {out}")
+                self.is_initialized = True
+                print("[Audio] ✓ MPV initialized successfully - socket ready and responding")
+            else:
+                print(f"[Audio] ERROR: Socket exists but not responding: {err}")
+                self.is_initialized = False
+
         except subprocess.TimeoutExpired:
             print("[Audio] ERROR: MPV initialization timeout")
             self.is_initialized = False
@@ -190,29 +184,20 @@ class AudioController:
             return False
         
         try:
-            # Build SSH command to send JSON to socket
-            ssh_base = [
-                "ssh",
-                "-o", "StrictHostKeyChecking=no",
-                "-o", "BatchMode=yes",
-                "-o", "PasswordAuthentication=no"
-            ]
-            
-            found_keys = self._find_ssh_keys()
-            if found_keys:
-                ssh_base += ["-i", found_keys[0]]
-            
-            # Convert command to JSON with newline (MPV requires this)
+            # Convert command to JSON with newline (MPV IPC protocol requires newline)
             json_cmd = json.dumps(command_dict)
-            
-            # Use UNIX socket connection via socat
-            socket_cmd = f"echo '{json_cmd}' | socat - UNIX-CONNECT:{self.mpv_socket}"
-            
+
+            # Use printf to properly handle JSON escaping and ensure newline
+            # Escape single quotes in JSON for shell safety
+            json_escaped = json_cmd.replace("'", "'\"'\"'")
+            socket_cmd = f"printf '%s\\n' '{json_escaped}' | socat - UNIX-CONNECT:{self.mpv_socket}"
+
             if debug:
-                print(f"[Audio DEBUG] Sending command: {json_cmd}")
-                print(f"[Audio DEBUG] Socket command: {socket_cmd}")
-            
-            ssh_cmd = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", socket_cmd]
+                print(f"[Audio DEBUG] Original command dict: {command_dict}")
+                print(f"[Audio DEBUG] JSON command: {json_cmd}")
+                print(f"[Audio DEBUG] Socket path: {self.mpv_socket}")
+
+            ssh_cmd = self._ssh_base() + [f"{self.sos2_user}@{self.sos2_ip}", socket_cmd]
             
             result = subprocess.run(
                 ssh_cmd,
@@ -221,18 +206,55 @@ class AudioController:
                 timeout=5
             )
             
+            stdout_text = result.stdout.decode('utf-8', 'ignore').strip()
+            stderr_text = result.stderr.decode('utf-8', 'ignore').strip()
+            
             if debug:
                 print(f"[Audio DEBUG] Return code: {result.returncode}")
-                if result.stdout:
-                    print(f"[Audio DEBUG] stdout: {result.stdout.decode('utf-8', 'ignore').strip()}")
-                if result.stderr:
-                    print(f"[Audio DEBUG] stderr: {result.stderr.decode('utf-8', 'ignore').strip()}")
+                if stdout_text:
+                    print(f"[Audio DEBUG] MPV response: {stdout_text}")
+                if stderr_text:
+                    print(f"[Audio DEBUG] stderr: {stderr_text}")
             
             if result.returncode != 0:
-                error = result.stderr.decode('utf-8', 'ignore').strip()
-                if error:
-                    print(f"[Audio] Command error: {error}")
+                if stderr_text:
+                    print(f"[Audio] ✗ Command failed: {stderr_text}")
+                    # Socket missing — MPV likely crashed; attempt recovery and retry once
+                    if "No such file or directory" in stderr_text and self.mpv_socket in stderr_text:
+                        print("[Audio] Socket missing — attempting MPV re-initialization...")
+                        self.is_initialized = False
+                        self._initialize_mpv()
+                        if self.is_initialized:
+                            print("[Audio] Re-initialized. Retrying command...")
+                            retry_result = subprocess.run(
+                                ssh_cmd,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                timeout=5
+                            )
+                            if retry_result.returncode == 0:
+                                return True
+                            else:
+                                retry_err = retry_result.stderr.decode('utf-8', 'ignore').strip()
+                                print(f"[Audio] ✗ Retry failed: {retry_err}")
+                        else:
+                            print("[Audio] ✗ Re-initialization failed — audio unavailable")
+                else:
+                    print(f"[Audio] ✗ Command failed with code {result.returncode}")
                 return False
+            
+            # Check if MPV returned an error in the response
+            if stdout_text:
+                try:
+                    response = json.loads(stdout_text)
+                    if response.get('error') != 'success' and 'error' in response:
+                        print(f"[Audio] ✗ MPV error: {response.get('error')}")
+                        return False
+                    elif debug:
+                        print(f"[Audio DEBUG] ✓ MPV acknowledged: {response}")
+                except json.JSONDecodeError:
+                    if debug:
+                        print(f"[Audio DEBUG] Non-JSON response: {stdout_text}")
             
             return True
             
@@ -259,8 +281,8 @@ class AudioController:
             print("[Audio] Cannot play: MPV not initialized")
             return False
         
-        full_path = os.path.join(self.audio_path, filename)
-        
+        full_path = f"{self.audio_path}/{filename}"
+
         if debug:
             print(f"[Audio] Attempting to play: {full_path}")
         
@@ -273,18 +295,19 @@ class AudioController:
         
         if success:
             self.current_track = filename
-            if debug:
-                print(f"[Audio] Successfully loaded: {filename}")
+            print(f"[Audio] ✓ Playing: {filename}")
             
             # Set loop mode if requested
             if loop:
                 time.sleep(0.2)  # Give loadfile time to process
                 loop_cmd = {"command": ["set_property", "loop-file", "inf"]}
-                loop_success = self._send_mpv_command(loop_cmd)
-                if loop_success and debug:
-                    print(f"[Audio] Loop mode enabled")
+                loop_success = self._send_mpv_command(loop_cmd, debug=debug)
+                if loop_success:
+                    print(f"[Audio] ✓ Loop mode enabled")
+                else:
+                    print(f"[Audio] ⚠ Warning: Could not enable loop mode")
         else:
-            print(f"[Audio] Failed to load: {filename}")
+            print(f"[Audio] ✗ Failed to load: {filename}")
         
         return success
     
@@ -298,7 +321,9 @@ class AudioController:
         
         if success:
             self.current_track = None
-            print("[Audio] Stopped playback")
+            print("[Audio] ✓ Stopped playback")
+        else:
+            print("[Audio] ✗ Failed to stop playback")
         
         return success
     
@@ -323,7 +348,7 @@ class AudioController:
             step_duration = fade_time / steps
             
             for i in range(steps, -1, -1):
-                volume = int((i / steps) * 50)  # Fade from 50 to 0
+                volume = int((i / steps) * 100)  # Fade from 100 to 0
                 cmd = {"command": ["set_property", "volume", volume]}
                 self._send_mpv_command(cmd)
                 time.sleep(step_duration)
@@ -333,7 +358,7 @@ class AudioController:
             
             # Reset volume
             time.sleep(0.1)
-            reset_cmd = {"command": ["set_property", "volume", 50]}
+            reset_cmd = {"command": ["set_property", "volume", 100]}
             self._send_mpv_command(reset_cmd)
             
             print(f"[Audio] Faded out over {fade_time}s")
@@ -363,54 +388,43 @@ class AudioController:
         success = self._send_mpv_command(command)
         
         if success:
-            print(f"[Audio] Volume set to {volume}")
+            print(f"[Audio] ✓ Volume set to {volume}%")
+        else:
+            print(f"[Audio] ✗ Failed to set volume")
         
         return success
     
     def get_volume(self):
         """
         Get current playback volume from MPV.
-        
+
         Returns:
             int: Current volume (0-100) or None if failed
         """
         if not self.is_initialized:
             return None
-        
+
         try:
-            command = {"command": ["get_property", "volume"]}
-            
-            # Send command and capture response
-            ssh_base = [
-                "ssh",
-                "-o", "StrictHostKeyChecking=no",
-                "-o", "BatchMode=yes",
-                "-o", "ConnectTimeout=5"
-            ]
-            
-            found_keys = self._find_ssh_keys()
-            if found_keys:
-                ssh_base += ["-i", found_keys[0]]
-            
-            json_cmd = json.dumps(command)
-            socket_cmd = f"echo '{json_cmd}' | socat - UNIX-CONNECT:{self.mpv_socket}"
-            ssh_cmd = ssh_base + [f"{self.sos2_user}@{self.sos2_ip}", socket_cmd]
-            
+            json_cmd = json.dumps({"command": ["get_property", "volume"]})
+            json_escaped = json_cmd.replace("'", "'\"'\"'")
+            socket_cmd = f"printf '%s\\n' '{json_escaped}' | socat - UNIX-CONNECT:{self.mpv_socket}"
+            ssh_cmd = self._ssh_base() + [f"{self.sos2_user}@{self.sos2_ip}", socket_cmd]
+
             result = subprocess.run(
                 ssh_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=5
             )
-            
+
             if result.returncode == 0 and result.stdout:
                 response = json.loads(result.stdout.decode('utf-8', 'ignore').strip())
                 volume = response.get('data')
                 if volume is not None:
                     return int(volume)
-            
+
             return None
-            
+
         except Exception as e:
             print(f"[Audio] Failed to get volume: {e}")
             return None
@@ -446,7 +460,9 @@ class AudioController:
         success = self._send_mpv_command(command)
         
         if success:
-            print("[Audio] Muted")
+            print("[Audio] ✓ Muted")
+        else:
+            print("[Audio] ✗ Failed to mute")
         
         return success
     
@@ -464,7 +480,9 @@ class AudioController:
         success = self._send_mpv_command(command)
         
         if success:
-            print("[Audio] Unmuted")
+            print("[Audio] ✓ Unmuted")
+        else:
+            print("[Audio] ✗ Failed to unmute")
         
         return success
     
@@ -482,7 +500,9 @@ class AudioController:
         success = self._send_mpv_command(command)
         
         if success:
-            print("[Audio] Mute toggled")
+            print("[Audio] ✓ Mute toggled")
+        else:
+            print("[Audio] ✗ Failed to toggle mute")
         
         return success
     
@@ -507,21 +527,23 @@ class AudioController:
     def close(self):
         """Cleanup and close MPV."""
         print("[Audio] Closing MPV...")
-        
-        # Try to quit MPV gracefully
+
+        # Try to quit MPV gracefully via socket
         if self.is_initialized:
             quit_cmd = {"command": ["quit"]}
             self._send_mpv_command(quit_cmd)
-            time.sleep(1)
-        
-        # Kill SSH process if still running
-        if self.ssh_process and self.ssh_process.poll() is None:
-            try:
-                self.ssh_process.terminate()
-                self.ssh_process.wait(timeout=5)
-            except:
-                self.ssh_process.kill()
-        
+            time.sleep(0.5)
+
+        # Force-kill MPV on SOS2 as a safety net (covers crashed/unresponsive socket)
+        try:
+            self._run_ssh(
+                f"pkill -f 'input-ipc-server={self.mpv_socket}' ; rm -f {self.mpv_socket}",
+                timeout=5, capture=False
+            )
+            print("[Audio] MPV process killed on SOS2")
+        except Exception as e:
+            print(f"[Audio] Warning: force-kill failed: {e}")
+
         self.is_initialized = False
         print("[Audio] Closed")
     

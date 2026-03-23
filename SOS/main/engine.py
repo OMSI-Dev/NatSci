@@ -3,6 +3,7 @@ SOS2 Engine
 Connects to SOS server and controls LibreOffice Impress via CacheManager lookups.
 """
 
+import re
 import socket
 import time
 import sys
@@ -12,6 +13,11 @@ import atexit
 from PyQt5.QtWidgets import QApplication
 from overlay_subtitles import SubtitleManager, SubtitleOverlay
 from overlay_progressBar import ProgressBarOverlay
+from config import get_config
+from config.constants import *
+
+# Load configuration
+config = get_config()
 
 class OverlayManager:
     """
@@ -28,13 +34,13 @@ class OverlayManager:
         self.progress_overlay = ProgressBarOverlay()
         
         self.subtitle_overlay = SubtitleOverlay(
-            position='bottom',  # Changed from 'top' to avoid positioning issues
+            position='center',  # Center on screen vertically
             opacity=0.85,
-            y_offset=80,  # Offset above progress bar
+            y_offset=0,  # Centered position
             subtitle_font_size=28,
             subtitle_bg_opacity=150,
-            show_title_row=False,
-            parent_container_height=1.0  # Support entire length of the screen
+            subtitle_horizontal_padding=100,  # Increased horizontal padding
+            parent_container_height=0.4  # Container height for proper centering
         )
         
         # State
@@ -44,13 +50,13 @@ class OverlayManager:
         """Display only the progress bar."""
         if self.mode != "PROGRESS_ONLY":
             self.subtitle_overlay.hide()
-            self.progress_overlay.start() # Ensure it's visible/raised
+            self.progress_overlay.start_instant() # Instant appearance for responsiveness
             self.mode = "PROGRESS_ONLY"
             
     def show_subtitles_and_progress(self):
         """Display both subtitles and progress bar."""
         if self.mode != "SUBTITLES_AND_PROGRESS":
-            self.progress_overlay.start()
+            self.progress_overlay.start_instant() # Instant appearance for responsiveness
             self.subtitle_overlay.start()
             self.mode = "SUBTITLES_AND_PROGRESS"
             
@@ -60,6 +66,19 @@ class OverlayManager:
             self.progress_overlay.stop()
             self.subtitle_overlay.stop()
             self.mode = "HIDDEN"
+
+    def instant_clear(self):
+        """Instantly clear all overlays for a clean dataset transition (no fade)."""
+        anim = getattr(self.progress_overlay, 'fade_animation', None)
+        if anim:
+            anim.stop()
+        self.subtitle_overlay.instant_hide()
+        self.progress_overlay.hide()
+        self.mode = "HIDDEN"
+
+    def reset_progress(self, total_duration):
+        """Seed the progress bar at 0:00 for a new clip, bypassing the mode-guard."""
+        self.progress_overlay.reset(total_duration)
             
     def update_progress(self, current_time, total_duration, slide_count=1):
         """Update progress bar data."""
@@ -80,10 +99,11 @@ class OverlayManager:
         self.app.processEvents()
 
 
-SOS_IP = "10.10.51.98" #NETWORK
-SOS_PORT = 2468
-PI_IP = "10.10.51.111" #NETWORK
-PI_PORT = 4096
+# Network configuration from config system
+SOS_IP = config.get('sos.ip', '10.0.0.16')
+SOS_PORT = config.get('sos.port', SOS_PORT_DEFAULT)
+PI_IP = config.get('pi.ip', '10.10.51.111')
+PI_PORT = config.get('pi.port', PI_PORT_DEFAULT)
 ENGINE_QUERY_PORT = 4097  # Port for Pi to query engine state
 HTTP_SERVER_PORT = 5000  # Port for HTTP facilitation interface
 
@@ -92,11 +112,11 @@ def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
     buffer = bytearray()
     orig_timeout = sock.gettimeout()
     try:
-        sock.settimeout(0.2)
+        sock.settimeout(SOS_SOCKET_POLL_TIMEOUT)
         start = time.time()
         while True:
             try:
-                chunk = sock.recv(4096)
+                chunk = sock.recv(SOCKET_BUFFER_SIZE)
                 if chunk:
                     buffer.extend(chunk)
                     start = time.time()
@@ -176,7 +196,8 @@ class SimplePPEngine:
     - Navigates LibreOffice
     """
     
-    def __init__(self, pp, slide_dictionary, cache_manager, audio_controller=None):
+    def __init__(self, pp, slide_dictionary, cache_manager, audio_controller=None,
+                 nowplaying_enabled=True):
         """
         Initialize the engine.
         
@@ -185,11 +206,13 @@ class SimplePPEngine:
             slide_dictionary: Dict mapping clip names to slide numbers
             cache_manager: Initialized CacheManager instance
             audio_controller: Optional AudioController instance
+            nowplaying_enabled: Set False to skip all Pi nowPlaying socket calls
         """
         self.pp = pp
         self.slide_dictionary = slide_dictionary
         self.cache_manager = cache_manager
         self.audio_controller = audio_controller
+        self.nowplaying_enabled = nowplaying_enabled
         self.running = True
         self.current_slide = -1
         self.sock = None
@@ -219,10 +242,21 @@ class SimplePPEngine:
         self.overlay_manager = OverlayManager()
         self.subtitle_manager = SubtitleManager(gui_overlay=self.overlay_manager.subtitle_overlay)
         
-        # Timing state
+        # Timing state - using internal timer instead of frames
         self.clip_start_time = None
         self.last_clip_name = None
-        self.current_duration = 0
+        self.DATASET_DURATION = 60.0  # Default 1-minute duration for regular datasets
+        self.current_clip_duration = 60.0  # Actual duration of current clip (varies for translated movies)
+        
+        # Deferred operations state (to allow progress bar to animate immediately)
+        self.pending_clip_number = None
+        self.pending_clip_name = None
+        self.pending_metadata = None
+        self.pending_is_credits = False
+        self.pending_is_translated = False
+        self.deferred_operations_done = True
+        self.deferred_operations_countdown = 0  # Delay operations by N iterations
+        self.deferred_operations_thread = None  # Background thread for slow operations
         
         # Start query server thread
         self.query_server_thread = threading.Thread(target=self._run_query_server, daemon=True)
@@ -295,28 +329,17 @@ class SimplePPEngine:
             print(f"Error getting clip info: {e}")
             return None, None
 
-    def get_frame_number(self):
-        """Get current frame number from SOS."""
-        if not self.sock: return 0
-        try:
-            self.sock.sendall(b'get_frame_number\n')
-            data = self.sock.recv(1024)
-            val = data.decode('utf-8', 'ignore').strip()
-            return int(val) if val.isdigit() else 0
-        except: return 0
-            
-    def get_frame_rate(self):
-        """Get frame rate from SOS."""
-        if not self.sock: return 30.0
-        try:
-            self.sock.sendall(b'get_frame_rate\n')
-            data = self.sock.recv(1024)
-            val = data.decode('utf-8', 'ignore').strip().split()[0]
-            return float(val) if val else 30.0
-        except: return 30.0
+    def get_elapsed_time(self):
+        """Get elapsed time since clip started (capped at current clip duration)."""
+        if self.clip_start_time is None:
+            return 0.0
+        elapsed = time.time() - self.clip_start_time
+        return min(elapsed, self.current_clip_duration)  # Cap at current clip's duration
 
     def _send_nowplaying_message(self, message: str) -> None:
         """Send a nowPlaying socket message to the Pi."""
+        if not self.nowplaying_enabled:
+            return
         try:
             with socket.create_connection((PI_IP, PI_PORT), timeout=2.0) as pi_sock:
                 pi_sock.sendall(message.encode('utf-8'))
@@ -373,7 +396,7 @@ class SimplePPEngine:
             server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_sock.bind(('0.0.0.0', ENGINE_QUERY_PORT))
             server_sock.listen(1)
-            server_sock.settimeout(1.0)  # Allow periodic checks of self.running
+            server_sock.settimeout(SERVER_ACCEPT_TIMEOUT)  # Allow periodic checks of self.running
             
             print(f"[Engine] Query server listening on port {ENGINE_QUERY_PORT}")
             
@@ -383,7 +406,7 @@ class SimplePPEngine:
                     print(f"[Engine] Query connection from {addr}")
                     
                     with conn:
-                        conn.settimeout(2.0)
+                        conn.settimeout(CLIENT_CONNECTION_TIMEOUT)
                         try:
                             # Receive request
                             data = conn.recv(1024).decode('utf-8', 'ignore').strip()
@@ -430,7 +453,7 @@ class SimplePPEngine:
             server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_sock.bind(('0.0.0.0', HTTP_SERVER_PORT))
             server_sock.listen(5)
-            server_sock.settimeout(1.0)
+            server_sock.settimeout(SERVER_ACCEPT_TIMEOUT)
             
             print(f"[Engine] HTTP server ready on port {HTTP_SERVER_PORT}")
             
@@ -506,10 +529,30 @@ class SimplePPEngine:
                     return {
                         "status": "ok",
                         "facilitation_mode": self.facilitation_mode,
+                        "current_clip": self.current_clip_number,
                         "volume": self.audio_controller.get_volume() if self.audio_enabled else None,
                         "audio_enabled": self.audio_enabled
                     }
-            
+
+            elif command == "GET_PLAYLIST":
+                return self._handle_get_playlist()
+
+            elif command == "DATASET_NEXT":
+                return self._sos_nav_command('next_clip\n')
+
+            elif command == "DATASET_PREV":
+                return self._sos_nav_command('prev_clip\n')
+
+            elif command == "DATASET_PLAY":
+                clip_number = data.get("clip_number")
+                if clip_number is None:
+                    return {"status": "error", "message": "Missing clip_number"}
+                return self._sos_nav_command(f'play {clip_number}\n')
+
+            elif command == "GET_CURRENT_CLIP":
+                with self.state_lock:
+                    return {"status": "ok", "current_clip": self.current_clip_number}
+
             else:
                 return {"status": "error", "message": f"Unknown command: {command}"}
                 
@@ -518,6 +561,81 @@ class SimplePPEngine:
         except Exception as e:
             return {"status": "error", "message": f"Error: {str(e)}"}
     
+    def _sos_nav_command(self, command: str) -> dict:
+        """Send a navigation command to SOS via a fresh socket connection."""
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(SOS_CONNECTION_TIMEOUT)
+            sock.connect((SOS_IP, SOS_PORT))
+            sock.sendall(b'enable\n')
+            recv_data(sock, timeout_idle=0.5)
+            sock.sendall(command.encode('utf-8'))
+            data = recv_data(sock, timeout_idle=1.0)
+            sock.close()
+            response = data.decode('utf-8', 'ignore').strip()
+            print(f"[Engine] SOS nav '{command.strip()}' -> '{response}'")
+            return {"status": "ok"}
+        except Exception as e:
+            print(f"[Engine] SOS nav command failed: {e}")
+            return {"status": "error", "message": str(e)}
+
+    def _handle_get_playlist(self) -> dict:
+        """Return all clips in the current playlist with display names."""
+        try:
+            clips = []
+            with self.state_lock:
+                current_clip = self.current_clip_number
+
+            # Fast path: use in-memory cache if available
+            if self.cache_manager and self.cache_manager.current_playlist:
+                playlist_clips = self.cache_manager.current_playlist.get('clips', [])
+                for idx, clip in enumerate(playlist_clips, start=1):
+                    clip_name = clip.get('name', '')
+                    metadata = self.cache_manager.get(clip_name) or {}
+                    display_name = metadata.get('movie-title', clip_name)
+                    clips.append({"clip_number": idx, "name": display_name})
+                playlist_path = self.cache_manager.current_playlist.get('path', '') or ''
+                playlist_name = playlist_path.rsplit('/', 1)[-1].rsplit('.', 1)[0] if playlist_path else ''
+                return {"status": "ok", "clips": clips, "current_clip": current_clip, "playlist_name": playlist_name}
+
+            # Fallback: query SOS directly (following get_playlist_info.py pattern)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(SOS_QUERY_TIMEOUT)
+            sock.connect((SOS_IP, SOS_PORT))
+            sock.sendall(b'enable\n')
+            recv_data(sock, timeout_idle=0.5)
+
+            # Get playlist name first (as in get_playlist_info.py)
+            sock.sendall(b'get_playlist_name\n')
+            data = recv_data(sock, timeout_idle=1.0)
+            playlist_path = data.decode('utf-8', 'ignore').strip()
+            playlist_name = playlist_path.rsplit('/', 1)[-1].rsplit('.', 1)[0] if playlist_path else ''
+
+            sock.sendall(b'get_clip_count\n')
+            data = recv_data(sock, timeout_idle=1.0)
+            clip_count = int(data.decode('utf-8', 'ignore').strip())
+
+            if current_clip is None:
+                sock.sendall(b'get_clip_number\n')
+                data = recv_data(sock, timeout_idle=1.0)
+                raw = data.decode('utf-8', 'ignore').strip()
+                current_clip = int(raw) if raw.isdigit() else None
+
+            for i in range(1, clip_count + 1):
+                sock.sendall(f'get_all_name_value_pairs {i}\n'.encode('utf-8'))
+                data = recv_data(sock, timeout_idle=1.0)
+                nvp = data.decode('utf-8', 'ignore').strip()
+                m = re.search(r'\bname\s+\{([^}]+)\}', nvp) or re.search(r'\bname\s+(\S+)', nvp)
+                name = m.group(1) if m else f"Clip {i}"
+                clips.append({"clip_number": i, "name": name})
+
+            sock.close()
+            return {"status": "ok", "clips": clips, "current_clip": current_clip, "playlist_name": playlist_name}
+
+        except Exception as e:
+            print(f"[Engine] Get playlist error: {e}")
+            return {"status": "error", "message": str(e)}
+
     def _toggle_facilitation(self, enable: bool) -> dict:
         """Toggle facilitation mode."""
         try:
@@ -533,7 +651,7 @@ class SimplePPEngine:
                     if self.audio_controller.is_playing():
                         print("[Engine] Fading out audio...")
                         self.audio_controller.fade_out()
-                        time.sleep(2.2)  # Wait for fade
+                        time.sleep(SUBTITLE_FADE_WAIT)  # Wait for fade
                     
                     print("[Engine] Muting audio")
                     self.audio_controller.mute()
@@ -582,6 +700,8 @@ class SimplePPEngine:
     
     def _send_to_nowplaying(self, command: str):
         """Send command to nowPlaying display."""
+        if not self.nowplaying_enabled:
+            return
         try:
             with socket.create_connection((PI_IP, PI_PORT), timeout=3.0) as sock:
                 sock.sendall(command.encode('utf-8'))
@@ -609,6 +729,44 @@ class SimplePPEngine:
             print(f"[Engine] Navigating to Slide {target_slide}")
             self.pp.goto(target_slide)
             self.current_slide = target_slide
+    
+    def _execute_deferred_operations_background(self):
+        """Execute slow operations in background thread so they don't block progress bar animation."""
+        try:
+            print(f"[Engine] [Background Thread] Starting deferred operations")
+            
+            # NowPlaying update
+            if self.pending_clip_number is not None:
+                nowplaying_start = time.time()
+                self.update_nowPlaying(self.pending_clip_number)
+                print(f"[Engine] [Background] NowPlaying update took {time.time() - nowplaying_start:.3f}s")
+
+            # Audio management
+            if self.pending_clip_name is not None:
+                audio_start = time.time()
+                self.manage_audio(self.pending_clip_name, self.pending_is_credits, self.pending_is_translated)
+                print(f"[Engine] [Background] Audio management took {time.time() - audio_start:.3f}s")
+
+            # Subtitle loading (translated movies only)
+            if self.pending_is_translated and not self.pending_is_credits and self.pending_metadata:
+                subtitle_start = time.time()
+                local_meta = self.pending_metadata.copy()
+                if self.pending_metadata.get('caption'):
+                    path1 = self.cache_manager.fetch_subtitle_file(self.pending_metadata['caption'])
+                    if path1: local_meta['caption'] = path1
+                if self.pending_metadata.get('caption2'):
+                    path2 = self.cache_manager.fetch_subtitle_file(self.pending_metadata['caption2'])
+                    if path2: local_meta['caption2'] = path2
+
+                self.subtitle_manager.load_subtitles_for_clip(local_meta)
+                print(f"[Engine] [Background] Subtitle loading took {time.time() - subtitle_start:.3f}s")
+            
+            print("[Engine] [Background Thread] All deferred operations complete")
+                
+        except Exception as e:
+            print(f"[Engine] [Background Thread] Error in deferred operations: {e}")
+            import traceback
+            traceback.print_exc()
     
     def manage_audio(self, clip_name, is_credits, is_translated):
         """
@@ -666,21 +824,32 @@ class SimplePPEngine:
         # Fade out current audio if playing
         if self.audio_controller.is_playing():
             self.audio_controller.fade_out()
-            time.sleep(0.5)  # Brief pause between tracks
+            time.sleep(AUDIO_TRACK_PAUSE)  # Brief pause between tracks
         
         # Get the next track for this category
         next_track = self.cache_manager.get_next_audio_track(major_category)
         
         if next_track:
-            # Play the new track
+            # Play the new track, with one fallback retry on failure
             success = self.audio_controller.play_audio(next_track, loop=True)
-            
+
+            if not success:
+                print(f"[Audio] Failed to play: {next_track} — trying fallback track")
+                fallback_track = self.cache_manager.get_next_audio_track(major_category)
+                if fallback_track and fallback_track != next_track:
+                    success = self.audio_controller.play_audio(fallback_track, loop=True)
+                    if success:
+                        next_track = fallback_track
+                        print(f"[Audio] Fallback succeeded: {fallback_track}")
+                    else:
+                        print(f"[Audio] Fallback also failed: {fallback_track} — audio skipped for this clip")
+                else:
+                    print(f"[Audio] No alternative fallback track available — audio skipped for this clip")
+
             if success:
                 self.current_audio_category = major_category
                 self.cache_manager.update_last_played(major_category, next_track)
                 print(f"[Audio] Now playing: {next_track} (category: {major_category})")
-            else:
-                print(f"[Audio] Failed to play: {next_track}")
         else:
             print(f"[Audio] No audio tracks available for category: {major_category}")
     
@@ -707,53 +876,92 @@ class SimplePPEngine:
                 if clip_number and clip_name != self.last_clip_name:
                     print(f"\n[Clip {clip_number}] {clip_name}")
                     self.last_clip_name = clip_name
-                    self.navigate_to_clip(clip_name or "")
-                    self.update_nowPlaying(clip_number)
                     
-                    # Update Overlay State
+                    # Resolve metadata and clip type BEFORE navigation so transitions are concurrent
                     metadata = self.cache_manager.get(clip_name) if clip_name else {}
-                    self.current_duration = float(metadata.get('duration', 180.0)) if metadata else 180.0
-                    
-                    # Determine visibility
                     is_credits = "credits" in (clip_name or "").lower()
-
                     is_translated = str(metadata.get('translated-movie', '')).lower() == 'true'
-                    print(f"[Engine] is_credits: {is_credits}, is_translated: {is_translated}")
                     
-                    # Manage audio playback based on clip type
-                    self.manage_audio(clip_name, is_credits, is_translated)
-                    
-                    if is_credits:
-                        self.overlay_manager.hide_all()
-                    elif is_translated:
-                        # print(f"[Subtitles] Translated clip detected: {clip_name}")
-                        local_meta = metadata.copy()
-                        if metadata.get('caption'):
-                            path1 = self.cache_manager.fetch_subtitle_file(metadata['caption'])
-                            if path1: local_meta['caption'] = path1
-                        if metadata.get('caption2'):
-                            path2 = self.cache_manager.fetch_subtitle_file(metadata['caption2'])
-                            if path2: local_meta['caption2'] = path2
-                            
-                        self.overlay_manager.show_subtitles_and_progress()
-                        self.subtitle_manager.load_subtitles_for_clip(local_meta)
-                        
-                        # Update titles from CSV
-                        spanish_title, english_title = self.cache_manager.get_clip_titles(clip_name)
-                        print(f"[Engine] Title Logic - Name: '{clip_name}', EN: '{english_title}', ES: '{spanish_title}'")
-                        # Rule 2a: English Title above Col 1 (Left), Spanish Title above Col 2 (Right)
-                        self.overlay_manager.update_titles(english_title, spanish_title)
+                    # Determine duration: use metadata duration for translated movies, else default 60s
+                    if is_translated and metadata.get('duration'):
+                        duration_raw = metadata.get('duration', 60.0)
+                        # Handle both int and float duration values
+                        if isinstance(duration_raw, str):
+                            try:
+                                self.current_clip_duration = float(duration_raw)
+                            except ValueError:
+                                self.current_clip_duration = self.DATASET_DURATION
+                        else:
+                            self.current_clip_duration = float(duration_raw)
+                        print(f"[Engine] Custom movieset duration: {self.current_clip_duration} seconds")
                     else:
-                        self.overlay_manager.hide_all() # Hide titles if not translated
-                        self.overlay_manager.show_progress_only()
+                        self.current_clip_duration = self.DATASET_DURATION
+                    
+                    print(f"[Engine] is_credits: {is_credits}, is_translated: {is_translated}")
+
+                    # Instantly clear old overlay state for a clean transition
+                    self.overlay_manager.instant_clear()
+
+                    # Navigate to new slide FIRST (this blocks for ~7 seconds)
+                    slide_start = time.time()
+                    self.navigate_to_clip(clip_name or "")
+                    print(f"[Engine] Slide navigation took {time.time() - slide_start:.3f}s")
+                    
+                    # START TIMER NOW - right after navigation completes, before showing progress bar
+                    self.clip_start_time = time.time()
+                    print(f"[Engine] Internal timer started at {self.clip_start_time}")
+
+                    # SHOW PROGRESS BAR IMMEDIATELY after navigation (not before!)
+                    if not is_credits:
+                        # Seed progress at 0:00 and show immediately
+                        self.overlay_manager.reset_progress(self.current_clip_duration)
+                        
+                        # Update progress to 0 to force initial render
+                        self.overlay_manager.update_progress(0.0, self.current_clip_duration)
+                        
+                        if is_translated:
+                            # Small delay for custom moviesets to ease transition from credits
+                            time.sleep(PRESENTATION_TRANSITION_DELAY)
+                            
+                            # Show overlays for translated movies
+                            self.overlay_manager.show_subtitles_and_progress()
+                            
+                            # Update titles from CSV (fast operation - do it now)
+                            spanish_title, english_title = self.cache_manager.get_clip_titles(clip_name)
+                            print(f"[Engine] Title Logic - Name: '{clip_name}', EN: '{english_title}', ES: '{spanish_title}'")
+                            self.overlay_manager.update_titles(english_title, spanish_title)
+                        else:
+                            # Show progress bar instantly for non-translated datasets
+                            self.overlay_manager.show_progress_only()
+                        
+                        # Force MULTIPLE UI update cycles to ensure progress bar is rendered
+                        for _ in range(5):
+                            self.qapp.processEvents()
+                            self.overlay_manager.process_events()
+                        
+                        print(f"[Engine] *** PROGRESS BAR VISIBLE at T+{time.time() - self.clip_start_time:.3f}s ***")
+                    else:
+                        # Keep overlays hidden for credits
+                        print("[Engine] Credits detected - overlays remain hidden")
+
+                    # Set flags for deferred operations to happen AFTER several iterations
+                    # This allows the progress bar to animate for ~0.5s before blocking operations
+                    self.pending_clip_number = clip_number
+                    self.pending_clip_name = clip_name
+                    self.pending_metadata = metadata
+                    self.pending_is_credits = is_credits
+                    self.pending_is_translated = is_translated
+                    self.deferred_operations_done = False
+                    self.deferred_operations_countdown = 10  # Wait 10 iterations (~0.5s) before executing
+                    print("[Engine] Deferred operations scheduled for 0.5s from now")
                 
-                # 4. Update Progress & Subtitles
-                current_frame = self.get_frame_number()
-                fps = self.get_frame_rate()
-                current_time = current_frame / fps if fps > 0 else 0
+                # 4. Update Progress & Subtitles using internal timer
+                # This happens EVERY iteration, regardless of deferred operations
+                # Get elapsed time from internal timer (automatically capped at current clip duration)
+                current_time = self.get_elapsed_time()
                 
-                # Push updates to UI
-                self.overlay_manager.update_progress(current_time, self.current_duration)
+                # Push updates to UI with actual clip duration (60s for regular, variable for translated movies)
+                self.overlay_manager.update_progress(current_time, self.current_clip_duration)
                 
                 # Subtitles (if enabled, manager will verify time and update overlay)
                 if self.overlay_manager.mode == "SUBTITLES_AND_PROGRESS":
@@ -761,8 +969,23 @@ class SimplePPEngine:
                 
                 # Process Qt events for smooth UI
                 self.overlay_manager.process_events()
+                
+                # Handle deferred operations countdown - decrement each iteration
+                if not self.deferred_operations_done and self.deferred_operations_countdown > 0:
+                    self.deferred_operations_countdown -= 1
+                    if self.deferred_operations_countdown == 0:
+                        print(f"[Engine] Launching deferred operations in background thread at T+{time.time() - self.clip_start_time:.3f}s")
+                        # Launch operations in background thread so they don't block progress animation
+                        self.deferred_operations_thread = threading.Thread(
+                            target=self._execute_deferred_operations_background,
+                            daemon=True
+                        )
+                        self.deferred_operations_thread.start()
+                        # Mark as done immediately so we don't launch again
+                        self.deferred_operations_done = True
+                        self.pending_clip_number = None
 
-                time.sleep(0.05) # 20 FPS for smoother updates
+                time.sleep(ENGINE_LOOP_SLEEP) # 20 FPS for smoother updates
                 
         except KeyboardInterrupt:
             print("\n[Engine] Keyboard interrupt")
@@ -787,13 +1010,12 @@ class SimplePPEngine:
         except Exception as e:
             print(f"[Engine] Error closing overlays: {e}")
         
-        # Stop audio
+        # Stop audio and close MPV
         try:
-            if self.audio_controller and hasattr(self.audio_controller, 'is_playing'):
-                if self.audio_controller.is_playing():
-                    self.audio_controller.fade_out()
+            if self.audio_controller and hasattr(self.audio_controller, 'close'):
+                self.audio_controller.close()
         except Exception as e:
-            print(f"[Engine] Error stopping audio: {e}")
+            print(f"[Engine] Error closing audio: {e}")
         
         # Close socket
         if self.sock:

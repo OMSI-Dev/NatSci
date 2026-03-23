@@ -1,0 +1,137 @@
+# Issue starting 'Start SOS' - app does not recognize display :2 with secondary display plugged into the dedicated projector graphics card
+
+# Issue unresolved as of 3/2/26, all steps below have been attempted and reverted 
+
+(Step 1: ) Find the BusID of the secondary GPU (M4000)
+lspci | grep -i vga
+
+(Step 2: ) Modify the xorg.conf 
+sudo nano /etc/X11/xorg.conf
+
+(2a: ) Replace the ServerLayout section
+
+Section "ServerLayout"
+    Identifier     "Layout"
+    Screen      0  "Screen0" 0 0
+    Screen      1  "Screen1" RightOf "Screen0" #<-- Only added line
+    InputDevice    "Keyboard" "CoreKeyboard"
+    InputDevice    "Mouse" "CorePointer"
+EndSection
+
+(2b: ) Add new sections to the bottom of file
+Section "Monitor"
+    Identifier     "Monitor1"
+    HorizSync       30.0 - 83.0
+    VertRefresh     56.0 - 76.0
+EndSection
+
+Section "Device"
+    Identifier     "Device1"
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    BoardName      "Quadro M4000"
+    BusID          "PCI:3:0:0"
+    Option         "NoLogo" "1"
+    Option         "ProbeAllGpus" "false"
+EndSection
+
+Section "Screen"
+    Identifier     "Screen1"
+    Device         "Device1"
+    Monitor        "Monitor1"
+    DefaultDepth    24
+    SubSection "Display"
+        Depth       24
+    EndSubSection
+EndSection
+
+(Step 3: ) Restart display manager
+**Warning** Save any files before running command, user will be logged out and all software automatically closed
+sudo systemctl restart display-manager
+
+(Step 3a: ) Confirm new display is active/recognized
+- Mouseover to new display 
+
+# Start SOS still doesn't work here, so I went into the projector configuration file and attempted to troubleshoot from here
+
+(Step 4: ) Create a backup of xorg-projectors-twinview.conf
+sudo cp /etc/X11/xorg-projectors-twinview.conf /etc/X11/xorg-projectors.twinview.bak
+
+(Step 5: ) Append a new version of xorg-projectors-twinview.conf
+sudo nano /etc/X11/xorg-projectors-twinview.conf
+
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen      0  "Screen0" 0 0
+EndSection
+
+Section "Device"
+    Identifier     "Device0"
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    BoardName      "Quadro M4000"
+    BusID          "PCI:3:0:0"
+    Option         "ProbeAllGpus" "false"
+    Option         "NoLogo" "1"
+EndSection
+
+Section "Monitor"
+    Identifier     "Monitor0"
+EndSection
+
+Section "Screen"
+    Identifier     "Screen0"
+    Device         "Device0"
+    Monitor        "Monitor0"
+    DefaultDepth    24
+    SubSection "Display"
+        Depth       24
+    EndSubSection
+EndSection
+
+(Step 5 Note: Previous existing projector config file has reference to previous GFX card 'RTX A2000')
+
+sos@sos2:/etc/X11$ cat /etc/X11/xorg-projectors-twinview.conf
+# xorg-2pc-A2000-3840x2160-projector-DFP.conf
+# Xorg file for the Nvidia RTX A2000 card. The card has 4 Mini DisplayPort ouputs.
+
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen      0  "Screen0" 0 0
+EndSection
+
+Section "ServerFlags"
+    Option         "AutoAddDevices"      "false"
+    Option         "AutoEnableDevices"   "false"
+    Option         "AllowEmptyInput"   "true"
+EndSection
+
+Section "Device"
+    Identifier     "Device0"
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    BoardName      "RTX A2000" #!!! Wrong GFX card !!!
+    BusID          "PCI:3:0:0"
+    Option         "ConnectedMonitor" "DP-0,DP-2,DP-4,DP-6"
+    Option         "metamodes" "DP-6: 3840x2160_30 +0+0, DP-4: 3840x2160_30 +3840+0, DP-2: 3840x2160_30 +3840+2160, DP-0: 3840x2160_30 +0+2160"
+    Option         "ModeDebug" "false"
+    Option         "CustomEDID" "DFP:/etc/X11/projectors/benq-4k-edid.bin"
+    Option         "NoLogo"
+    Option         "ProbeAllGpus" "false"
+EndSection
+
+Section "Screen"
+    Identifier     "Screen0"
+    Device         "Device0"
+    Monitor        "GenericMonitor"
+    Option              "ConnectedMonitor" "DP-0,DP-2,DP-4,DP-6"
+EndSection
+
+Section "Monitor"
+    Identifier     "GenericMonitor"
+EndSection
+
+Section "Extensions"
+    Option         "Composite" "Disable"
+EndSection
+

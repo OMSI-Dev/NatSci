@@ -1,0 +1,33 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
+
+[application]
+
+config/name="Custom QR Code Test"
+run/main_scene="uid://covchfpd1gn73"
+config/features=PackedStringArray("4.6", "C#", "Forward Plus")
+config/icon="res://icon.svg"
+
+[autoload]
+
+SerialCom="*uid://cohtgm67fwcl5"
+SheetManager="*uid://cc4045a7m6j60"
+
+[dotnet]
+
+project/assembly_name="Custom QR Code Test"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/qr_code/plugin.cfg", "res://addons/sync_spreadsheets/plugin.cfg")

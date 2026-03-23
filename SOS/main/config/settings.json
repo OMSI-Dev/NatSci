@@ -1,0 +1,81 @@
+{
+  "__comment__": "SOS Control System Configuration",
+  
+  "sos": {
+    "ip": "10.0.0.16",
+    "port": 2468,
+    "user": "sos"
+  },
+  
+  "pi": {
+    "ip": "10.10.51.111",
+    "port": 4096,
+    "enabled": false
+  },
+  
+  "servers": {
+    "query_port": 4097,
+    "http_port": 5000
+  },
+  
+  "paths": {
+    "base_share": "\\\\10.0.0.16\\AuxShare",
+    "cache_dir": "\\\\10.0.0.16\\AuxShare\\cache",
+    "audio_dir": "\\\\10.0.0.16\\AuxShare\\audio",
+    "documents_dir": "\\\\10.0.0.16\\AuxShare\\documents",
+    "data_dir": "\\\\10.0.0.16\\AuxShare\\data",
+    "assets_dir": "\\\\10.0.0.16\\AuxShare\\assets"
+  },
+  
+  "files": {
+    "playlist_cache": "playlist_cache.JSON",
+    "metadata_cache": "clip_metadata_cache.JSON",
+    "audio_config": "audio-config.JSON",
+    "audio_list": "audio-list.csv",
+    "dataset_csv": "SOS_datasets.csv",
+    "presentation": "noaa_presentation.odp"
+  },
+  
+  "audio": {
+    "remote_path": "/AuxShare/audio/mp3",
+    "socket_path": "/tmp/mpv-audio-socket",
+    "default_volume": 100,
+    "fade_duration": 2.0
+  },
+  
+  "presentation": {
+    "auto_start": true,
+    "libreoffice_paths": [
+      "C:\\Program Files\\LibreOffice\\program\\soffice.exe",
+      "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe"
+    ]
+  },
+  
+  "overlay": {
+    "progress_bar": {
+      "height": 12,
+      "margin_left": 210,
+      "margin_right": 210,
+      "y_offset": 87,
+      "color": "#ffffff"
+    },
+    "subtitles": {
+      "font_size": 28,
+      "y_offset": 80,
+      "opacity": 0.85
+    }
+  },
+  
+  "features": {
+    "nowplaying_enabled": false,
+    "audio_enabled": true,
+    "subtitles_enabled": true,
+    "http_server_enabled": true
+  },
+  
+  "debug": {
+    "show_borders": false,
+    "verbose_ssh": false,
+    "verbose_mpv": false
+  }
+}

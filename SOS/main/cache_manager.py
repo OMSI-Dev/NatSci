@@ -20,12 +20,12 @@ class CacheManager:
     """
     
     def __init__(self, 
-                 playlist_cache_path=r'\\sos2\AuxShare\cache\playlist_cache.JSON', 
-                 metadata_cache_path=r'\\sos2\AuxShare\cache\clip_metadata_cache.JSON',
-                 subtitle_cache_dir=r'\\sos2\AuxShare\cache\subtitles',
-                 dataset_csv_path=r'\\sos2\AuxShare\data\SOS_datasets.csv',
-                 audio_config_path=r'\\sos2\AuxShare\audio\audio-config.JSON',
-                 audio_csv_path=r'\\sos2\AuxShare\audio\audio-list.csv'):
+                 playlist_cache_path=r'\\10.0.0.16\AuxShare\cache\playlist_cache.JSON', 
+                 metadata_cache_path=r'\\10.0.0.16\AuxShare\cache\clip_metadata_cache.JSON',
+                 subtitle_cache_dir=r'\\10.0.0.16\AuxShare\cache\subtitles',
+                 dataset_csv_path=r'\\10.0.0.16\AuxShare\data\SOS_datasets.csv',
+                 audio_config_path=r'\\10.0.0.16\AuxShare\audio\audio-config.JSON',
+                 audio_csv_path=r'\\10.0.0.16\AuxShare\audio\audio-list.csv'):
         
         self.playlist_cache_file = playlist_cache_path
         self.metadata_cache_file = metadata_cache_path
@@ -104,7 +104,7 @@ class CacheManager:
         
         return result
 
-    def get_server_modification_date(self, playlist_path, host="10.10.51.98"): #NETWORK
+    def get_server_modification_date(self, playlist_path, host="10.0.0.16"): #NETWORK
         """Get the last modified date of the playlist file on the SOS server via SSH."""
         try:
             command = f'ssh sos@{host} "stat -c %y \\"{playlist_path}\\""'
@@ -161,7 +161,7 @@ class CacheManager:
         except Exception: pass
         
         # Try SCP (SOS Server)
-        sos_ip = "10.10.51.98" #NETWORK
+        sos_ip = "10.0.0.16" #NETWORK
         ssh_user = "sos"  # Authenticated user verified by client
         
         found_keys = []

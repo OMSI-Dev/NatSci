@@ -7,12 +7,10 @@ Sets pin modes and their default states.
 
 */
 
-#define ledData1 8
-#define ledData2 9
-#define ledData3 10
+#define ledData1 10
 
 #define NPWNDN1 5
-#define NPWNDN2 7
+#define NPWNDN2 11
 #define NPWNDN3 6
 
 #define TPI1 2
@@ -23,10 +21,8 @@ Sets pin modes and their default states.
 
 void setPins()
 {
-    // create outputs for WS2813Bs
+    // create output for WS2813B LED strip
     pinMode(ledData1, OUTPUT);
-    pinMode(ledData2, OUTPUT);
-    pinMode(ledData3, OUTPUT);
 
     // Set power control of the B1 RFID
     pinMode(NPWNDN1, OUTPUT);

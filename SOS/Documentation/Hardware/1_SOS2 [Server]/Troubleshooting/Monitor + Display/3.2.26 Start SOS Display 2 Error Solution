@@ -1,0 +1,21 @@
+# Documented below are the steps followed to solve the Display 2: error when attempting to launch 'Start SOS'
+# Three of the four projectors are connected via HDMI to DVI adapters to the Quadro M4000. 
+# The primary consistent error when initializing Display 2: manually via the command 'sudo /usr/bin/X :2 vt3 -sharevts -config xorg-projectors-twinview.conf -noreset -dpms -s 0 &'
+  # NVIDIA(GPU-0): Failed to acquire modesetting permission.
+  # NVIDIA(GPU-1): Failed to acquire modesetting permission.
+  
+1. Udev Seat Separation (/etc/udev/rules.d/61-gdm.rules)
+Uncommented the two pre-existing rules that were already written but disabled:
+SUBSYSTEM=="drm", KERNEL=="card2", TAG+="seat", ENV{ID_SEAT}="seat0"
+SUBSYSTEM=="drm", KERNEL=="card1", TAG+="seat", ENV{ID_SEAT}="seat1"
+This was the core fix — it freed the Quadro M4000 (card1) from the main X session's grip, allowing the SOS X server to acquire modesetting permission on display :2.
+
+2. Projector Config (/etc/X11/xorg-projectors-twinview.conf)
+Stripped out the forced display options that were causing X to fail even once the Quadro was free:
+
+Removed ConnectedMonitor, metamodes, and CustomEDID lines
+Corrected BusID to PCI:3:0:0 (Quadro M4000)
+Simplified to let the driver auto-detect connected displays
+
+3. GDM Multi-Seat (/etc/gdm3/custom.conf)
+Added MultiSeat=false under [daemon] to prevent GDM from hijacking seat1 and disrupting the main session.

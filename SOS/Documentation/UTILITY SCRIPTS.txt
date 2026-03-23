@@ -1,0 +1,46 @@
+1_test_connect.py
+Connects to the SOS server and returns the metadata of the currently playing clip.
+
+
+2_index_generate.py
+Creates an index of all SOS dataset names via SSH, extracts clip names from metadata and organizes them into a CSV file, saved locally. Takes a long time.
+
+
+3_query_metadata.py
+Prompts for a metadata type, then retrieves that metadata value for all clips in the currently playing playlist. Returns a list of clip names with their corresponding queried metadata values.
+
+
+4_playlist_all_metadata.py
+Retrieves complete metadata for all clips in the current playlist.
+
+
+5_download_playlist_file.py
+Displays all clips in the currently playing playlist, allows user to download associated playlist.sos dataset files (containing metadata) locally from the SOS server.
+
+
+6_get_playlist_info.py
+Retrieves playlist name, clip count, current clip number, and all clip names from the currently playing playlist using optimized socket queries.
+
+
+7_mpv_socket_test.py
+Standalone diagnostic script for testing MPV IPC socket creation and audio playback on SOS2. Tests SSH connectivity, MPV launch, socket communication, and audio file playback.
+
+
+8_current_clip_info.py
+Retrieves detailed metadata (get_clip_info and name-value pairs) for only the currently playing clip, without querying the entire playlist.
+
+
+sos_stopwatch.py
+Monitors SOS server for clip changes and measures the actual duration of each clip after it plays. Used for timing verification and performance debugging.
+
+
+test_audio_debug.py
+Tests the AudioController class with detailed debug output. Verifies initialization, playback, volume control, and fade operations.
+
+
+pi/blink_test.py
+Socket client for testing B-link to Raspberry Pi connectivity. Sends test message to Pi and waits for acknowledgment. Run from B-link device.
+
+
+pi/connect.py
+Socket server for Raspberry Pi side communication testing. Listens for incoming connections from B-link and sends acknowledgment responses. Run on Pi. 

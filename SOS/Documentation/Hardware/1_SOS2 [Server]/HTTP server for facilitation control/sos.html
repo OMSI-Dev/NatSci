@@ -1,0 +1,1243 @@
+<!-- Located on SOS server in /var/www/html/sos/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOS Facilitation Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            background: #edecea;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 30px 20px;
+        }
+
+        .container {
+            background: #ffffff;
+            border-radius: 0;
+            box-shadow: none;
+            border: 1px solid #c8c4be;
+            padding: 24px;
+            max-width: 560px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: left;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #cc0000;
+        }
+
+        h1 {
+            color: #1a1a1a;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            color: #999;
+            font-size: 11px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+
+        /* Facilitation Toggle */
+        .facilitation-section {
+            background: #f7f5f2;
+            border: 1px solid #ddd;
+            border-radius: 0;
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .facilitation-label {
+            color: #cc0000;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .toggle-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 0;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 1px solid #bbb;
+        }
+
+        .toggle-switch.active {
+            background: #cc0000;
+            border-color: #aa0000;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 0;
+            transition: left 0.2s;
+        }
+
+        .toggle-switch.active::after {
+            left: 29px;
+        }
+
+        .toggle-status {
+            font-size: 12px;
+            font-weight: 700;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .toggle-status.active {
+            color: #cc0000;
+        }
+
+        /* Panel headers (shared by settings + dataset) */
+        .settings-header,
+        .dataset-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 12px;
+            background: #f7f5f2;
+            border: 1px solid #ddd;
+            border-left: 3px solid #cc0000;
+            cursor: pointer;
+            margin-bottom: 1px;
+            transition: background 0.15s;
+            user-select: none;
+        }
+
+        .settings-header:hover,
+        .dataset-header:hover {
+            background: #f0ede8;
+        }
+
+        .settings-title,
+        .dataset-title {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #cc0000;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .settings-icon {
+            font-size: 14px;
+            transition: none;
+        }
+
+        .settings-icon.holding {
+            animation: pulse 0.5s ease-in-out;
+            color: #cc3366;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .expand-icon {
+            font-size: 11px;
+            color: #999;
+            transition: transform 0.25s;
+            font-style: normal;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .settings-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease-in-out, opacity 0.25s;
+            opacity: 0;
+        }
+
+        .settings-content.expanded {
+            max-height: 300px;
+            opacity: 1;
+            margin-bottom: 8px;
+        }
+
+        .volume-controls {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-top: none;
+            padding: 14px 16px;
+        }
+
+        .volume-display {
+            text-align: center;
+            margin-bottom: 14px;
+        }
+
+        .volume-label {
+            font-size: 10px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+
+        .volume-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .volume-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+        }
+
+        .btn {
+            padding: 9px 14px;
+            border: 1px solid #bbb;
+            border-radius: 0;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            background: #f7f5f2;
+            color: #1a1a1a;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            background: #edecea;
+            border-color: #999;
+        }
+
+        .btn:active {
+            background: #e0ddd8;
+        }
+
+        .btn-volume-up {
+            border-color: #cc0000;
+            color: #cc0000;
+        }
+
+        .btn-volume-up:hover {
+            background: #fff0f0;
+        }
+
+        .btn-volume-down {
+            border-color: #cc0000;
+            color: #cc0000;
+        }
+
+        .btn-volume-down:hover {
+            background: #fff0f0;
+        }
+
+        .btn-mute {
+            border-color: #aaa;
+            color: #555;
+        }
+
+        /* Secret Menu */
+        .secret-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(180, 170, 160, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .secret-menu.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .secret-content {
+            background: #fff;
+            border: 1px solid #c8c4be;
+            border-radius: 0;
+            padding: 24px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: none;
+        }
+
+        .secret-header {
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #cc0000;
+        }
+
+        .secret-header h2 {
+            color: #cc0000;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 2px;
+        }
+
+        .secret-header p {
+            color: #999;
+            font-size: 11px;
+        }
+
+        .secret-section {
+            margin-bottom: 18px;
+        }
+
+        .secret-section h3 {
+            color: #cc0000;
+            font-size: 10px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #e8e4df;
+            padding-bottom: 4px;
+        }
+
+        .fx-soundboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .fx-btn {
+            padding: 10px;
+            background: #f7f5f2;
+            color: #1a1a1a;
+            border: 1px solid #bbb;
+            border-radius: 0;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fx-btn:hover {
+            background: #edecea;
+            border-color: #cc0000;
+            color: #cc0000;
+        }
+
+        .audio-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .audio-option {
+            padding: 8px 12px;
+            background: #f7f5f2;
+            border: 1px solid #ddd;
+            border-radius: 0;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-size: 12px;
+            color: #1a1a1a;
+        }
+
+        .audio-option:hover {
+            background: #fce8ee;
+            border-color: #cc3366;
+            color: #cc3366;
+        }
+
+        .audio-option.selected {
+            background: #fce8ee;
+            border-color: #cc3366;
+            border-left: 3px solid #cc3366;
+            color: #cc3366;
+            font-weight: 700;
+        }
+
+        .close-secret {
+            margin-top: 16px;
+            width: 100%;
+            padding: 9px;
+            background: #f7f5f2;
+            color: #1a1a1a;
+            border: 1px solid #bbb;
+            border-radius: 0;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: background 0.15s;
+        }
+
+        .close-secret:hover {
+            background: #edecea;
+            border-color: #999;
+        }
+
+        /* Console/Log */
+        .console-section {
+            margin-top: 12px;
+        }
+
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .console-header h3 {
+            color: #cc0000;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .clear-btn {
+            padding: 3px 9px;
+            background: #f7f5f2;
+            color: #999;
+            border: 1px solid #ccc;
+            border-radius: 0;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background 0.15s;
+        }
+
+        .clear-btn:hover {
+            background: #edecea;
+            color: #555;
+        }
+
+        .console {
+            background: #1a1a1a;
+            color: #10b981;
+            border-radius: 0;
+            border: 1px solid #333;
+            padding: 10px 12px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 11px;
+            max-height: 160px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        .console .error { color: #ef4444; }
+        .console .warning { color: #f59e0b; }
+        .console .info { color: #60a5fa; }
+        .console .success { color: #10b981; }
+
+        /* Status Indicator */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 12px;
+            background: #f7f5f2;
+            border: 1px solid #ddd;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 0;
+            background: #bbb;
+        }
+
+        .status-dot.active {
+            background: #cc0000;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
+
+        .status-text {
+            color: #999;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Scrollbar styling */
+        .console::-webkit-scrollbar { width: 6px; }
+        .console::-webkit-scrollbar-track { background: #111; }
+        .console::-webkit-scrollbar-thumb { background: #333; }
+        .console::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Dataset Panel */
+        .dataset-panel {
+            margin-bottom: 8px;
+        }
+
+        .dataset-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease-in-out, opacity 0.25s;
+            opacity: 0;
+        }
+
+        .dataset-content.expanded {
+            max-height: 600px;
+            opacity: 1;
+            margin-bottom: 8px;
+        }
+
+        .dataset-inner {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-top: none;
+            padding: 14px 16px;
+        }
+
+        .dataset-nav {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+
+        .btn-prev,
+        .btn-next {
+            border-color: #cc0000;
+            color: #cc0000;
+        }
+
+        .btn-prev:hover,
+        .btn-next:hover {
+            background: #fff0f0;
+        }
+
+        .dataset-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .dataset-list-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-refresh {
+            padding: 3px 9px;
+            background: #f7f5f2;
+            color: #999;
+            border: 1px solid #ccc;
+            border-radius: 0;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background 0.15s;
+        }
+
+        .btn-refresh:hover {
+            background: #edecea;
+        }
+
+        .dataset-list {
+            max-height: 260px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dataset-list::-webkit-scrollbar { width: 5px; }
+        .dataset-list::-webkit-scrollbar-track { background: #f7f5f2; }
+        .dataset-list::-webkit-scrollbar-thumb { background: #ccc; }
+
+        .clip-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 10px;
+            background: #fff;
+            border-bottom: 1px solid #e8e4df;
+            cursor: pointer;
+            transition: background 0.12s;
+            text-align: left;
+        }
+
+        .clip-item:last-child {
+            border-bottom: none;
+        }
+
+        .clip-item:hover {
+            background: #fce8ee;
+        }
+
+        .clip-item.active {
+            background: #fce8ee;
+            border-left: 3px solid #cc3366;
+        }
+
+        .clip-num {
+            font-size: 10px;
+            font-weight: 700;
+            color: #bbb;
+            min-width: 22px;
+        }
+
+        .clip-item.active .clip-num {
+            color: #cc3366;
+        }
+
+        .clip-name {
+            font-size: 12px;
+            font-weight: 400;
+            color: #1a1a1a;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .clip-item.active .clip-name {
+            color: #cc3366;
+            font-weight: 700;
+        }
+
+        .dataset-status {
+            padding: 16px;
+            color: #bbb;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        /* Tooltips */
+        [data-tooltip] { position: relative; }
+
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 8px;
+            background: #333;
+            color: #fff;
+            font-size: 10px;
+            border-radius: 0;
+            white-space: nowrap;
+            margin-bottom: 4px;
+            z-index: 100;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>SOS Control Panel</h1>
+            <p class="subtitle">Science on a Sphere &nbsp;•&nbsp; Facilitation Controls</p>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot" id="connectionDot"></div>
+                <span class="status-text" id="connectionStatus">Connecting...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-text">Vol: <strong id="statusVolume">--</strong></span>
+            </div>
+        </div>
+
+        <!-- Facilitation Toggle -->
+        <div class="facilitation-section">
+            <div class="facilitation-label">Facilitation Mode</div>
+            <div class="toggle-container">
+                <div class="toggle-switch" id="facilitationToggle" onclick="toggleFacilitation()" data-tooltip="Pause display & mute audio"></div>
+                <div class="toggle-status" id="toggleStatus">OFF</div>
+            </div>
+        </div>
+
+        <!-- Advanced Settings -->
+        <div class="settings-section">
+            <div class="settings-header" onclick="toggleSettings()">
+                <div class="settings-title">
+                    <span class="settings-icon" id="settingsIcon"
+                          onmousedown="startHold()"
+                          onmouseup="endHold()"
+                          onmouseleave="endHold()"
+                          ontouchstart="startHold(event)"
+                          ontouchend="endHold()"
+                          data-tooltip="Hold for secret menu">»</span>
+                    <span>Advanced Settings</span>
+                </div>
+                <span class="expand-icon" id="expandIcon">›</span>
+            </div>
+            <div class="settings-content" id="settingsContent">
+                <div class="volume-controls">
+                    <div class="volume-display">
+                        <div class="volume-label">Volume Level</div>
+                        <div class="volume-value" id="volumeDisplay">--</div>
+                    </div>
+                    <div class="volume-buttons">
+                        <button class="btn btn-volume-up" onclick="adjustVolume('UP')" data-tooltip="Increase volume">
+                            Vol ↑
+                        </button>
+                        <button class="btn btn-volume-down" onclick="adjustVolume('DOWN')" data-tooltip="Decrease volume">
+                            Vol ↓
+                        </button>
+                        <button class="btn btn-mute" onclick="adjustVolume('MUTE')" data-tooltip="Toggle mute">
+                            🔇 Mute
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dataset Control -->
+        <div class="dataset-panel">
+            <div class="dataset-header" onclick="toggleDataset()">
+                <div class="dataset-title">
+                    <span>»</span>
+                    <span>Dataset Control</span>
+                </div>
+                <span class="expand-icon" id="datasetExpandIcon">›</span>
+            </div>
+            <div class="dataset-content" id="datasetContent">
+                <div class="dataset-inner">
+                    <div class="dataset-nav">
+                        <button class="btn btn-prev" onclick="prevClip()" data-tooltip="Previous dataset">← Prev</button>
+                        <button class="btn btn-next" onclick="nextClip()" data-tooltip="Next dataset">Next →</button>
+                    </div>
+                    <div class="dataset-list-header">
+                        <span class="dataset-list-label">Playlist<span id="playlistNameDisplay" style="font-weight:400;color:#555;text-transform:none;letter-spacing:0;margin-left:5px;"></span></span>
+                        <button class="btn-refresh" onclick="loadPlaylist()">↻ Refresh</button>
+                    </div>
+                    <div class="dataset-list" id="datasetList">
+                        <div class="dataset-status">Open to load playlist…</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console -->
+        <div class="console-section">
+            <div class="console-header">
+                <h3>Console</h3>
+                <button class="clear-btn" onclick="clearConsole()">Clear</button>
+            </div>
+            <div class="console" id="console">
+                <div class="info">[INFO] SOS Control Panel initialized</div>
+                <div class="info">[INFO] Connecting to engine...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secret Menu -->
+    <div class="secret-menu" id="secretMenu">
+        <div class="secret-content">
+            <div class="secret-header">
+                <h2>» Secret Menu</h2>
+                <p>Advanced Controls &amp; Features</p>
+            </div>
+
+            <div class="secret-section">
+                <h3>» FX Soundboard</h3>
+                <div class="fx-soundboard">
+                    <button class="fx-btn" onclick="playFX(1)">FX 1</button>
+                    <button class="fx-btn" onclick="playFX(2)">FX 2</button>
+                    <button class="fx-btn" onclick="playFX(3)">FX 3</button>
+                    <button class="fx-btn" onclick="playFX(4)">FX 4</button>
+                    <button class="fx-btn" onclick="playFX(5)">FX 5</button>
+                    <button class="fx-btn" onclick="playFX(6)">FX 6</button>
+                </div>
+            </div>
+
+            <div class="secret-section">
+                <h3>» Audio Source Selector</h3>
+                <div class="audio-selector">
+                    <div class="audio-option selected" onclick="selectAudio(this, 'default')">
+                        Default Audio Track
+                    </div>
+                    <div class="audio-option" onclick="selectAudio(this, 'ambient')">
+                        Ambient Soundscape
+                    </div>
+                    <div class="audio-option" onclick="selectAudio(this, 'narration')">
+                        Narration Only
+                    </div>
+                    <div class="audio-option" onclick="selectAudio(this, 'music')">
+                        Music Only
+                    </div>
+                </div>
+            </div>
+
+            <button class="close-secret" onclick="closeSecretMenu()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // BACKEND SOCKET COMMUNICATION (UNCHANGED)
+        // ============================================
+        const ENGINE_IP = 'localhost'; 
+        const ENGINE_PORT = '5000';
+        
+        let holdTimer = null;
+        let isHolding = false;
+        let facilitationEnabled = false;
+
+        // Console logging
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            const consoleElement = document.getElementById('console');
+            const line = document.createElement('div');
+            line.className = className;
+            line.textContent = `[${timestamp}] ${message}`;
+            consoleElement.appendChild(line);
+            consoleElement.scrollTop = consoleElement.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '<div class="info">[INFO] Console cleared</div>';
+        }
+
+        // Update status displays
+        function updateStatus(data) {
+            if (data.facilitation_mode !== undefined) {
+                facilitationEnabled = data.facilitation_mode;
+                updateFacilitationUI();
+            }
+            if (data.volume !== undefined) {
+                document.getElementById('volumeDisplay').textContent = data.volume + '%';
+                document.getElementById('statusVolume').textContent = data.volume + '%';
+            }
+            if (data.muted !== undefined) {
+                // Could show mute status here if needed
+            }
+            
+            // Update connection status
+            document.getElementById('connectionDot').classList.add('active');
+            document.getElementById('connectionStatus').textContent = 'Connected';
+        }
+
+        // Send command to engine (SOCKET FUNCTION - UNCHANGED)
+        async function sendCommand(commandData) {
+            const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+            log(`Sending: ${JSON.stringify(commandData)}`, 'info');
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(commandData)
+                });
+
+                const data = await response.json();
+                log(`Response: ${JSON.stringify(data)}`, 'info');
+                
+                updateStatus(data);
+                
+                if (data.status === 'ok') {
+                    log('✓ Command successful', 'success');
+                } else {
+                    log(`✗ Error: ${data.message || 'Unknown error'}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`✗ Error: ${error.message}`, 'error');
+                document.getElementById('connectionDot').classList.remove('active');
+                document.getElementById('connectionStatus').textContent = 'Disconnected';
+                
+                if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                    log('Make sure engine.py is running', 'warning');
+                }
+            }
+        }
+
+        // ============================================
+        // UI INTERACTIONS
+        // ============================================
+
+        // Facilitation Toggle
+        function toggleFacilitation() {
+            facilitationEnabled = !facilitationEnabled;
+            updateFacilitationUI();
+            fetch(`http://${ENGINE_IP}:${ENGINE_PORT}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: 'FACILITATION_TOGGLE', enable: facilitationEnabled })
+            }).then(r => r.json()).then(data => {
+                if (data.status !== 'ok') log(`Facilitation error: ${data.message}`, 'error');
+            }).catch(err => log(`Facilitation error: ${err.message}`, 'error'));
+        }
+
+        function updateFacilitationUI() {
+            const toggle = document.getElementById('facilitationToggle');
+            const status = document.getElementById('toggleStatus');
+            
+            if (facilitationEnabled) {
+                toggle.classList.add('active');
+                status.classList.add('active');
+                status.textContent = 'ON';
+            } else {
+                toggle.classList.remove('active');
+                status.classList.remove('active');
+                status.textContent = 'OFF';
+            }
+        }
+
+        // ============================================
+        // DATASET CONTROL
+        // ============================================
+
+        let datasetLoaded = false;
+        let currentClipNumber = null;
+
+        function toggleDataset() {
+            const content = document.getElementById('datasetContent');
+            const icon = document.getElementById('datasetExpandIcon');
+            const isExpanding = !content.classList.contains('expanded');
+
+            if (isExpanding) {
+                content.classList.add('expanded');
+                icon.classList.add('expanded');
+                if (!datasetLoaded) loadPlaylist();
+                else pollCurrentClip();
+            } else {
+                content.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            }
+        }
+
+        async function loadPlaylist() {
+            const listEl = document.getElementById('datasetList');
+            listEl.innerHTML = '<div class="dataset-status">Loading…</div>';
+            log('Fetching playlist from SOS...', 'info');
+
+            try {
+                const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'GET_PLAYLIST' })
+                });
+                const data = await response.json();
+
+                if (data.status !== 'ok' || !data.clips || data.clips.length === 0) {
+                    listEl.innerHTML = '<div class="dataset-status">No playlist loaded.</div>';
+                    log(`Playlist fetch failed: ${data.message || 'No clips'}`, 'error');
+                    return;
+                }
+
+                currentClipNumber = data.current_clip;
+                renderPlaylist(data.clips, data.current_clip);
+                datasetLoaded = true;
+                if (data.playlist_name) {
+                    document.getElementById('playlistNameDisplay').textContent = '— ' + data.playlist_name;
+                }
+                log(`Loaded ${data.clips.length} clips from "${data.playlist_name || 'unknown'}". Current: #${data.current_clip}`, 'success');
+
+            } catch (err) {
+                listEl.innerHTML = '<div class="dataset-status">Failed to load. Is engine running?</div>';
+                log(`Playlist load error: ${err.message}`, 'error');
+            }
+        }
+
+        function renderPlaylist(clips, currentClip) {
+            const listEl = document.getElementById('datasetList');
+            listEl.innerHTML = '';
+            clips.forEach(clip => {
+                const item = document.createElement('div');
+                item.className = 'clip-item' + (clip.clip_number === currentClip ? ' active' : '');
+                item.id = `clip-${clip.clip_number}`;
+                item.onclick = () => playClip(clip.clip_number);
+                item.innerHTML = `<span class="clip-num">#${clip.clip_number}</span><span class="clip-name" title="${clip.name}">${clip.name}</span>`;
+                listEl.appendChild(item);
+            });
+            scrollToActiveClip();
+        }
+
+        function scrollToActiveClip() {
+            if (currentClipNumber === null) return;
+            const el = document.getElementById(`clip-${currentClipNumber}`);
+            if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+
+        function setActiveClip(clipNumber) {
+            document.querySelectorAll('.clip-item').forEach(el => el.classList.remove('active'));
+            const el = document.getElementById(`clip-${clipNumber}`);
+            if (el) {
+                el.classList.add('active');
+                currentClipNumber = clipNumber;
+                el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        }
+
+        async function pollCurrentClip() {
+            try {
+                const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'GET_CURRENT_CLIP' })
+                });
+                const data = await response.json();
+                if (data.status === 'ok' && data.current_clip !== null) {
+                    setActiveClip(data.current_clip);
+                }
+            } catch (err) { /* silent */ }
+        }
+
+        async function playClip(clipNumber) {
+            log(`Playing clip #${clipNumber}...`, 'info');
+            try {
+                const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'DATASET_PLAY', clip_number: clipNumber })
+                });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    setActiveClip(clipNumber);
+                    log(`▶ Playing clip #${clipNumber}`, 'success');
+                } else {
+                    log(`Failed to play clip #${clipNumber}: ${data.message}`, 'error');
+                }
+            } catch (err) {
+                log(`Play error: ${err.message}`, 'error');
+            }
+        }
+
+        async function nextClip() {
+            log('Navigating to next clip...', 'info');
+            try {
+                const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'DATASET_NEXT' })
+                });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    log('→ Next clip', 'success');
+                    setTimeout(pollCurrentClip, 800);
+                } else {
+                    log(`Next clip error: ${data.message}`, 'error');
+                }
+            } catch (err) {
+                log(`Next clip error: ${err.message}`, 'error');
+            }
+        }
+
+        async function prevClip() {
+            log('Navigating to previous clip...', 'info');
+            try {
+                const url = `http://${ENGINE_IP}:${ENGINE_PORT}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'DATASET_PREV' })
+                });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    log('← Previous clip', 'success');
+                    setTimeout(pollCurrentClip, 800);
+                } else {
+                    log(`Prev clip error: ${data.message}`, 'error');
+                }
+            } catch (err) {
+                log(`Prev clip error: ${err.message}`, 'error');
+            }
+        }
+
+        // Also update GET_STATE to sync current clip highlight when it changes
+        const _origUpdateStatus = updateStatus;
+        function updateStatus(data) {
+            _origUpdateStatus(data);
+            if (data.current_clip !== undefined && data.current_clip !== null && datasetLoaded) {
+                setActiveClip(data.current_clip);
+            }
+        }
+
+        // Advanced Settings Toggle
+        function toggleSettings() {
+            const content = document.getElementById('settingsContent');
+            const icon = document.getElementById('expandIcon');
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            } else {
+                content.classList.add('expanded');
+                icon.classList.add('expanded');
+                // Refresh volume when opening
+                sendCommand({ command: 'GET_STATE' });
+            }
+        }
+
+        // Volume Control
+        function adjustVolume(action) {
+            sendCommand({
+                command: 'VOLUME_CONTROL',
+                action: action
+            });
+        }
+
+        // Secret Menu (Hold Detection)
+        function startHold(e) {
+            if (e) e.preventDefault();
+            isHolding = true;
+            const icon = document.getElementById('settingsIcon');
+            icon.classList.add('holding');
+            
+            holdTimer = setTimeout(() => {
+                if (isHolding) {
+                    openSecretMenu();
+                    log('Secret menu accessed', 'warning');
+                }
+            }, 1500); // Hold for 1.5 seconds
+        }
+
+        function endHold() {
+            isHolding = false;
+            clearTimeout(holdTimer);
+            const icon = document.getElementById('settingsIcon');
+            icon.classList.remove('holding');
+        }
+
+        function openSecretMenu() {
+            document.getElementById('secretMenu').classList.add('active');
+        }
+
+        function closeSecretMenu() {
+            document.getElementById('secretMenu').classList.remove('active');
+        }
+
+        // Close secret menu when clicking outside
+        document.getElementById('secretMenu').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSecretMenu();
+            }
+        });
+
+        // Secret Menu Functions (Placeholders)
+        function playFX(number) {
+            log(`FX Sound ${number} triggered (not implemented)`, 'warning');
+            // TODO: Implement FX sound playback
+        }
+
+        function selectAudio(element, source) {
+            // Remove selected class from all options
+            document.querySelectorAll('.audio-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            // Add to clicked option
+            element.classList.add('selected');
+            log(`Audio source changed to: ${source} (not implemented)`, 'warning');
+            // TODO: Implement audio source switching
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        // Quietly probe engine on load — page remains functional if engine is offline
+        setTimeout(async () => {
+            try {
+                const response = await fetch(`http://${ENGINE_IP}:${ENGINE_PORT}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'GET_STATE' })
+                });
+                const data = await response.json();
+                updateStatus(data);
+                log('Engine connected', 'success');
+            } catch (err) {
+                log('Engine offline — controls will activate when connected', 'warning');
+            }
+        }, 1000);
+
+        // Optional: Auto-refresh state every 30 seconds
+        // setInterval(() => {
+        //     sendCommand({ command: 'GET_STATE' });
+        // }, 30000);
+
+        // Keyboard shortcut for secret menu (optional)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+                openSecretMenu();
+            }
+        });
+    </script>
+</body>
+</html>

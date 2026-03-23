@@ -12,21 +12,29 @@ from cache_manager import CacheManager
 from engine import SimplePPEngine
 from pp_init import initialize_all
 from audio_init import initialize_audio
+from config import get_config
+from config.constants import *
 
-PI_IP = "10.10.51.111" #NETWORK
-PI_PORT = 4096
+# Load configuration
+config = get_config()
+
+# Get configuration values
+PI_IP = config.get('pi.ip', '10.10.51.111')
+PI_PORT = config.get('pi.port', 4096)
+NOWPLAYING_ENABLED = config.get('pi.enabled', False)
 
 def initialize_cache_and_playlist():
     """
     Connects to SOS to get the current playlist name,
     then initializes the CacheManager and syncs if necessary.
     """
-    host = "10.10.51.98" #NETWORK
-    port = 2468
+    # Use configuration for SOS connection
+    host = config.get('sos.ip', '10.0.0.16')
+    port = config.get('sos.port', 2468)
     
     print("Connecting to SOS for initialization...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(8.0)
+    sock.settimeout(SOS_SOCKET_TIMEOUT)  # Use constant from config
     
     try:
         sock.connect((host, port))
@@ -87,7 +95,7 @@ def initialize_nowplaying(cache_mgr: CacheManager) -> None:
     payload = "\n".join(lines) + "\n"
 
     try:
-        pi_sock = socket.create_connection((PI_IP, PI_PORT), timeout=10.0)
+        pi_sock = socket.create_connection((PI_IP, PI_PORT), timeout=PI_QUERY_TIMEOUT)
         pi_sock.sendall(payload.encode('utf-8'))
         pi_sock.shutdown(socket.SHUT_WR)  # Signal end of data
         
@@ -103,6 +111,24 @@ if __name__ == '__main__':
     print("=" * 60)
     print("SOS2 Controller (/dev/)")
     print("=" * 60)
+    
+    # Print configuration summary
+    print("\nConfiguration:")
+    print(f"  SOS Server:     {config.get('sos.ip')}:{config.get('sos.port')}")
+    print(f"  Base Share:     {config.get('paths.base_share')}")
+    print(f"  Now Playing:    {'Enabled' if NOWPLAYING_ENABLED else 'Disabled'} ({PI_IP}:{PI_PORT})")
+    print(f"  Audio:          {'Enabled' if config.get('features.audio_enabled', True) else 'Disabled'}")
+    print()
+    
+    # Validate configuration
+    errors = config.validate()
+    if errors:
+        print("Configuration errors detected:")
+        for error in errors:
+            print(f"  ERROR: {error}")
+        print("\nPlease fix configuration issues before continuing.")
+        input("Press Enter to exit...")
+        sys.exit(1)
     
     # 1. Initialize Cache
     cache_mgr = initialize_cache_and_playlist()
@@ -140,14 +166,18 @@ if __name__ == '__main__':
             print("[Audio] Audio config up to date, using cache")
         
     # 4. Initialize nowPlaying
-    print("\nInitializing nowPlaying...")
-    initialize_nowplaying(cache_mgr)
+    if NOWPLAYING_ENABLED:
+        print("\nInitializing nowPlaying...")
+        initialize_nowplaying(cache_mgr)
+    else:
+        print("\n[nowPlaying] Disabled (NOWPLAYING_ENABLED=False) - skipping init")
 
     # 5. Start Engine
     print("\nStarting Optimized Engine...")
     print("=" * 60)
     
-    engine = SimplePPEngine(pp, slide_dictionary, cache_mgr, audio_controller)
+    engine = SimplePPEngine(pp, slide_dictionary, cache_mgr, audio_controller,
+                             nowplaying_enabled=NOWPLAYING_ENABLED)
     
     try:
         engine.run()
@@ -160,17 +190,19 @@ if __name__ == '__main__':
     finally:
         print("\n[SDC] Cleaning up...")
         
-        # Close LibreOffice (with error handling)
+        # Close LibreOffice — engine._cleanup() handles this on normal exit;
+        # this guard catches any path where the engine did not run or crashed before cleanup.
         try:
-            if pp and hasattr(pp, 'close'):
+            if pp and hasattr(pp, 'launched') and pp.launched:
                 pp.close()
                 print("[SDC] LibreOffice closed.")
         except Exception as e:
             print(f"[SDC] Error closing LibreOffice: {e}")
-        
-        # Close audio controller
+
+        # Close audio / MPV — engine._cleanup() calls close() on normal interrupt;
+        # this ensures MPV is killed if the engine never started or exited abnormally.
         try:
-            if audio_controller and hasattr(audio_controller, 'close'):
+            if audio_controller and hasattr(audio_controller, 'is_initialized') and audio_controller.is_initialized:
                 audio_controller.close()
                 print("[SDC] Audio controller closed.")
         except Exception as e:
