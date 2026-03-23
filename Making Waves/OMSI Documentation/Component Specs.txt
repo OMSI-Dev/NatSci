@@ -1,0 +1,18 @@
+Monitor: 
+	Samsung TV (65" BET-H Series 4K Business TV BE65T-H) 
+	https://www.samsung.com/latin_en/business/smart-signage/uhd-4k-signage/65-bet-h-series-4k-business-tv-be65t-h-lh65bethlgfxgo/
+
+		Model Code: LH65BEDHLGFXGO
+		Serial Number: 0HFAHCDY601221L
+		Software Version: T-KSU2EDAKUC-1301.1
+		Unique Device ID: 7XCMR3DM5ISVG
+
+Computer:
+	B-link
+
+Electronic Components:
+	Roller Ball 
+	Teensy 4.0 
+	12V PSU
+	5V PSU 
+	5x 1" push buttons 
