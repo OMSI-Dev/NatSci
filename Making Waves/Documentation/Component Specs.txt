@@ -16,3 +16,6 @@ Electronic Components:
 	12V PSU
 	5V PSU 
 	5x 1" push buttons 
+
+2-Channel Amplifier:
+	Aiyima Audio A07 Premium
