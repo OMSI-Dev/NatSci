@@ -1,0 +1,24 @@
+BUTTONS
+	BTN5 (Select) - Pin 21 of Teensy 4.0
+	BTN4 (Lang) - Pin 20 of Teensy 4.0	
+	     BTN3 (C) - Pin 19 of Teensy 4.0
+	     BTN2 (B) - Pin 18 of Teensy 4.0
+	     BTN1 (A) - Pin 17 of Teensy 4.0
+
+BUTTON PWM (LED)
+	BTN5 (Select) - Pin 4 of Teensy 4.0
+	BTN4 (Lang) - Pin 3 of Teensy 4.0	
+	     BTN3 (C) - Pin 2 of Teensy 4.0
+	     BTN2 (B) - Pin 1 of Teensy 4.0
+	     BTN1 (A) - Pin 0 of Teensy 4.0
+
+TEENSY
+	Pin 5 - LED DATA
+
+	UNUSED
+		Pin 22 - GPIO_1
+		Pin 23 - GPIO_2
+		Pin 16 - DO_1
+		Pin 15 - DO_2
+		Pin 14 - N$27
+		Pin 6 - LED DATA 2

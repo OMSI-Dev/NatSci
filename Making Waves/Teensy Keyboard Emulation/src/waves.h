@@ -6,18 +6,18 @@
 
 MoToTimer btnLock,heart, lightFade;
 
-#define aPin 0
-#define bPin 1
-#define cPin 2
-#define langPin 3
-#define selectPin 4
+#define aPin 17
+#define bPin 18
+#define cPin 19
+#define langPin 20
+#define selectPin 21
 
 
-#define aPWM 17
-#define bPWM 18
-#define cPWM 19
-#define langPWM 20
-#define selectPWM 22
+#define aPWM 0
+#define bPWM 1
+#define cPWM 2
+#define langPWM 3
+#define selectPWM 4
 
 #define A KEY_A
 #define B KEY_B
@@ -46,7 +46,7 @@ void heartbeat();
 
 void setup() 
 {
-  FastLED.addLeds<WS2812B, 15, GRB>(trackBall, 12).setCorrection(TypicalSMD5050); 
+  FastLED.addLeds<WS2812B, 5, GRB>(trackBall, 12).setCorrection(TypicalSMD5050); 
 
   pinMode(aPin, INPUT_PULLUP);
   pinMode(bPin, INPUT_PULLUP);
@@ -201,30 +201,35 @@ void handleKeypress()
   {
     btnLock.setTime(50);
     Keyboard.press(A);
+    Serial.println("Key A pressed");
   }
 
   if(bButton.pressed() && !btnLock.running())
   {
     btnLock.setTime(50);
    Keyboard.press(B);
+   Serial.println("Key B pressed");
   }
 
   if(cButton.pressed() && !btnLock.running())
   {
     btnLock.setTime(50);
     Keyboard.press(C);
+    Serial.println("Key C pressed");
   }
 
   if(selectButton.pressed() && !btnLock.running())
   {
     btnLock.setTime(50);
     Keyboard.press(S);
+    Serial.println("Key S (Select) pressed");
   }
 
   if(langButton.pressed() && !btnLock.running())
   {
     btnLock.setTime(50);
    Keyboard.press(lang);
+   Serial.println("Key L (Lang) pressed");
   }
 
   if(!btnLock.running())

@@ -4,11 +4,11 @@
 
 MoToTimer btnLock,heart;
 
-#define newPin 0
-#define langPin 1
+#define newPin 17
+#define langPin 20
 
-#define newPWM 17
-#define langPWM 18
+#define newPWM 0
+#define langPWM 3
 
 #define newIdea KEY_UP
 #define lang KEY_L
@@ -61,14 +61,14 @@ if(newButton.pressed() && !btnLock.running())
 {
   btnLock.setTime(50);
   Keyboard.press(newIdea);
-  Serial.print("UP");
+  Serial.println("Key UP pressed");
 }
 
 if(langButton.pressed() && !btnLock.running())
 {
   btnLock.setTime(50);
   Keyboard.press(lang);
-  Serial.print("LANGUAGE"); 
+  Serial.println("Key L (Language) pressed"); 
 }
 
 if(!btnLock.running())
