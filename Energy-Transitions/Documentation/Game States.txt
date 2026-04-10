@@ -1,0 +1,95 @@
+Referenced from miro [https://miro.com/app/board/uXjVLfXSY8s=/?share_link_id=686399557613] 
+"3.4 Energy Transitions Game Sequence" 
+
+Overall Notes
+    - The monitor has informational slides. They don't affect what happens on the game board.
+    - Speaker is under the monitor.
+    - Visitors need to pull the power switch to test whether the energy pieces are correctly placed. The lights will change on the light right around each energy slots and for the cities.
+    - Cities don't light up until visitors pull the power switch.
+
+(1) "RESET ME" IDLE: If no one has pulled the switch, moved any game pieces. or touched the screen after 2 ? minutes:
+
+    1. Monitor: shows "To start over, please remove all the energy pieces from the map."
+        a. Visitor presses the English/ Spanish button to play the slides in either English or Spanish. There is a set in each language.
+        b. Visitors can change the language at any point.
+
+    2. Slots for energy pieces: all light rings pulsing red, even ones with game pieces already in them.
+    3. All cities: no lights
+    4. Switch: pulling the switch doesn't make any changes.
+    5. Sound: 
+        - AUTO RESET bleep-boop
+        - no other sounds while idle?
+        - LANGUAGE TOGGLE - "English selected" / "Español seleccionado"
+
+(2) "READY" IDLE: Visitor removes all pieces. This starts the game.
+
+    1. Monitor: 
+        a. Shows "Swipe the screen to find out more about each energy source. Use the clues to figure out where to place them on the map."
+        b. Visitors can swipe left or right to cycle through 5 energy sources: solar, wind, wave, hydroelectric, and geothermal. After geothermal, it cycles back to the "Swipe the screen" slide.
+        c. Note: the graphics only show swiping to the right. It's OK that it doesn't match.
+
+    2. Slots for energy pieces: all light rings switch to pulsing white. Slots are empty.
+    3. All cities: no lights.
+    4. Switch: pulling the switch doesn't make any changes since none of the slots have game pieces.
+    5. Sound: 
+        - READY to start bloop-bleep (once all pieces have been removed)
+        - SWITCH PULLED ERROR sound when no slots have pieces
+        - LANGUAGE TOGGLE - "English selected" / "Español seleccionado"
+
+(3) GAME ACTIVE: Visitor puts one or more game pieces in an empty slot. There are 10 slots.
+    1. Monitor: 
+        a. Monitor stays on last slide swiped.
+   
+    2. Slots for energy pieces:
+        a. Empty slots pulse white.
+        b. Energy pieces use magnets to encode info. Each slot has 2 or 3 energy sources that will power that location.
+        c. When visitors put a game piece in a slot:
+            i. Light ring: turns steady white
+            ii. Each slot changes as it's filled (pulsing white calls attention to empty slots. Change to solid white lets visitors know the the game piece connected to the spot.) If a game piece is removed, the light ring starts pulsing again.
+        d. Visitor repeats the process to fill slots.
+    3. All cities: no lights.
+    4. Switch: pulling the switch activates the Result mode
+    5. Sound: 
+        - PIECE PLACED into slot, white light activated
+        - SWITCH PULLED - crack, anticipatory hum...
+
+(4) RESULT: Visitor pulls power switch, which resets itself after each pull. After visitor pulls the switch:
+    
+    1. Monitor: 
+        a. Monitor stays on last slide swiped.
+    2. Switch: pulling the switch activates the test results for the cities and energy light rings
+        a. Sound: 
+            i. SWITCH PULLED - crack, anticipatory hum...
+                ...ALL WRONG - cities turn red
+                ...SOME RIGHT - cities turn yellow
+                ...WIN - celebration rainbow lights dance across the cities
+For 3 seconds:
+    1. Slots for energy pieces:
+        a. The light ring around each slot:
+            i. Stays pulsing white if the slot is still empty.
+            ii. Turns steady red if the energy piece doesn't work in that location
+            iii. Glows bright green if the energy piece does work in that location. Yay!
+
+    2. All cities:
+        a. All 8 cities do the same actions.
+        b. Number of powered (green) energy slots:
+            i. O green light rings:
+                1. Light rings:
+                    a. empty - pulsing white
+                    b. doesn't work in that location - steady red
+                2. Cities: solid red
+                3. Sound: POWER FAIL
+            ii. 1-9 green light rings:
+                1. Light rings: 1-9 glowing green. The rest are white or red
+                2. Cities: steady yellow
+                3. Sound: MID POWER
+            iii. 10 green light rings: all energy slots are powered.
+                1. Light rings: all 10 are green
+                2. Cities:
+                    a. all cities light up full brightness then rainbow/ party lights pulse in cities.
+                3. Sound: FULL POWER + WIN success sound or happy tune
+    
+    3. Goes to GAME ACTIVE mode. Visitors can stil continue to move energy pieces.
+        a. Light rings:  pulsing white if empty or steady white if slot has a game piece
+        b. Visitor pulls the switch to get new results.
+    4. If there is no movement after 2 minutes or visitor takes out all the game pieces, the game resets to "RESET ME" IDLE or "READY" IDLE mode.
