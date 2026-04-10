@@ -29,70 +29,7 @@
    └─▶ Enter main event loop
 ```
 
-### Main Event Loop Flow
-
-```
-┌─────────────────────────────────────────────────┐
-│              Engine Main Loop (20 FPS)          │
-└─────────────────────────────────────────────────┘
-                      │
-                      ▼
-      ┌───────────────────────────────┐
-      │ 1. Process Qt Events          │
-      │    (Keep overlays responsive) │
-      └───────────────┬───────────────┘
-                      │
-                      ▼
-      ┌───────────────────────────────┐
-      │ 2. Query SOS for clip info    │
-      │    - Get clip number (fast)   │
-      │    - Lookup name in cache     │
-      └───────────────┬───────────────┘
-                      │
-                      ▼
-      ┌───────────────────────────────┐
-      │ 3. Clip changed?              │
-      └───────────────┬───────────────┘
-                      │
-          ┌───────────┴────────────┐
-          │ YES                    │ NO
-          ▼                        │
-  ┌──────────────────┐             │
-  │ CLIP TRANSITION  │             │
-  └──────────────────┘             │
-          │                        │
-          ├─▶ Instant clear overlays
-          ├─▶ Navigate LibreOffice to new slide (7s)
-          ├─▶ Start internal timer
-          ├─▶ Show overlays instantly
-          ├─▶ Schedule deferred operations:
-          │   ├─▶ Update Now Playing (background thread)
-          │   ├─▶ Start/fade audio (background thread)
-          │   └─▶ Load subtitles (background thread)
-          │
-          └─────────────┬─────────────┘
-                        │
-                        ▼
-      ┌───────────────────────────────┐
-      │ 4. Update overlays            │
-      │    - Progress bar (time %)    │
-      │    - Subtitles (if enabled)   │
-      └───────────────┬───────────────┘
-                      │
-                      ▼
-      ┌───────────────────────────────┐
-      │ 5. Sleep 50ms (20 FPS)        │
-      └───────────────┬───────────────┘
-                      │
-                      └──────────────────┐
-                                         │
-                    ┌────────────────────┘
-                    │
-                    ▼
-            Loop continues...
-```
-
-## Key Design Patterns
+Key functions
 
 ### 1. Initialization/Access Separation
 
@@ -100,7 +37,6 @@ Each subsystem is split into two modules:
 - `*_init.py` - Configuration loading and component initialization
 - `*_access.py` - Runtime control and communication
 
-**Example**: Audio System
 ```
 audio_init.py:
   - Load audio-list.csv
