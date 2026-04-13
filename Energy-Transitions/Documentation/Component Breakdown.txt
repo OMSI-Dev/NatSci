@@ -29,4 +29,6 @@ Main board (Teensy 4.1)
 	- Receives data from light rings
 	- Receives data from energy switch component
 	
+WavTrigger board 
+	- Handles audio output 
 
