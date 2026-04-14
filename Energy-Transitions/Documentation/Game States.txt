@@ -1,28 +1,22 @@
 Referenced from miro [https://miro.com/app/board/uXjVLfXSY8s=/?share_link_id=686399557613] 
 "3.4 Energy Transitions Game Sequence" 
 
-Overall Notes
-    - The monitor has informational slides. They don't affect what happens on the game board.
-    - Speaker is under the monitor.
-    - Visitors need to pull the power switch to test whether the energy pieces are correctly placed. The lights will change on the light right around each energy slots and for the cities.
-    - Cities don't light up until visitors pull the power switch.
 
-(1) "RESET ME" IDLE: If no one has pulled the switch, moved any game pieces. or touched the screen after 2 ? minutes:
+(0) Auto Reset: Occurs after 2 minutes of inactive inputs/gameplay, likely monitored by main board and triggered by main board
+	1. Sound: beep-boop 
+	2. Triggers "RESET ME" IDLE state 
 
-    1. Monitor: shows "To start over, please remove all the energy pieces from the map."
-        a. Visitor presses the English/ Spanish button to play the slides in either English or Spanish. There is a set in each language.
-        b. Visitors can change the language at any point.
 
+(1) "RESET ME" IDLE 
+
+    1. Monitor: Shows instructions on how to reset. Main board triggers this by sending 'r' keypress
     2. Slots for energy pieces: all light rings pulsing red, even ones with game pieces already in them.
     3. All cities: no lights
     4. Switch: pulling the switch doesn't make any changes.
-    5. Sound: 
-        - AUTO RESET bleep-boop
-        - no other sounds while idle?
-        - LANGUAGE TOGGLE - "English selected" / "Español seleccionado"
 
 (2) "READY" IDLE: Visitor removes all pieces. This starts the game.
 
+    0. Sound: bloop-bleep (once at beginning) 
     1. Monitor: 
         a. Shows "Swipe the screen to find out more about each energy source. Use the clues to figure out where to place them on the map."
         b. Visitors can swipe left or right to cycle through 5 energy sources: solar, wind, wave, hydroelectric, and geothermal. After geothermal, it cycles back to the "Swipe the screen" slide.

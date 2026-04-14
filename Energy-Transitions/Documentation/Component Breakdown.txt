@@ -30,5 +30,6 @@ Main board (Teensy 4.1)
 	- Receives data from energy switch component
 	
 WavTrigger board 
-	- Handles audio output 
+	- Stores .mp3 sound samples with on-board SD card
+	- Outputs audio 
 
