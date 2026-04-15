@@ -39,7 +39,7 @@ Ethernet Port (x1) from Teensy 4.1
 5. RX to Pin 1
 6. VIN > 3.3V voltage regulator > Teensy 4.0 VIN
 
-**TEENSY 4.1 MAIN**
+**TEENSY 4.1 MAIN PCB**
 24V IN (x5) (3PIN Phoenix Connector)
 1. 24V to Ethernet Out
 2. GND
