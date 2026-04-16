@@ -55,7 +55,18 @@ Language toggle: at any point, in any state, the language button can be pressed.
 
 1. Sound: SWITCH.wav
 
-(4b) RESULT: Feedback for how the current configuration performs 4
+(4b) RESULT: Feedback for how the current configuration performs to the results chart. This stage lasts 5 seconds
 
-1. Sound 
-    1. If slots are all wrong (solid red)
+1. Cities
+	a. Case A
+		i. Lights: If slots are all wrong, or a mix of wrong, all cities turn solid red
+		i. Sound: FAIL.wav
+	b. Case B
+		i. Lights: If some slots are right, cities turn solid yellow
+		ii. Sound: YELLOW.wav
+	c. Case C
+		i. Lights: If all slots are right, celebration rainbow lights dance across cities
+		ii. Sound: WIN.wav
+2. Switch: pulling switch again within thin the 5 seconds does nothing 
+3. Monitor: stays on the last slide, touching the screen does nothing
+4. Slots: Empty slots continue to 'breathe' white, wrong placements turn red, correct placements turn green 
