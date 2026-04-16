@@ -1,8 +1,8 @@
 Checkpoints: 
 
 Test 0
-    - [ ]  PILL BOARD (M0 Express) connected to MAIN BOARD (Teensey 4.1) communicating
-        - [ ]  PILL BOARD initialize I2C address from header pins
+    - [ ]  PILL BOARD (M0 Express) connected to MAIN BOARD (Teensey 4.1) communicating via I2C
+        - [ ]  PILL BOARD initialize I2C address from on board header pins
             - [ ]  Setup: Read header pins A-D (Pin  3,4,5,7)
             - [ ]  Function: Recognize which pins are tied HIGH
                 - [ ]  Create I2C address based on the read header pin(s)
