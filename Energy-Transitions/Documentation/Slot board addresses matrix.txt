@@ -1,0 +1,11 @@
+	A	B	C	D	
+1					
+2	x				Buoy
+3		x			Dam
+4			x		Geo
+5				x	Geo
+6	x	x			Solar
+7	x		x		Solar
+8	x			x	Wind
+9		x	x		Wind
+10		x		x	

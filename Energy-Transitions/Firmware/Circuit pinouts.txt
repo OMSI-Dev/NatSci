@@ -78,7 +78,7 @@ Address Pins to M0 Express
 3. Pin 4 to B_ADDR
 2. Pin 3 to A_ADDR
 
-Sensor 1 to M0 Express
+Sensors to M0 Express
 1. Sen1_OUT to Pin A0
 2. Sen2_OUT to Pin A1
 3. Sen3_OUT to Pin A2
