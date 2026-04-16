@@ -1,0 +1,11 @@
+Main Board (Teensy 4.1)
+	- 
+
+Row Board (Teensy 4.0) 
+	- 
+
+Stomp Module (Sections 1-5) 
+	- 
+
+Jumbo Button (Sections 6-7)
+

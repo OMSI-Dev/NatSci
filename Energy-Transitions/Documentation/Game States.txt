@@ -1,0 +1,72 @@
+Referenced from miro [https://miro.com/app/board/uXjVLfXSY8s=/?share_link_id=686399557613] 
+"3.4 Energy Transitions Game Sequence" 
+
+**Gameplay Summary:**
+
+There are multiple ‘slots’ that have a combination of gameplay pieces placed inside of them by visitors. These slots have designated pieces that are ‘correct’. There ae secondary visual cities next to these slots, that have an array of LEDs in them to 
+
+**Overall Notes**
+
+- The monitor has informational slides. They don't affect what happens on the game board.
+- Visitors need to pull the power switch to test whether the energy pieces are correctly placed. The lights will change on the light right around each energy slots and for the cities.
+- All sounds are monitored by game states, which is handled by the main board. A wavtrigger will be connected by TX/RX/GND
+-  Most notes regarding 'monitor' are handled via the main board being connected to a computer via USB. Separate software for slide navigation will expect specific keypresses for each different slide display.
+- Sounds are outputted by an external WavTrigger board via onboard SD card.
+
+Language Toggle
+- An external language button will act as input for the main board to emulate a space-bar press to the computer, toggling English/Spanish slides via external software
+
+**Game States** 
+
+(0) Auto Reset: Occurs after 2 minutes of inactive inputs/gameplay, monitored by the main board and triggered by main board. Automatically goes to (2) “RESET ME” IDLE gamestate
+
+1. Monitor: Simulate ‘r’ keypress to navigate to slide on computer
+2. Sound: Reset.wav 
+
+Language toggle: at any point, in any state, the language button can be pressed. This will send the ‘space’ keypress to the computer 
+
+(1) “RESET ME” IDLE 
+
+1. Monitor: Has slides displayed from previous keypress 
+2. Slots: All light rings pulsing red, even ones with game pieces already in them 
+3. Cities: no lights
+4. Switch: Pulling switch doesn’t do anything 
+
+(2) “READY” IDLE: All pieces are removed. The game is ready to start
+
+1. Sound: ReadyState.wav
+2. Monitor: Simulate ‘i’ keypress to navigate to slide on computer
+3. Slots: all lights “breathe” white 
+4. Cities: no lights
+5. Switch: Pulling switch doesn’t do anything, error sound when switch is pulled (Error.wav)
+
+(3a) PIECE REGISTERED: At any point in between state (2) and (4), this event can occur. A piece will be registered and its’ data will be sent to the main board 
+
+1. Sound: PieceRegistered.wav
+
+(3b) GAME ACTIVE: Game is active and pieces can be registered 
+
+1. Sound: None, but can be triggered by pieces from sensors being trigged to 3a state
+2. Monitor: stays on last slide, swiping screen rotates through slides
+3. Slots: Slot with a piece turns LEDs to solid white, unregistered slot LEDs ‘breathe’ white, if a piece is removed, the empty slot returns to ‘breathing’ white 
+4. Cities: LEDs flicker if piece is registered in their slot
+
+(4a) Pull registered
+
+1. Sound: SWITCH.wav
+
+(4b) RESULT: Feedback for how the current configuration performs to the results chart. This stage lasts 5 seconds
+
+1. Cities
+	a. Case A
+		i. Lights: If slots are all wrong, or a mix of wrong, all cities turn solid red
+		i. Sound: FAIL.wav
+	b. Case B
+		i. Lights: If some slots are right, cities turn solid yellow
+		ii. Sound: YELLOW.wav
+	c. Case C
+		i. Lights: If all slots are right, celebration rainbow lights dance across cities
+		ii. Sound: WIN.wav
+2. Switch: pulling switch again within thin the 5 seconds does nothing 
+3. Monitor: stays on the last slide, touching the screen does nothing
+4. Slots: Empty slots continue to 'breathe' white, wrong placements turn red, correct placements turn green 

@@ -1,0 +1,35 @@
+Pill PCBs "Detection Plate"/'light rings (Adafruit Trinket M0 Express) 
+	- Powered directly by main board 
+	- Pulsates red in auto-reset state
+	- Pulsates white in ready idle state
+	- Provides input feedback to visitors when a piece is placed in its' slot in active game state
+	- Manages game state logic
+	- Sends game state logic to main board
+
+City Distribution board PCB (LED control only - no microcontroller attached) 
+	- Distributes 5V power to city light PCBs
+	- Distributes data to/from city light PCBs
+
+City LED board
+	- LED display only 
+	- Indicates results in endgame state
+	- Remains unlit in all other game states
+
+Energy switch
+	- A physical component for visitors to pull
+	- Triggers endgame state. 
+	- No effect in other states besides active game state
+
+Main board (Teensy 4.1)
+	- Manages game states
+	- Sends commands to interface with attached computer 
+		- Slideshow navigation based on game state
+	- Sends LED data to cities 
+	- Sends LED data to light rings 
+	- Receives data from light rings
+	- Receives data from energy switch component
+	
+WavTrigger board 
+	- Stores .mp3 sound samples with on-board SD card
+	- Outputs audio 
+

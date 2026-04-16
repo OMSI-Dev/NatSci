@@ -1,0 +1,93 @@
+**Main Controller PCB**
+
+4-Pin Phoenix to Sensor 1
+1. SCL to Pin 19 of Teensy 4.1
+2. SDA to Pin 18 of Teensy 4.1
+3. GND to GND 
+4. 3.3V to 3.3V
+
+4-Pin Phoenix to Sensor 2 
+1. (...)
+2. (...)
+3. (...)
+4. (...) 
+
+4-Pin Phoenix to (...)
+
+4-Pin Phoenix to Sensor 10 
+1. (...)
+2. (...)
+3. (...)
+4. (...) 
+
+Teensy 4.1
+1. Pin 19 to SCL 
+2. Pin 18 to SDA 
+3. All GNDs to GND 
+4. Pin 0 to RX -> (4-Pin Phoenix to WavTrigger)
+5. Pin 1 to TX -> (4-Pin Phoenix to WavTrigger)
+6. Pin 3 to DO_1 -> (3-Pin Phoenix to City LED Distribution Board)
+7. Pin 4 to DO_2 -> (3-Pin Phoenix to City LED Distribution Board)
+8. Pin 5 to DO_3 -> (3-Pin Phoenix to City LED Distribution Board)
+9. Pin 6 to DO_4 -> (3-Pin Phoenix to City LED Distribution Board)
+10. Pin 7 to DO_5 -> (3-Pin Phoenix to City LED Distribution Board)
+11. Pin 8 to DO_6 -> (3-Pin Phoenix to City LED Distribution Board)
+12. Pin 9 to DO_7 -> (3-Pin Phoenix to City LED Distribution Board)
+
+5-Pin Phoenix to City LED Distribution Board
+1. DO_1
+2. DO_2 
+3. DO_3
+4. DO_4
+5. DO_5
+
+3-Pin Phoenix to City LED Distribution board 
+1. DO_7
+2. DO_6
+3. GND
+
+4-Pin Phoenix to WavTrigger 
+1. GND 
+2. RX
+3. TX
+4. None
+
+2-Pin Phoenix to 5V PSU 
+1. GND
+2. 5V
+
+3.3V Power regulator 
+1. VIN to 5V from P-mosfet
+2. VOUT_3 to 3.3v
+3. VOUT_2 to 3.3v
+4. GND to GND
+5. VOUT to 3.3v
+6. VOUT_4 to 3.3v
+
+**Detection Plate Slot PCB**
+5-pin header out 
+1. NC
+2. SCL
+3. SDA
+4. GND
+5. 3.3V
+
+Address Pins to M0 Express
+1. Pin 7 to D_ADDR
+2. Pin 5 to C_ADDR
+3. Pin 4 to B_ADDR
+2. Pin 3 to A_ADDR
+
+Sensor 1 to M0 Express
+1. Sen1_OUT to Pin A0
+2. Sen2_OUT to Pin A1
+3. Sen3_OUT to Pin A2
+
+Sensor Indicator LEDs
+1. (D1) Pin 11 on M0 Express
+2. (D2) Pin 10 on M0 Express
+3. (D3) Pin 9 on M0 Express
+
+Ring LEDs for gameplay 
+1. LED 1-20 to DOUT
+1. DOUT to Pin 2 of M0 Express
