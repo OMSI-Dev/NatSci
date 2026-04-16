@@ -63,3 +63,31 @@ Teensy 4.1
 4. GND to GND
 5. VOUT to 3.3v
 6. VOUT_4 to 3.3v
+
+**Detection Plate Slot PCB**
+5-pin header out 
+1. NC
+2. SCL
+3. SDA
+4. GND
+5. 3.3V
+
+Address Pins to M0 Express
+1. Pin 7 to D_ADDR
+2. Pin 5 to C_ADDR
+3. Pin 4 to B_ADDR
+2. Pin 3 to A_ADDR
+
+Sensor 1 to M0 Express
+1. Sen1_OUT to Pin A0
+2. Sen2_OUT to Pin A1
+3. Sen3_OUT to Pin A2
+
+Sensor Indicator LEDs
+1. (D1) Pin 11 on M0 Express
+2. (D2) Pin 10 on M0 Express
+3. (D3) Pin 9 on M0 Express
+
+Ring LEDs for gameplay 
+1. LED 1-20 to DOUT
+1. DOUT to Pin 2 of M0 Express
