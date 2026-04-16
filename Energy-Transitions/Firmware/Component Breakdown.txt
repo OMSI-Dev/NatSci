@@ -3,8 +3,10 @@ Pill PCBs "Detection Plate"/'light rings (Adafruit Trinket M0 Express)
 	- Pulsates red in auto-reset state
 	- Pulsates white in ready idle state
 	- Provides input feedback to visitors when a piece is placed in its' slot in active game state
-	- Manages game state logic
-	- Sends game state logic to main board
+	- Sends game logic feedback to main board
+
+	SS39ET Hall-effect sensors (operated by magnetic field) 
+	- Detect different configurations of magnets in energy-source play pieces when inserted into slot 
 
 City Distribution board PCB (LED control only - no microcontroller attached) 
 	- Distributes 5V power to city light PCBs
@@ -20,6 +22,9 @@ Energy switch
 	- Triggers endgame state. 
 	- No effect in other states besides active game state
 
+Language Button 
+	- Toggles between English/Spanish slides on computer display 
+
 Main board (Teensy 4.1)
 	- Manages game states
 	- Sends commands to interface with attached computer 
@@ -33,6 +38,4 @@ WavTrigger board
 	- Stores .mp3 sound samples with on-board SD card
 	- Outputs audio 
 
-Language Button 
-	- Toggles English/Spanish on the connected monitor 
 
