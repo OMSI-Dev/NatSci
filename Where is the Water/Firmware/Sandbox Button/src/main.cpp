@@ -35,7 +35,7 @@ void setup()
   Serial.begin(9600);
   Keyboard.begin();
 
-  // Turn LED on Teensy board on/
+  // Turn LED on Teensy board on.
   digitalWrite(13, HIGH);
 }
 
@@ -43,9 +43,8 @@ void loop()
 {
   droughtButton.update();
 
-  // If red button is pressed, press the key "up"
-  // In the Unity program, this coordinates to clearing the water
-  // from the simulation
+  // If button is pressed, press the key "up".
+  // In the Unity program, this coordinates to clearing the water.
   if (droughtButton.pressed())
   {
     Keyboard.press(KEY);
