@@ -1,227 +1,109 @@
 /*
- * TEST 1 - TEENSY BOARD
- * Monitor I2C bus for M0 addresses
- * Wait for 2x M0 boards to initialize
- * Maintain active communication with both devices
+ * TEST 2 - TEENSY BOARD - POLARITY DETECTION MONITOR
+ *
+ * Polls M0 boards at 0x08 and 0x09 every 250 ms via I2C.
+ * Receives the 6-byte status packet and prints human-readable output.
+ *
+ * Packet format from M0:
+ *   [0] state   0=IDLE  1=REGISTERING  2=CORRECT  3=INCORRECT
+ *   [1] S1 pol  0=UNCERTAIN  1=SOUTH  2=NORTH
+ *   [2] S2 pol
+ *   [3] S3 pol
+ *   [4] M0 I2C address low byte
+ *   [5] reserved
  */
 
 #include <Arduino.h>
 #include <Wire.h>
 
-// I2C Configuration
-const uint8_t I2C_BASE_ADDRESS = 0x08;
-const uint8_t MAX_M0_DEVICES = 10;
-const uint8_t REQUIRED_M0_DEVICES = 2;  // Wait for 2 M0 boards
+const uint8_t M0_ADDRESSES[] = { 0x08, 0x09 };
+const uint8_t NUM_M0         = sizeof(M0_ADDRESSES);
 
-// Device tracking
-uint8_t detectedAddresses[MAX_M0_DEVICES];
-uint8_t numDetectedDevices = 0;
-bool systemReady = false;
+unsigned long lastPoll = 0;
+const unsigned long POLL_INTERVAL = 250;
 
-// Timing
-unsigned long lastScan = 0;
-unsigned long lastComm = 0;
-const unsigned long scanInterval = 3000;    // Scan every 3 seconds
-const unsigned long commInterval = 1000;    // Communicate every 1 second
+const char* STATE_NAMES[] = { "IDLE       ", "REGISTERING", "CORRECT    ", "INCORRECT  " };
 
-// Forward declarations
-void scanForM0Devices();
-void communicateWithDevices();
-void printStatus();
+char polChar(uint8_t p) {
+  switch (p) {
+    case 1:  return 'S';
+    case 2:  return 'N';
+    default: return '?';
+  }
+}
 
 void setup() {
   Serial.begin(115200);
   while (!Serial && millis() < 3000);
-  
-  Serial.println("\n========================================");
-  Serial.println("   TEST 1 - TEENSY I2C MASTER");
-  Serial.println("========================================\n");
-  
-  Serial.println("I2C Configuration:");
-  Serial.println("  SDA: Pin 18");
-  Serial.println("  SCL: Pin 19");
-  Serial.println("  Speed: 100 kHz\n");
-  
-  // Initialize I2C as master
+
+  Serial.println(F("\n========================================"));
+  Serial.println(F("  TEST 2 - POLARITY DETECTION (TEENSY)"));
+  Serial.println(F("========================================"));
+  Serial.println(F("Polling 0x08 (Buoy) and 0x09 (Dam)."));
+  Serial.println(F("S=SOUTH  N=NORTH  ?=UNCERTAIN/no magnet"));
+  Serial.println(F("----------------------------------------"));
+  Serial.println(F("[addr]  [state      ]  [S1 S2 S3]  result"));
+  Serial.println(F("----------------------------------------"));
+
   Wire.begin();
   Wire.setClock(100000);
-  
-  Serial.println("I2C Master initialized\n");
-  Serial.print("Waiting for ");
-  Serial.print(REQUIRED_M0_DEVICES);
-  Serial.println(" M0 devices to connect...\n");
-  
+
   delay(500);
 }
 
-void scanForM0Devices() {
-  Serial.println("--- Scanning for M0 Devices ---");
-  
-  numDetectedDevices = 0;
-  
-  // Scan the M0 address range (0x08-0x11)
-  for (uint8_t addr = I2C_BASE_ADDRESS; addr < (I2C_BASE_ADDRESS + MAX_M0_DEVICES); addr++) {
-    Wire.beginTransmission(addr);
-    uint8_t error = Wire.endTransmission();
-    
-    if (error == 0) {
-      // Device found!
-      detectedAddresses[numDetectedDevices] = addr;
-      numDetectedDevices++;
-      
-      Serial.print("  ✓ M0 found at 0x");
-      if (addr < 16) Serial.print("0");
-      Serial.print(addr, HEX);
-      
-      // Request counter value to verify communication
-      uint8_t bytesReceived = Wire.requestFrom(addr, (uint8_t)1);
-      if (bytesReceived > 0) {
-        uint8_t counter = Wire.read();
-        Serial.print(" (counter: ");
-        Serial.print(counter);
-        Serial.println(")");
-      } else {
-        Serial.println(" (no data)");
-      }
-    }
-    
-    delay(5);
-  }
-  
-  Serial.print("\nDevices found: ");
-  Serial.print(numDetectedDevices);
-  Serial.print(" / ");
-  Serial.println(REQUIRED_M0_DEVICES);
-  
-  if (numDetectedDevices >= REQUIRED_M0_DEVICES && !systemReady) {
-    systemReady = true;
-    Serial.println("\n*** SYSTEM READY ***");
-    Serial.println("Beginning active communication...\n");
-  } else if (numDetectedDevices < REQUIRED_M0_DEVICES) {
-    Serial.println("Waiting for more devices...\n");
-  }
-  
-  Serial.println("-------------------------------\n");
-}
+void pollM0(uint8_t addr) {
+  // Check device is present
+  Wire.beginTransmission(addr);
+  if (Wire.endTransmission() != 0) return;  // absent — skip silently
 
-void communicateWithDevices() {
-  if (!systemReady) return;
-  
-  static uint8_t testData = 0;
-  
-  Serial.println("--- Active Communication ---");
-  
-  for (uint8_t i = 0; i < numDetectedDevices; i++) {
-    uint8_t addr = detectedAddresses[i];
-    
-    // Request data from M0
-    uint8_t bytesReceived = Wire.requestFrom(addr, (uint8_t)1);
-    
-    if (bytesReceived > 0) {
-      uint8_t counter = Wire.read();
-      Serial.print("[RX from 0x");
-      if (addr < 16) Serial.print("0");
-      Serial.print(addr, HEX);
-      Serial.print("] Counter: ");
-      Serial.println(counter);
-    }
-    
-    // Send test data to M0
-    Wire.beginTransmission(addr);
-    Wire.write(testData);
-    uint8_t error = Wire.endTransmission();
-    
-    if (error == 0) {
-      Serial.print("[TX to 0x");
-      if (addr < 16) Serial.print("0");
-      Serial.print(addr, HEX);
-      Serial.print("] Data: 0x");
-      if (testData < 16) Serial.print("0");
-      Serial.print(testData, HEX);
-      Serial.print(" (");
-      Serial.print(testData);
-      Serial.println(")");
-    } else {
-      Serial.print("[ERROR] Failed to send to 0x");
-      if (addr < 16) Serial.print("0");
-      Serial.print(addr, HEX);
-      Serial.print(" - Error code: ");
-      Serial.println(error);
-    }
-    
-    delay(50);
-  }
-  
-  // Increment test data for next cycle
-  testData++;
-  if (testData > 255) testData = 0;
-  
-  Serial.println("----------------------------\n");
-}
+  uint8_t received = Wire.requestFrom(addr, (uint8_t)6);
+  if (received < 6) return;  // short read — skip
 
-void printStatus() {
-  Serial.println("\n=== SYSTEM STATUS ===");
-  Serial.print("Devices detected: ");
-  Serial.println(numDetectedDevices);
-  Serial.print("System ready: ");
-  Serial.println(systemReady ? "YES" : "NO");
-  
-  if (numDetectedDevices > 0) {
-    Serial.println("\nActive addresses:");
-    for (uint8_t i = 0; i < numDetectedDevices; i++) {
-      Serial.print("  Device ");
-      Serial.print(i + 1);
-      Serial.print(": 0x");
-      if (detectedAddresses[i] < 16) Serial.print("0");
-      Serial.println(detectedAddresses[i], HEX);
-    }
+  uint8_t buf[6];
+  for (uint8_t i = 0; i < 6; i++) buf[i] = Wire.read();
+
+  uint8_t state = buf[0];
+  uint8_t p1    = buf[1];
+  uint8_t p2    = buf[2];
+  uint8_t p3    = buf[3];
+  // buf[4] = address echo, buf[5] = reserved
+
+  // Address prefix
+  Serial.print(F("[0x"));
+  if (addr < 0x10) Serial.print('0');
+  Serial.print(addr, HEX);
+  Serial.print(F("]  "));
+
+  // State
+  if (state < 4) Serial.print(STATE_NAMES[state]);
+  else           Serial.print(F("?          "));
+
+  // Per-sensor polarity
+  Serial.print(F("  ["));
+  Serial.print(polChar(p1));
+  Serial.print(polChar(p2));
+  Serial.print(polChar(p3));
+  Serial.print(F("]"));
+
+  // Result packet
+  if (state == 2) {
+    if      (addr == 0x08) Serial.print(F("  → 1,Buoy"));
+    else if (addr == 0x09) Serial.print(F("  → 1,Dam"));
+  } else if (state == 3) {
+    Serial.print(F("  → 0,"));
+    Serial.print(polChar(p1));
+    Serial.print(polChar(p2));
+    Serial.print(polChar(p3));
   }
-  Serial.println("=====================\n");
+
+  Serial.println();
 }
 
 void loop() {
-  // Scan for devices periodically
-  if (millis() - lastScan >= scanInterval) {
-    lastScan = millis();
-    scanForM0Devices();
+  if (millis() - lastPoll >= POLL_INTERVAL) {
+    lastPoll = millis();
+    for (uint8_t i = 0; i < NUM_M0; i++) pollM0(M0_ADDRESSES[i]);
   }
-  
-  // Communicate with devices when system is ready
-  if (systemReady && (millis() - lastComm >= commInterval)) {
-    lastComm = millis();
-    communicateWithDevices();
-  }
-  
-  // Check for serial commands
-  if (Serial.available() > 0) {
-    char cmd = Serial.read();
-    
-    switch(cmd) {
-      case 's':
-      case 'S':
-        Serial.println("\nManual scan requested...");
-        scanForM0Devices();
-        break;
-        
-      case 'i':
-      case 'I':
-        printStatus();
-        break;
-        
-      case '?':
-      case 'h':
-      case 'H':
-        Serial.println("\n=== COMMANDS ===");
-        Serial.println("s - Scan for M0 devices");
-        Serial.println("i - Show system status");
-        Serial.println("h - Show this help");
-        Serial.println("================\n");
-        break;
-    }
-    
-    // Clear serial buffer
-    while (Serial.available()) Serial.read();
-  }
-  
+
   delay(10);
 }

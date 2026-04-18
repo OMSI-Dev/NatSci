@@ -1,0 +1,5 @@
+!A !B !C !D   = 0x08 = Buoy = S S S
+[A] !B !C !D  = 0x09 = Dam  = N N N 
+!A [B] !C !D  = 0x0A = Geo  = N S X
+!A !B [C] !D  = 0x0B = Geo  = X N S
+(...)
