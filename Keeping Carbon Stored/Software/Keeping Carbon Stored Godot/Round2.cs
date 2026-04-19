@@ -55,7 +55,7 @@ public partial class Round2 : Node2D
 	public override void _Process(double delta)
 	{
 		if(round2Start) {
-			if(!tilesSet) { startRound2Tiles(); }
+			if(!tilesSet) { return; }
 
 			//GD.Print("Round Two started...");
 			/* // ***** Test Code *****
@@ -117,11 +117,13 @@ public partial class Round2 : Node2D
 		// Switch to the gameplay video
 		_r2VideoPlayer.Stream = gameplayVideo;
 		_r2VideoPlayer.Play();
+		startRound2Tiles();
 	}
 
 	private void roundTwoFinished() {
 		round2Start = false;
 		round2Over = true;
+		_r2VideoPlayer.Stream = introVideo;
 	}
 
 	public void startRoundTwo(bool strt) {
