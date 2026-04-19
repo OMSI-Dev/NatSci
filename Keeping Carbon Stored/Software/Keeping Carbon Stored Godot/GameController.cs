@@ -31,27 +31,22 @@ public partial class GameController : Node2D
 	private Node2D resultsNode;
 	private Results resultsScript;
 
-	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-		totalScore = 0;
-		gameStarted = false;
-		round1Complete = false;
-		round2Complete = false;
+		totalScore      = 0;
+		gameStarted     = false;
+		round1Complete  = false;
+		round2Complete  = false;
 		resultsComplete = false;
 
-		serCom = GetNode<SerialCom>("/root/SerialCom");
-		idleNode = GetNode<Node2D>("Idle");
-		//Idle idleScript = idleNode as Idle;
-		idleScript = GetNode<Idle>("Idle");
-		round1Node = GetNode<Node2D>("Round1");
-		//Round1 round1Script = round1Node as Round1;
-		round1Script = GetNode<Round1>("Round1");
-		round2Node = GetNode<Node2D>("Round2");
-		//Round2 round2Script = round2Node as Round2;
-		round2Script = GetNode<Round2>("Round2");
-		resultsNode = GetNode<Node2D>("Results");
-		//Results resultsScript = resultsNode as Results;
+		serCom        = GetNode<SerialCom>("/root/SerialCom");
+		idleNode      = GetNode<Node2D>("Idle");
+		idleScript    = GetNode<Idle>("Idle");
+		round1Node    = GetNode<Node2D>("Round1");
+		round1Script  = GetNode<Round1>("Round1");
+		round2Node    = GetNode<Node2D>("Round2");
+		round2Script  = GetNode<Round2>("Round2");
+		resultsNode   = GetNode<Node2D>("Results");
 		resultsScript = GetNode<Results>("Results");
 
 		// Load all nodes and initially hide.
@@ -80,10 +75,9 @@ public partial class GameController : Node2D
 		}
 	}
 
-	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
-		// ************* IDLE SCREEN PRE-GAME ******************
+		// ********************* IDLE SCREEN PRE-GAME *********************
 		if(!gameStarted && !round1Complete && !round2Complete && !resultsComplete) {
 			if(idleNode == null) {
 				GD.Print("Idle Node is null in Game Controller's _Process function.");
@@ -101,7 +95,7 @@ public partial class GameController : Node2D
 			}
 		}
 
-		// ************* ROUND ONE ******************
+		// ********************** ROUND ONE *********************
 		if(gameStarted && !round1Complete && !round2Complete && !resultsComplete) {
 			if(round1Node == null) { GD.Print("Round 1 Node is null in Game Controller's _Process function."); }
 
@@ -121,13 +115,8 @@ public partial class GameController : Node2D
 			totalScore = round1Script.round1Score();
 		}
 
-		// ************* ROUND TWO ******************
+		// ********************* ROUND TWO *********************
 		if(gameStarted && round1Complete && !round2Complete && !resultsComplete) {
-			// Get bool from round 2 script saying it's completed
-			// Get int from total score from round two (same as above?)
-			// roundTwoComplete = true;
-			// totalScore += round1score + round2score
-
 			if(round2Node == null) { GD.Print("Round 2 Node is null in Game Controller's _Process function."); }
 
 			if(!round2Complete) {
@@ -145,7 +134,7 @@ public partial class GameController : Node2D
 			totalScore += round2Script.round2Score();
 		}
 
-		// ************* RESULTS ******************
+		// ********************* RESULTS *********************
 		if(gameStarted && round1Complete && round2Complete && !resultsComplete) {
 			if(resultsNode == null) {
 				GD.Print("Results Node is null in Game Controller's _Process function.");
@@ -157,19 +146,14 @@ public partial class GameController : Node2D
 				resultsNode.Show();
 			}
 
-			// Do results screen
 			if(resultsScript.getTotalScore() == 0) {
 				resultsScript.setTotalScore(totalScore);
 			}
 
-		// After results screen comes back as completed, mark resultsScreen completed
 		resultsComplete = true;
 		}
 
-		// ************* RESET ******************
-		// If resultsScreen completed: mark round1Completed, round2Completed, and
-		// results screen completed = false and idleScreen = true
-		// reset score in all scripts and in game controller script (this one)
+		// ********************* RESET *********************
 		if(gameStarted && round1Complete && round2Complete && resultsComplete) {
 			restartGame();
 		}
@@ -177,7 +161,7 @@ public partial class GameController : Node2D
 
 	public void restartGame() {
 		gameStarted = false;
-		totalScore = 0;
+		totalScore  = 0;
 		GD.Print("Game starting over...");
 
 		round1Complete = false;
