@@ -12,6 +12,11 @@ using System.Collections.Generic;
 
 public partial class Round2 : Node2D
 {
+	private VideoStreamPlayer _r2VideoPlayer;
+
+	[Export] public VideoStream introVideo;
+	[Export] public VideoStream gameplayVideo;
+
 	string serialData     = "";
 	List<string> dataList = new List<string>();
 	List<string> r2Tiles  = new List<string>();
@@ -36,9 +41,14 @@ public partial class Round2 : Node2D
 		// Verify that the autoload is in the global root folder.
 		//if (HasNode("/root"))
 			//GD.Print("Root exists");
-//
 		//var auto = GetNodeOrNull<Node>("/root/SerialCom");
 		//GD.Print(auto == null ? "Autoload NOT found" : "Autoload FOUND");
+
+		_r2VideoPlayer = GetNode<VideoStreamPlayer>("RoundTwoVideoPlayer");
+
+		_r2VideoPlayer.Finished += OnVideoFinished;
+		_r2VideoPlayer.Stream    = introVideo;
+		_r2VideoPlayer.Play();
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -98,11 +108,15 @@ public partial class Round2 : Node2D
 					GD.Print(e.Message);
 				}
 			}
-			// Once all tiles have been lit up and pressed or timed out,
-			// round2Over = true and score = the total score
-			// roundTwoStart = false
 		}
-		// If round2Start = false
+		// If round2Start = false:
+	}
+
+	private void OnVideoFinished()
+	{
+		// Switch to the gameplay video
+		_r2VideoPlayer.Stream = gameplayVideo;
+		_r2VideoPlayer.Play();
 	}
 
 	private void roundTwoFinished() {
