@@ -1,27 +1,27 @@
 [gd_scene format=3 uid="uid://bqjny2h4i3bse"]
 
-[ext_resource type="Script" uid="uid://ci6qdvwtb00m0" path="res://GameController.cs" id="1_0e48y"]
-[ext_resource type="Script" uid="uid://v5m23mhbesex" path="res://Idle.cs" id="2_0hol4"]
-[ext_resource type="Script" uid="uid://bkg2sm4plkcj8" path="res://Round1.cs" id="2_epypp"]
-[ext_resource type="Script" uid="uid://bi2ecw060sefu" path="res://Round2.cs" id="4_q6r6c"]
-[ext_resource type="VideoStream" uid="uid://bng1jf541jyd0" path="res://Media/animation1.ogv" id="5_d21ai"]
-[ext_resource type="Script" uid="uid://bnwtodx8qn7i6" path="res://Results.cs" id="5_kdubu"]
+[ext_resource type="Script" uid="uid://ci6qdvwtb00m0" path="res://GameController.cs" id="1_2pltu"]
+[ext_resource type="Script" uid="uid://v5m23mhbesex" path="res://Idle.cs" id="2_f52ns"]
+[ext_resource type="VideoStream" uid="uid://bng1jf541jyd0" path="res://Media/animation1.ogv" id="3_l5ukw"]
+[ext_resource type="Script" uid="uid://bkg2sm4plkcj8" path="res://Round1.cs" id="4_4srsv"]
+[ext_resource type="Script" uid="uid://bi2ecw060sefu" path="res://Round2.cs" id="5_mf81u"]
+[ext_resource type="Script" uid="uid://bnwtodx8qn7i6" path="res://Results.cs" id="6_02kkc"]
 
 [node name="GameController" type="Node2D" unique_id=2047308611]
-script = ExtResource("1_0e48y")
+script = ExtResource("1_2pltu")
 
 [node name="Idle" type="Node2D" parent="." unique_id=349685680]
-script = ExtResource("2_0hol4")
+script = ExtResource("2_f52ns")
 
 [node name="IdleVideo" type="VideoStreamPlayer" parent="Idle" unique_id=1828615339]
 offset_right = 40.0
 offset_bottom = 40.0
-stream = ExtResource("5_d21ai")
+stream = ExtResource("3_l5ukw")
 autoplay = true
 loop = true
 
 [node name="Round1" type="Node2D" parent="." unique_id=1924916056]
-script = ExtResource("2_epypp")
+script = ExtResource("4_4srsv")
 
 [node name="RichTextLabel" type="RichTextLabel" parent="Round1" unique_id=1376457684]
 offset_top = -1.0
@@ -33,10 +33,10 @@ text = "ROUND ONE!"
 [node name="VideoStreamPlayer" type="VideoStreamPlayer" parent="Round1" unique_id=952196999]
 offset_right = 40.0
 offset_bottom = 40.0
-stream = ExtResource("5_d21ai")
+stream = ExtResource("3_l5ukw")
 
 [node name="Round2" type="Node2D" parent="." unique_id=808558755]
-script = ExtResource("4_q6r6c")
+script = ExtResource("5_mf81u")
 
 [node name="RichTextLabel" type="RichTextLabel" parent="Round2" unique_id=1146076865]
 offset_right = 40.0
@@ -48,7 +48,7 @@ offset_right = 40.0
 offset_bottom = 40.0
 
 [node name="Results" type="Node2D" parent="." unique_id=36570165]
-script = ExtResource("5_kdubu")
+script = ExtResource("6_02kkc")
 
 [node name="RichTextLabel" type="RichTextLabel" parent="Results" unique_id=35733549]
 offset_right = 40.0
