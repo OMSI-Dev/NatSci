@@ -16,8 +16,14 @@
  *   SOUTH < 1450 (~1168 mV), NORTH > 2800 (~2256 mV)
  *
  * Expected correct patterns:
- *   0x08  Buoy  S S S
- *   0x09  Dam   N N N
+ *   0x08  None   Buoy   S S S
+ *   0x09  A      Dam    N N N
+ *   0x0A  B      Geo    N S X
+ *   0x0B  C      Geo    X N S
+ *   0x0C  D      Solar  N X X
+ *   0x0D  AB     Solar  X X N
+ *   0x0E  AC     Wind   N N X
+ *   0x0F  AD     Wind   X N N
  *
  * LEDs:
  *   Any magnetism detected (REGISTERING) → dim white
@@ -114,19 +120,49 @@ void onRequest() {
 }
 
 bool isCorrect() {
-  if (i2cAddress == 0x08)   // Buoy: S S S
-    return track[0].confirmed == POL_SOUTH &&
-           track[1].confirmed == POL_SOUTH &&
-           track[2].confirmed == POL_SOUTH;
-  if (i2cAddress == 0x09)   // Dam: N N N
-    return track[0].confirmed == POL_NORTH &&
-           track[1].confirmed == POL_NORTH &&
-           track[2].confirmed == POL_NORTH;
-  return false;
+  Polarity p0 = track[0].confirmed;
+  Polarity p1 = track[1].confirmed;
+  Polarity p2 = track[2].confirmed;
+  
+  switch (i2cAddress) {
+    case 0x08:  // None/Buoy: S S S
+      return p0 == POL_SOUTH && p1 == POL_SOUTH && p2 == POL_SOUTH;
+    
+    case 0x09:  // A/Dam: N N N
+      return p0 == POL_NORTH && p1 == POL_NORTH && p2 == POL_NORTH;
+    
+    case 0x0A:  // B/Geo: N S X
+      return p0 == POL_NORTH && p1 == POL_SOUTH && p2 == POL_UNCERTAIN;
+    
+    case 0x0B:  // C/Geo: X N S
+      return p0 == POL_UNCERTAIN && p1 == POL_NORTH && p2 == POL_SOUTH;
+    
+    case 0x0C:  // D/Solar: N X X
+      return p0 == POL_NORTH && p1 == POL_UNCERTAIN && p2 == POL_UNCERTAIN;
+    
+    case 0x0D:  // AB/Solar: X X N
+      return p0 == POL_UNCERTAIN && p1 == POL_UNCERTAIN && p2 == POL_NORTH;
+    
+    case 0x0E:  // AC/Wind: N N X
+      return p0 == POL_NORTH && p1 == POL_NORTH && p2 == POL_UNCERTAIN;
+    
+    case 0x0F:  // AD/Wind: X N N
+      return p0 == POL_UNCERTAIN && p1 == POL_NORTH && p2 == POL_NORTH;
+    
+    default:
+      return false;
+  }
 }
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  
+  // Turn off on-board LED
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+  
   analogReadResolution(12);
 
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
@@ -140,6 +176,25 @@ void setup() {
   setPins();
   i2cAddress = setAddr();
   txBuf[4]   = (uint8_t)(i2cAddress & 0xFF);
+  
+  Serial.println("\n=== M0 BOARD INITIALIZED ===");
+  Serial.print("I2C Address: 0x");
+  Serial.println(i2cAddress, HEX);
+  Serial.print("Expected Pattern: ");
+  
+  switch (i2cAddress) {
+    case 0x08: Serial.println("Buoy - S S S"); break;
+    case 0x09: Serial.println("Dam - N N N"); break;
+    case 0x0A: Serial.println("Geo - N S X"); break;
+    case 0x0B: Serial.println("Geo - X N S"); break;
+    case 0x0C: Serial.println("Solar - N X X"); break;
+    case 0x0D: Serial.println("Solar - X X N"); break;
+    case 0x0E: Serial.println("Wind - N N X"); break;
+    case 0x0F: Serial.println("Wind - X N N"); break;
+    default: Serial.println("UNKNOWN"); break;
+  }
+  Serial.println("============================\n");
+  
   Wire.begin(i2cAddress);
   Wire.onRequest(onRequest);
 }
@@ -147,9 +202,14 @@ void setup() {
 // ── Loop ──────────────────────────────────────────────────────────────────────
 void loop() {
   static const uint8_t PINS[3] = { SENSOR_1_PIN, SENSOR_2_PIN, SENSOR_3_PIN };
+  static uint32_t lastDebug = 0;
 
   Polarity cur[3];
-  for (uint8_t i = 0; i < 3; i++) cur[i] = classify(analogRead(PINS[i]));
+  uint16_t raw[3];
+  for (uint8_t i = 0; i < 3; i++) {
+    raw[i] = analogRead(PINS[i]);
+    cur[i] = classify(raw[i]);
+  }
 
   bool allUncertain = (cur[0] == POL_UNCERTAIN &&
                        cur[1] == POL_UNCERTAIN &&
@@ -162,7 +222,7 @@ void loop() {
       if (!allUncertain) {
         resetTracks();
         detectState = STATE_REGISTERING;
-        Serial.println("Magnetism detected - entering REGISTERING state (WHITE)");
+        Serial.println("\n>>> MAGNETISM DETECTED - STARTING REGISTRATION <<<");
         setLEDs(CRGB(50, 50, 50));  // dim white — magnetism detected, acquiring
         writeTxBuf(STATE_REGISTERING, cur[0], cur[1], cur[2]);
       }
@@ -170,10 +230,19 @@ void loop() {
 
     // ── REGISTERING ───────────────────────────────────────────────────────────
     case STATE_REGISTERING: {
+      static uint32_t registerStartTime = 0;
+      static bool timerStarted = false;
+      
+      if (!timerStarted) {
+        registerStartTime = millis();
+        timerStarted = true;
+      }
+      
       if (allUncertain) {
         // Object removed before confirmation — re-arm
         resetTracks();
         detectState = STATE_IDLE;
+        timerStarted = false;
         setLEDs(CRGB::Black);
         writeTxBuf(STATE_IDLE, POL_UNCERTAIN, POL_UNCERTAIN, POL_UNCERTAIN);
         break;
@@ -183,11 +252,8 @@ void loop() {
       for (uint8_t i = 0; i < 3; i++) {
         if (track[i].locked) continue;
 
-        if (cur[i] == POL_UNCERTAIN) {
-          track[i].candidate = POL_UNCERTAIN;
-          track[i].count     = 0;
-          allLocked          = false;
-        } else if (cur[i] == track[i].candidate) {
+        if (cur[i] == track[i].candidate) {
+          // Current reading matches candidate - increment count
           track[i].count++;
           if (track[i].count >= CONFIRM_SAMPLES) {
             track[i].confirmed = track[i].candidate;
@@ -195,18 +261,77 @@ void loop() {
           } else {
             allLocked = false;
           }
+        } else if (cur[i] == POL_UNCERTAIN && track[i].candidate != POL_UNCERTAIN && track[i].count >= 5) {
+          // Reading UNCERTAIN but have a strong S/N candidate (5+ samples)
+          // Slowly decrement count instead of resetting (protects Buoy from false X)
+          if (track[i].count > 0) track[i].count--;
+          allLocked = false;
         } else {
+          // New candidate reading or weak candidate - allow switch
           track[i].candidate = cur[i];
           track[i].count     = 1;
           allLocked          = false;
         }
       }
+      
+      // Force-lock timeout: if we've been registering for 3+ seconds and a sensor
+      // is currently reading UNCERTAIN, lock it as UNCERTAIN (handles Wind pattern)
+      if (millis() - registerStartTime > 3000) {
+        for (uint8_t i = 0; i < 3; i++) {
+          if (!track[i].locked && cur[i] == POL_UNCERTAIN) {
+            Serial.print("FORCE-LOCKING sensor ");
+            Serial.print(i + 1);
+            Serial.println(" as UNCERTAIN (timeout)");
+            track[i].confirmed = POL_UNCERTAIN;
+            track[i].locked = true;
+          }
+        }
+      }
 
       writeTxBuf(STATE_REGISTERING, cur[0], cur[1], cur[2]);
+
+      // Debug output every 500ms
+      if (millis() - lastDebug > 500) {
+        Serial.print("RAW: ");
+        Serial.print(raw[0]); Serial.print("\t"); 
+        Serial.print(raw[1]); Serial.print("\t"); 
+        Serial.println(raw[2]);
+        
+        Serial.print("CUR: ");
+        Serial.print(cur[0]); Serial.print("\t"); 
+        Serial.print(cur[1]); Serial.print("\t"); 
+        Serial.println(cur[2]);
+        
+        Serial.print("Candidate: ");
+        Serial.print(track[0].candidate); Serial.print("\t"); 
+        Serial.print(track[1].candidate); Serial.print("\t"); 
+        Serial.println(track[2].candidate);
+        
+        Serial.print("Count: ");
+        Serial.print(track[0].count); Serial.print("/"); Serial.print(track[0].locked ? "LOCK" : "....");
+        Serial.print("\t");
+        Serial.print(track[1].count); Serial.print("/"); Serial.print(track[1].locked ? "LOCK" : "....");
+        Serial.print("\t");
+        Serial.print(track[2].count); Serial.print("/"); Serial.println(track[2].locked ? "LOCK" : "....");
+        Serial.println();
+        
+        lastDebug = millis();
+      }
 
       if (allLocked) {
         bool correct = isCorrect();
         detectState  = correct ? STATE_CORRECT : STATE_INCORRECT;
+        timerStarted = false;  // Reset timer for next registration
+        
+        Serial.print("\n=== ALL LOCKED === S1:");
+        Serial.print(track[0].confirmed);
+        Serial.print(" S2:");
+        Serial.print(track[1].confirmed);
+        Serial.print(" S3:");
+        Serial.print(track[2].confirmed);
+        Serial.print(" -> ");
+        Serial.println(correct ? "CORRECT (GREEN)" : "INCORRECT (RED)");
+        
         setLEDs(correct ? CRGB(0, 100, 0) : CRGB(100, 0, 0));  // dim green / dim red
         writeTxBuf(detectState,
                    track[0].confirmed,
@@ -218,17 +343,9 @@ void loop() {
 
     // ── CORRECT / INCORRECT — wait for object removal ─────────────────────────
     case STATE_CORRECT:
-      if (allUncertain) {
-        Serial.println("Magnet removed - returning to IDLE state");
-        resetTracks();
-        detectState = STATE_IDLE;
-        setLEDs(CRGB::Black);
-        writeTxBuf(STATE_IDLE, POL_UNCERTAIN, POL_UNCERTAIN, POL_UNCERTAIN);
-      }
-      break;
     case STATE_INCORRECT:
       if (allUncertain) {
-        Serial.println("Magnet removed - returning to IDLE state");
+        Serial.println(">>> MAGNET REMOVED - BACK TO IDLE <<<\n");
         resetTracks();
         detectState = STATE_IDLE;
         setLEDs(CRGB::Black);
