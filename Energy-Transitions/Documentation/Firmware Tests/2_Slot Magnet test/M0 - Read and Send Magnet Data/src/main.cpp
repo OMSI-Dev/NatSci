@@ -130,8 +130,8 @@ void setup() {
   analogReadResolution(12);
 
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);  // Increased from 100mA to 500mA
-  FastLED.setBrightness(50);  // Increased from 30 to 50
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 750);  // Increased from 100mA to 500mA
+  FastLED.setBrightness(75);  // Increased from 30 to 50
   setLEDs(CRGB::Black);
 
   resetTracks();
