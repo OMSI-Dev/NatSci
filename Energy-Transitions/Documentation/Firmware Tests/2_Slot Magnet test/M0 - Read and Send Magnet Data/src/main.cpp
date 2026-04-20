@@ -6,10 +6,14 @@
  * checks correctness against this board's I2C address, lights the LED ring, and
  * reports status to the Teensy via I2C on request.
  *
- * Thresholds (12-bit ADC, 3.3 V ref, calibrated 2026-04-17):
- *   SOUTH      raw < 1450  (~1168 mV)
- *   NORTH      raw > 2800  (~2256 mV)
- *   UNCERTAIN  1450–2800   (no magnet or in transition)
+ * Thresholds (12-bit ADC, 3.3 V ref):
+ *   ADJUSTED FOR MILKPLEX BARRIER (2026-04-20):
+ *   SOUTH      raw < 1700  (~1370 mV) - increased from 1450 for weaker field
+ *   NORTH      raw > 2400  (~1935 mV) - decreased from 2800 for weaker field
+ *   UNCERTAIN  1700–2400   (no magnet or in transition)
+ *
+ *   Original calibration (2026-04-17, no barrier):
+ *   SOUTH < 1450 (~1168 mV), NORTH > 2800 (~2256 mV)
  *
  * Expected correct patterns:
  *   0x08  Buoy  S S S
@@ -41,8 +45,15 @@
 #define SENSOR_3_PIN  A2
 
 // ── ADC thresholds (12-bit) ───────────────────────────────────────────────────
-#define THRESHOLD_SOUTH  1450
-#define THRESHOLD_NORTH  2800
+// Adjusted for milkplex barrier - more lenient detection
+// Increase THRESHOLD_SOUTH to catch weaker south pole readings
+// Decrease THRESHOLD_NORTH to catch weaker north pole readings
+#define THRESHOLD_SOUTH  1700  // Was 1450 - raised for milkplex barrier
+#define THRESHOLD_NORTH  2400  // Was 2800 - lowered for milkplex barrier
+
+// If detection is still unreliable with barrier, try:
+// THRESHOLD_SOUTH  1800
+// THRESHOLD_NORTH  2300
 
 // ── Registration: samples each sensor must hold the same polarity ─────────────
 #define CONFIRM_SAMPLES  10
@@ -116,11 +127,14 @@ bool isCorrect() {
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  
   analogReadResolution(12);
 
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 100);
-  FastLED.setBrightness(30);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);  // Increased from 100mA to 500mA
+  FastLED.setBrightness(50);  // Increased from 30 to 50
   setLEDs(CRGB::Black);
 
   resetTracks();
@@ -129,6 +143,18 @@ void setup() {
   setPins();
   i2cAddress = setAddr();
   txBuf[4]   = (uint8_t)(i2cAddress & 0xFF);
+  
+  Serial.print("I2C Address: 0x");
+  Serial.println(i2cAddress, HEX);
+  
+  if (i2cAddress == 0x08) {
+    Serial.println("Expected pattern: SOUTH SOUTH SOUTH");
+  } else if (i2cAddress == 0x09) {
+    Serial.println("Expected pattern: NORTH NORTH NORTH");
+  } else {
+    Serial.println("No correct pattern defined for this address");
+  }
+  
   Wire.begin(i2cAddress);
   Wire.onRequest(onRequest);
 }
@@ -151,7 +177,7 @@ void loop() {
       if (!allUncertain) {
         resetTracks();
         detectState = STATE_REGISTERING;
-        setLEDs(CRGB(15, 15, 15));  // dim white — magnetism detected, acquiring
+        setLEDs(CRGB(50, 50, 50));  // dim white — magnetism detected, acquiring
         writeTxBuf(STATE_REGISTERING, cur[0], cur[1], cur[2]);
       }
       break;
@@ -195,7 +221,17 @@ void loop() {
       if (allLocked) {
         bool correct = isCorrect();
         detectState  = correct ? STATE_CORRECT : STATE_INCORRECT;
-        setLEDs(correct ? CRGB(0, 30, 0) : CRGB(30, 0, 0));  // dim green / dim red
+        
+        Serial.print("All sensors locked! S1:");
+        Serial.print(track[0].confirmed);
+        Serial.print(" S2:");
+        Serial.print(track[1].confirmed);
+        Serial.print(" S3:");
+        Serial.print(track[2].confirmed);
+        Serial.print(" -> ");
+        Serial.println(correct ? "CORRECT (GREEN)" : "INCORRECT (RED)");
+        
+        setLEDs(correct ? CRGB(0, 100, 0) : CRGB(100, 0, 0));  // dim green / dim red
         writeTxBuf(detectState,
                    track[0].confirmed,
                    track[1].confirmed,

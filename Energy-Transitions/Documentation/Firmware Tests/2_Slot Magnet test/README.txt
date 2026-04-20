@@ -1,103 +1,133 @@
 ========================================
-  TEST 1 - ADDRESSING AND COMMUNICATION
+  TEST 2 - SLOT MAGNET DETECTION
 ========================================
 
 OBJECTIVE:
-- M0 boards initialize I2C addresses from GPIO header pins
-- Teensy waits for 2x M0 boards to appear on I2C bus
-- Once both M0 boards are detected, establish active bidirectional communication
+- M0 boards read 3x Hall effect sensors (SS39ET) to detect magnet polarity
+- Confirm correct magnet pattern based on I2C address
+- Send detection status to Teensy via I2C
+- Light LED ring based on detection state
 
 HARDWARE SETUP:
 ===============
 
-** 2x M0 BOARDS **
-- Each M0 gets unique I2C address from GPIO pins (A=3, B=4, C=12, D=7)
-- Connect GPIO pins to GND or leave floating to set address (0x08-0x11)
-- Both M0 boards share the same I2C bus
+** M0 BOARDS **
+- 3x SS39ET Hall effect sensors connected to A0, A1, A2
+- LED ring on Pin 2 (20 LEDs)
+- I2C address from GPIO pins (0x08 = Buoy, 0x09 = Dam)
+- Milkplex barrier layer between magnets and sensors
 
-** TEENSY 4.1 (MASTER) **
-- Pin 18 (SDA) - connect to both M0 SDA pins
-- Pin 19 (SCL) - connect to both M0 SCL pins
-- GND - connect to both M0 GND pins
-- 4.7kΩ pull-up resistors on SDA and SCL to 3.3V
+** HALL SENSOR WIRING **
+- SS39ET sensor (3 pins):
+  Pin 1 (VCC) → 3.3V
+  Pin 2 (OUT) → M0 analog pin (A0/A1/A2)
+  Pin 3 (GND) → GND
 
-WIRING DIAGRAM:
-===============
-                    Teensy 4.1
-                  +-----------+
-                  |           |
-          Pin 18  |  SDA      |  --- (4.7kΩ to 3.3V)
-                  |           |       |
-                  |           |       +---> M0 #1 Pin 26 (SDA)
-                  |           |       |
-                  |           |       +---> M0 #2 Pin 26 (SDA)
-                  |           |
-          Pin 19  |  SCL      |  --- (4.7kΩ to 3.3V)
-                  |           |       |
-                  |           |       +---> M0 #1 Pin 27 (SCL)
-                  |           |       |
-                  |           |       +---> M0 #2 Pin 27 (SCL)
-                  |           |
-                  |  GND      |  ----+---> M0 #1 GND
-                  |           |      |
-                  |           |      +---> M0 #2 GND
-                  +-----------+
+** EXPECTED MAGNET PATTERNS **
+- Address 0x08 (Buoy):  SOUTH SOUTH SOUTH
+- Address 0x09 (Dam):   NORTH NORTH NORTH
 
-M0 ADDRESS CONFIGURATION:
-=========================
-Using GPIO pins 3, 4, 12, 7 (A, B, C, D):
-- All floating (HIGH with INPUT_PULLUP): Address 0x08
-- Pin 3 to GND (A=1):                    Address 0x09
-- Pin 4 to GND (B=1):                    Address 0x0A
-- Pin 3+4 to GND (A=1, B=1):             Address 0x0B
-- etc... (see i2C_Address.h for full mapping)
+DETECTION THRESHOLDS (12-bit ADC):
+===================================
 
-For this test, configure:
-- M0 Board #1: All pins floating → Address 0x08
-- M0 Board #2: Pin 3 to GND     → Address 0x09
+** ADJUSTED FOR MILKPLEX BARRIER (2026-04-20) **
+- SOUTH pole:      raw < 1700 (~1.37V)
+- NORTH pole:      raw > 2400 (~1.94V)
+- UNCERTAIN:       1700 - 2400 (no magnet or transition)
 
-COMMUNICATION PROTOCOL:
-=======================
+Note: Thresholds were adjusted from original calibration
+      (SOUTH < 1450, NORTH > 2800) to account for weaker
+      magnetic field through milkplex barrier.
 
-M0 -> TEENSY (Request/Response):
-- M0 sends incrementing counter value when requested
-- Counter increments with each request
+** IF DETECTION IS UNRELIABLE **
+Try more aggressive thresholds:
+- SOUTH < 1800
+- NORTH > 2300
 
-TEENSY -> M0 (Commands):
-- 0xFF: Turn LEDs ON (white)
-- 0x00: Turn LEDs OFF
-- 0x01-0x0F: Set LED color by hue
+DETECTION STATES:
+=================
+
+IDLE (0):
+- No magnetic field detected
+- LEDs: OFF
+- Waiting for object insertion
+
+REGISTERING (1):
+- Magnetism detected, confirming polarity
+- Requires 10 consecutive consistent readings per sensor
+- LEDs: Dim white (15,15,15)
+
+CORRECT (2):
+- All sensors confirmed correct pattern
+- LEDs: Dim green (0,30,0)
+- Waits for object removal
+
+INCORRECT (3):
+- Wrong magnet pattern detected
+- LEDs: Dim red (30,0,0)
+- Waits for object removal
+
+I2C COMMUNICATION:
+==================
+
+M0 → TEENSY (6 bytes on requestFrom):
+- Byte 0: State (0=IDLE, 1=REGISTERING, 2=CORRECT, 3=INCORRECT)
+- Byte 1: Sensor 1 polarity (0=UNCERTAIN, 1=SOUTH, 2=NORTH)
+- Byte 2: Sensor 2 polarity
+- Byte 3: Sensor 3 polarity
+- Byte 4: I2C address (low byte)
+- Byte 5: Reserved (0x00)
 
 EXPECTED BEHAVIOR:
 ==================
 
-M0 BOARDS:
-- Initialize with unique I2C addresses
-- Print heartbeat every 5 seconds
-- Show [RX] when receiving commands
-- Show [TX] when sending counter data
-- LEDs respond to commands from Teensy
+M0 BOARD:
+1. Powers up, reads I2C address from GPIO
+2. Starts in IDLE state, LEDs off
+3. When magnet approaches:
+   - Enters REGISTERING (dim white)
+   - Samples each sensor 10 times
+   - Confirms polarity for each sensor
+4. After confirmation:
+   - CORRECT: green if pattern matches address
+   - INCORRECT: red if pattern doesn't match
+5. Returns to IDLE when magnet removed
 
 TEENSY BOARD:
-- Scan for M0 devices every 3 seconds
-- Wait until 2 devices are detected
-- Once ready, communicate every 1 second:
-  * Request counter from each M0
-  * Send cycling commands (ON/OFF/colors)
-- Display all communication via serial
+- Continuously polls M0 boards via I2C
+- Displays detection state and polarity readings
+- Shows when correct/incorrect patterns detected
 
-SERIAL COMMANDS (Teensy):
-=========================
-s - Manual scan for M0 devices
-i - Show system status
-h - Show help
+CALIBRATION & TROUBLESHOOTING:
+==============================
+
+** If sensors don't detect magnets through barrier:**
+1. Check sensor wiring and power
+2. Test sensors without barrier first
+3. Increase THRESHOLD_SOUTH (try 1800, 1850, 1900)
+4. Decrease THRESHOLD_NORTH (try 2300, 2250, 2200)
+
+** If false triggers occur:**
+1. Decrease THRESHOLD_SOUTH (make more strict)
+2. Increase THRESHOLD_NORTH (make more strict)
+3. Check for electromagnetic interference
+
+** To recalibrate:**
+1. Place correct magnet in slot
+2. Monitor serial output for raw ADC values
+3. Note minimum (south) and maximum (north) readings
+4. Set thresholds with ~200-300 count margin
 
 SUCCESS CRITERIA:
 =================
-✓ Both M0 boards report correct unique addresses
-✓ Teensy detects both M0 boards
-✓ Teensy shows "SYSTEM READY"
-✓ Counter values increment on both M0 boards
+✓ M0 detects magnet insertion (IDLE → REGISTERING)
+✓ All 3 sensors confirm correct polarity
+✓ Correct pattern shows green LED
+✓ Wrong pattern shows red LED
+✓ Teensy receives accurate status via I2C
+✓ System resets to IDLE when magnet removed
+
+========================================
 ✓ LEDs respond to commands from Teensy
 ✓ No communication errors
 
