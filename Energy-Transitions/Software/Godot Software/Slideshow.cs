@@ -57,7 +57,7 @@ public partial class Slideshow : Node2D {
 		// Set to Fullscreen Mode
 		DisplayServer.WindowSetMode(DisplayServer.WindowMode.Fullscreen);
 		// Move to the second monitor (index 1)
-		DisplayServer.WindowSetCurrentScreen(1);
+		//DisplayServer.WindowSetCurrentScreen(1);
 		Vector2I screenSize = DisplayServer.ScreenGetSize();
 		GD.Print("Screen Resolution: " + screenSize);
 

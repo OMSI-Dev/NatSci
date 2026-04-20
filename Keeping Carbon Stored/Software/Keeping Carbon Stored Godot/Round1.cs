@@ -12,6 +12,7 @@ using System.Collections.Generic;
 
 public partial class Round1 : Node2D
 {
+	private RichTextLabel _r1ScoreText;
 	private VideoStreamPlayer _r1VideoPlayer;
 
 	[Export] public VideoStream introVideo;
@@ -45,16 +46,24 @@ public partial class Round1 : Node2D
 		//GD.Print(auto == null ? "Autoload NOT found" : "Autoload FOUND");
 
 		_r1VideoPlayer = GetNode<VideoStreamPlayer>("RoundOneVideoPlayer");
+		_r1ScoreText = GetNode<RichTextLabel>("RoundOneScore");
 
 		_r1VideoPlayer.Finished += OnVideoFinished;
 		_r1VideoPlayer.Stream    = introVideo;
-		_r1VideoPlayer.Play();
+		//_r1VideoPlayer.Play();
 	}
 
 	public override void _Process(double delta)
 	{
+		if(_r1VideoPlayer == null) {
+			GD.Print("Round One videos failed to load.");
+			return;
+		}
+
 		if(round1Start) {
 			if(tilesSet == false) { return; }
+
+			if(!_r1VideoPlayer.IsPlaying()) { _r1VideoPlayer.Play(); }
 
 			GD.Print("Round One started in Round1's _Process function.");
 			/* // ******* Test Code *******
@@ -162,6 +171,7 @@ public partial class Round1 : Node2D
 		score    = 0;
 		r1States.Clear();
 		r1States = tileInfo.getRound1States();
+		_r1ScoreText.Clear();
 	}
 
 	private bool allTilesComplete(string tile) {

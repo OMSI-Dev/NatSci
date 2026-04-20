@@ -2,10 +2,14 @@
 
 [ext_resource type="Script" uid="uid://ci6qdvwtb00m0" path="res://GameController.cs" id="1_2pltu"]
 [ext_resource type="Script" uid="uid://v5m23mhbesex" path="res://Idle.cs" id="2_f52ns"]
-[ext_resource type="VideoStream" uid="uid://bng1jf541jyd0" path="res://Media/animation1.ogv" id="3_l5ukw"]
+[ext_resource type="VideoStream" uid="uid://xp3ucmr1f3px" path="res://Media/idleScreen.ogv" id="3_mf81u"]
 [ext_resource type="Script" uid="uid://bkg2sm4plkcj8" path="res://Round1.cs" id="4_4srsv"]
+[ext_resource type="VideoStream" uid="uid://q8xlxe436qs3" path="res://Media/round1Intro.ogv" id="5_02kkc"]
 [ext_resource type="Script" uid="uid://bi2ecw060sefu" path="res://Round2.cs" id="5_mf81u"]
 [ext_resource type="Script" uid="uid://bnwtodx8qn7i6" path="res://Results.cs" id="6_02kkc"]
+[ext_resource type="VideoStream" uid="uid://bgfpjrngd4h3o" path="res://Media/r1Gameplay.ogv" id="6_aomqu"]
+[ext_resource type="VideoStream" uid="uid://d23ps83dqbg8" path="res://Media/round2Intro.ogv" id="8_krmtw"]
+[ext_resource type="VideoStream" uid="uid://b2wqipxgjv6b6" path="res://Media/r2Gameplay.ogv" id="9_jgkyn"]
 
 [node name="GameController" type="Node2D" unique_id=2047308611]
 script = ExtResource("1_2pltu")
@@ -13,18 +17,19 @@ script = ExtResource("1_2pltu")
 [node name="Idle" type="Node2D" parent="." unique_id=349685680]
 script = ExtResource("2_f52ns")
 
-[node name="IdleVideo" type="VideoStreamPlayer" parent="Idle" unique_id=1828615339]
+[node name="IdleVideoPlayer" type="VideoStreamPlayer" parent="Idle" unique_id=1828615339]
 offset_right = 40.0
 offset_bottom = 40.0
-stream = ExtResource("3_l5ukw")
-autoplay = true
+stream = ExtResource("3_mf81u")
 loop = true
 buffering_msec = 100
 
 [node name="Round1" type="Node2D" parent="." unique_id=1924916056]
 script = ExtResource("4_4srsv")
+introVideo = ExtResource("5_02kkc")
+gameplayVideo = ExtResource("6_aomqu")
 
-[node name="RichTextLabel" type="RichTextLabel" parent="Round1" unique_id=1376457684]
+[node name="RoundOneScore" type="RichTextLabel" parent="Round1" unique_id=1376457684]
 offset_top = -1.0
 offset_right = 1151.0
 offset_bottom = 647.0
@@ -34,14 +39,14 @@ text = "ROUND ONE!"
 [node name="RoundOneVideoPlayer" type="VideoStreamPlayer" parent="Round1" unique_id=952196999]
 offset_right = 40.0
 offset_bottom = 40.0
-stream = ExtResource("3_l5ukw")
-autoplay = true
 buffering_msec = 100
 
 [node name="Round2" type="Node2D" parent="." unique_id=808558755]
 script = ExtResource("5_mf81u")
+introVideo = ExtResource("8_krmtw")
+gameplayVideo = ExtResource("9_jgkyn")
 
-[node name="RichTextLabel" type="RichTextLabel" parent="Round2" unique_id=1146076865]
+[node name="RoundTwoScore" type="RichTextLabel" parent="Round2" unique_id=1146076865]
 offset_right = 40.0
 offset_bottom = 40.0
 text = "ROUND TWO!"
@@ -49,13 +54,12 @@ text = "ROUND TWO!"
 [node name="RoundTwoVideoPlayer" type="VideoStreamPlayer" parent="Round2" unique_id=795930470]
 offset_right = 40.0
 offset_bottom = 40.0
-autoplay = true
 buffering_msec = 100
 
 [node name="Results" type="Node2D" parent="." unique_id=36570165]
 script = ExtResource("6_02kkc")
 
-[node name="RichTextLabel" type="RichTextLabel" parent="Results" unique_id=35733549]
+[node name="FinalScore" type="RichTextLabel" parent="Results" unique_id=35733549]
 offset_right = 40.0
 offset_bottom = 40.0
 text = "COMPLETE! "
@@ -63,5 +67,4 @@ text = "COMPLETE! "
 [node name="ResultsVideoPlayer" type="VideoStreamPlayer" parent="Results" unique_id=277264892]
 offset_right = 40.0
 offset_bottom = 40.0
-autoplay = true
 buffering_msec = 100

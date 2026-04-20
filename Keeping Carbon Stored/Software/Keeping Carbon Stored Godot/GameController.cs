@@ -33,6 +33,13 @@ public partial class GameController : Node2D
 
 	public override void _Ready()
 	{
+		// Set to Fullscreen Mode
+		DisplayServer.WindowSetMode(DisplayServer.WindowMode.Fullscreen);
+		// Move to the second monitor (index 1)
+		//DisplayServer.WindowSetCurrentScreen(1);
+		Vector2I screenSize = DisplayServer.ScreenGetSize();
+		GD.Print("Screen Resolution: " + screenSize);
+
 		totalScore      = 0;
 		gameStarted     = false;
 		round1Complete  = false;
@@ -77,7 +84,9 @@ public partial class GameController : Node2D
 
 	public override void _Process(double delta)
 	{
-		// ********************* IDLE SCREEN PRE-GAME *********************
+		// ------------------------------------------------------------------
+		//  ********************* IDLE SCREEN PRE-GAME *********************
+		// ------------------------------------------------------------------
 		if(!gameStarted && !round1Complete && !round2Complete && !resultsComplete) {
 			if(idleNode == null) {
 				GD.Print("Idle Node is null in Game Controller's _Process function.");
@@ -95,7 +104,9 @@ public partial class GameController : Node2D
 			}
 		}
 
-		// ********************** ROUND ONE *********************
+		// --------------------------------------------------------
+		//  ********************** ROUND ONE *********************
+		// --------------------------------------------------------
 		if(gameStarted && !round1Complete && !round2Complete && !resultsComplete) {
 			if(round1Node == null) { GD.Print("Round 1 Node is null in Game Controller's _Process function."); }
 
@@ -115,7 +126,9 @@ public partial class GameController : Node2D
 			totalScore = round1Script.round1Score();
 		}
 
-		// ********************* ROUND TWO *********************
+		// -------------------------------------------------------
+		//  ********************* ROUND TWO *********************
+		// -------------------------------------------------------
 		if(gameStarted && round1Complete && !round2Complete && !resultsComplete) {
 			if(round2Node == null) { GD.Print("Round 2 Node is null in Game Controller's _Process function."); }
 
@@ -134,26 +147,29 @@ public partial class GameController : Node2D
 			totalScore += round2Script.round2Score();
 		}
 
-		// ********************* RESULTS *********************
+		// -----------------------------------------------------
+		//  ********************* RESULTS *********************
+		// -----------------------------------------------------
 		if(gameStarted && round1Complete && round2Complete && !resultsComplete) {
 			if(resultsNode == null) {
 				GD.Print("Results Node is null in Game Controller's _Process function.");
 			}
 			//GD.Print("In Results if statement in Game Controller's _Process function.");
-
-			if(!resultsComplete){
-				round2Node.Hide();
-				resultsNode.Show();
-			}
+			round2Node.Hide();
+			resultsNode.Show();
 
 			if(resultsScript.getTotalScore() == 0) {
 				resultsScript.setTotalScore(totalScore);
 			}
 
-		resultsComplete = true;
+			if(totalScore == 0 ) { GD.Print("Total Score = 0 in GameController's _Process() function."); }
+
+			resultsComplete = resultsScript.getResultsFinished();
 		}
 
-		// ********************* RESET *********************
+		// ---------------------------------------------------
+		//  ********************* RESET *********************
+		// ---------------------------------------------------
 		if(gameStarted && round1Complete && round2Complete && resultsComplete) {
 			restartGame();
 		}

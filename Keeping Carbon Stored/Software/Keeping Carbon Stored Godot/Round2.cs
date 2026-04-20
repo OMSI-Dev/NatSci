@@ -12,6 +12,7 @@ using System.Collections.Generic;
 
 public partial class Round2 : Node2D
 {
+	private RichTextLabel _r2ScoreText;
 	private VideoStreamPlayer _r2VideoPlayer;
 
 	[Export] public VideoStream introVideo;
@@ -45,19 +46,28 @@ public partial class Round2 : Node2D
 		//GD.Print(auto == null ? "Autoload NOT found" : "Autoload FOUND");
 
 		_r2VideoPlayer = GetNode<VideoStreamPlayer>("RoundTwoVideoPlayer");
+		_r2ScoreText = GetNode<RichTextLabel>("RoundTwoScore");
 
 		_r2VideoPlayer.Finished += OnVideoFinished;
 		_r2VideoPlayer.Stream    = introVideo;
-		_r2VideoPlayer.Play();
+		//_r2VideoPlayer.Play();
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
 		if(round2Start) {
+			if(_r2VideoPlayer == null) {
+				GD.Print("Round Two videos failed to load.");
+				return;
+			}
+
 			if(!tilesSet) { return; }
 
-			//GD.Print("Round Two started...");
+			if(!_r2VideoPlayer.IsPlaying()) { _r2VideoPlayer.Play(); }
+
+			GD.Print("Round Two started in Round2's _Process function.");
+
 			/* // ***** Test Code *****
 			if(Input.IsActionJustPressed("two")) {
 				GD.Print("Space bar was pressed.");
@@ -163,6 +173,7 @@ public partial class Round2 : Node2D
 		score    = 0;
 		r2States.Clear();
 		r2States = tileInfo.getRound2States();
+		_r2ScoreText.Clear();
 	}
 
 	private bool allTilesComplete(string tile) {
