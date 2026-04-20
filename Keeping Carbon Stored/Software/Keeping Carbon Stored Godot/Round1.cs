@@ -12,6 +12,7 @@ using System.Collections.Generic;
 
 public partial class Round1 : Node2D
 {
+	private RichTextLabel _r1ScoreText;
 	private VideoStreamPlayer _r1VideoPlayer;
 
 	[Export] public VideoStream introVideo;
@@ -45,6 +46,7 @@ public partial class Round1 : Node2D
 		//GD.Print(auto == null ? "Autoload NOT found" : "Autoload FOUND");
 
 		_r1VideoPlayer = GetNode<VideoStreamPlayer>("RoundOneVideoPlayer");
+		_r1ScoreText = GetNode<RichTextLabel>("RoundOneScore");
 
 		_r1VideoPlayer.Finished += OnVideoFinished;
 		_r1VideoPlayer.Stream    = introVideo;
@@ -169,6 +171,7 @@ public partial class Round1 : Node2D
 		score    = 0;
 		r1States.Clear();
 		r1States = tileInfo.getRound1States();
+		_r1ScoreText.Clear();
 	}
 
 	private bool allTilesComplete(string tile) {
