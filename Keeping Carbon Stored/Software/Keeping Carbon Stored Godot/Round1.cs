@@ -53,6 +53,11 @@ public partial class Round1 : Node2D
 
 	public override void _Process(double delta)
 	{
+		if(_r1VideoPlayer == null) {
+			GD.Print("Round One videos failed to load.");
+			return;
+		}
+
 		if(round1Start) {
 			if(tilesSet == false) { return; }
 

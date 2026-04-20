@@ -18,17 +18,22 @@ public partial class Results : Node2D
 	public override void _Ready()
 	{
 		totalScore   = 0;
-		resultsVideo = GetNode<VideoStreamPlayer>("ResultsVideo");
+		resultsVideo = GetNode<VideoStreamPlayer>("ResultsVideoPlayer");
 
 		resultsVideo.Finished += OnVideoFinished;
 	}
 
 	public override void _Process(double delta)
 	{
+		if(resultsVideo == null) {
+			GD.Print("Results video failed to load.");
+			return;
+		}
+
 		if(!resultsVideo.IsPlaying()) {
 			resultsVideo.Play();
 			resultsFinished = false;
-			}
+		}
 	}
 
 	public void setTotalScore(int score) {

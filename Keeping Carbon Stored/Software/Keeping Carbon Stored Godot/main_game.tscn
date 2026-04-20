@@ -17,7 +17,7 @@ script = ExtResource("1_2pltu")
 [node name="Idle" type="Node2D" parent="." unique_id=349685680]
 script = ExtResource("2_f52ns")
 
-[node name="IdleVideo" type="VideoStreamPlayer" parent="Idle" unique_id=1828615339]
+[node name="IdleVideoPlayer" type="VideoStreamPlayer" parent="Idle" unique_id=1828615339]
 offset_right = 40.0
 offset_bottom = 40.0
 stream = ExtResource("3_mf81u")
@@ -29,7 +29,7 @@ script = ExtResource("4_4srsv")
 introVideo = ExtResource("5_02kkc")
 gameplayVideo = ExtResource("6_aomqu")
 
-[node name="RichTextLabel" type="RichTextLabel" parent="Round1" unique_id=1376457684]
+[node name="RoundOneScore" type="RichTextLabel" parent="Round1" unique_id=1376457684]
 offset_top = -1.0
 offset_right = 1151.0
 offset_bottom = 647.0
@@ -46,7 +46,7 @@ script = ExtResource("5_mf81u")
 introVideo = ExtResource("8_krmtw")
 gameplayVideo = ExtResource("9_jgkyn")
 
-[node name="RichTextLabel" type="RichTextLabel" parent="Round2" unique_id=1146076865]
+[node name="RoundTwoScore" type="RichTextLabel" parent="Round2" unique_id=1146076865]
 offset_right = 40.0
 offset_bottom = 40.0
 text = "ROUND TWO!"
@@ -59,7 +59,7 @@ buffering_msec = 100
 [node name="Results" type="Node2D" parent="." unique_id=36570165]
 script = ExtResource("6_02kkc")
 
-[node name="RichTextLabel" type="RichTextLabel" parent="Results" unique_id=35733549]
+[node name="FinalScore" type="RichTextLabel" parent="Results" unique_id=35733549]
 offset_right = 40.0
 offset_bottom = 40.0
 text = "COMPLETE! "
