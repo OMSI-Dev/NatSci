@@ -58,14 +58,10 @@
 // Adjusted for milkplex barrier - more lenient detection
 // Increase THRESHOLD_SOUTH to catch weaker south pole readings
 // Decrease THRESHOLD_NORTH to catch weaker north pole readings
-#define THRESHOLD_SOUTH  1700  // Was 1450 - raised for milkplex barrier
-#define THRESHOLD_NORTH  2400  // Was 2800 - lowered for milkplex barrier
+#define THRESHOLD_SOUTH  1800  // Was 1450
+#define THRESHOLD_NORTH  2400  // Was 2800
 
-// If detection is still unreliable with barrier, try:
-// THRESHOLD_SOUTH  1800
-// THRESHOLD_NORTH  2300
 
-// ── Registration: samples each sensor must hold the same polarity ─────────────
 #define CONFIRM_SAMPLES  10
 
 // ── LED ring ──────────────────────────────────────────────────────────────────
@@ -207,7 +203,7 @@ void setup() {
 
   // Initialize WS2812 LED ring first
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
-  
+
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 750);
   FastLED.setBrightness(75);
   setLEDs(CRGB::Black);
@@ -248,12 +244,30 @@ void setup() {
 void loop() {
   static const uint8_t PINS[3] = { SENSOR_1_PIN, SENSOR_2_PIN, SENSOR_3_PIN };
   static uint32_t lastDebug = 0;
+  static uint32_t lastSerialSend = 0;
 
   Polarity cur[3];
   uint16_t raw[3];
   for (uint8_t i = 0; i < 3; i++) {
     raw[i] = analogRead(PINS[i]);
     cur[i] = classify(raw[i]);
+  }
+  
+  // Send sensor data to Teensy via Serial every 100ms
+  if (millis() - lastSerialSend > 100) {
+    Serial.print("DATA,");
+    Serial.print(i2cAddress, HEX);
+    Serial.print(",");
+    Serial.print(detectState);
+    Serial.print(",");
+    Serial.print(raw[0]); Serial.print(",");
+    Serial.print(raw[1]); Serial.print(",");
+    Serial.print(raw[2]); Serial.print(",");
+    Serial.print(cur[0]); Serial.print(",");
+    Serial.print(cur[1]); Serial.print(",");
+    Serial.print(cur[2]);
+    Serial.println();
+    lastSerialSend = millis();
   }
 
   bool allUncertain = (cur[0] == POL_UNCERTAIN &&
