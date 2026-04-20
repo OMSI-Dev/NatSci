@@ -157,7 +157,7 @@ public partial class Round1 : Node2D
 			r1States[i] = true;
 			i++;
 		}
-		GD.Print(i + " tiles have been turned on in Round 1's startRound1Tiles() function. Score reset to 0");
+		GD.Print(i + " tiles have been turned on in Round 1's startRound1Tiles() function. Score reset to 0.");
 		tilesSet = true;
 		score    = 0;
 		r1States.Clear();

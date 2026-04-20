@@ -122,7 +122,7 @@ public partial class Round2 : Node2D
 
 	private void roundTwoFinished() {
 		round2Start = false;
-		round2Over = true;
+		round2Over  = true;
 		_r2VideoPlayer.Stream = introVideo;
 	}
 
@@ -152,7 +152,7 @@ public partial class Round2 : Node2D
 		int i = 0;
 
 		foreach(var tile in r2Tiles) {
-			toSend = tile + "255000000";
+			toSend = tile + "000255000";
 			serialCom.sendData(toSend);
 			// Set current state of the tile we just sent data to is true / on.
 			r2States[i] = true;
