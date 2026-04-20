@@ -48,7 +48,7 @@ public partial class Round2 : Node2D
 
 		_r2VideoPlayer.Finished += OnVideoFinished;
 		_r2VideoPlayer.Stream    = introVideo;
-		_r2VideoPlayer.Play();
+		//_r2VideoPlayer.Play();
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -57,7 +57,10 @@ public partial class Round2 : Node2D
 		if(round2Start) {
 			if(!tilesSet) { return; }
 
-			//GD.Print("Round Two started...");
+			if(!_r2VideoPlayer.IsPlaying()) { _r2VideoPlayer.Play(); }
+
+			GD.Print("Round Two started in Round2's _Process function.");
+
 			/* // ***** Test Code *****
 			if(Input.IsActionJustPressed("two")) {
 				GD.Print("Space bar was pressed.");

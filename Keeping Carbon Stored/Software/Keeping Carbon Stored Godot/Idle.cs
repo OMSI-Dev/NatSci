@@ -23,12 +23,13 @@ public partial class Idle : Node2D
 		serCom = GetNode<SerialCom>("/root/SerialCom");
 
 		idleVideo = GetNode<VideoStreamPlayer>("IdleVideo");
-		idleVideo.Play();
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
+		if(!idleVideo.IsPlaying()) { idleVideo.Play(); }
+
 		if(!gameStarted) {
 			string[] newData = serCom.getSplit();
 			//GD.Print(newData);

@@ -48,13 +48,15 @@ public partial class Round1 : Node2D
 
 		_r1VideoPlayer.Finished += OnVideoFinished;
 		_r1VideoPlayer.Stream    = introVideo;
-		_r1VideoPlayer.Play();
+		//_r1VideoPlayer.Play();
 	}
 
 	public override void _Process(double delta)
 	{
 		if(round1Start) {
 			if(tilesSet == false) { return; }
+
+			if(!_r1VideoPlayer.IsPlaying()) { _r1VideoPlayer.Play(); }
 
 			GD.Print("Round One started in Round1's _Process function.");
 			/* // ******* Test Code *******
