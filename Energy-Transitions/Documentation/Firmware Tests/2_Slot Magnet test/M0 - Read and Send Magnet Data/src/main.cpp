@@ -127,9 +127,6 @@ bool isCorrect() {
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 void setup() {
-  Serial.begin(115200);
-  delay(1000);
-  
   analogReadResolution(12);
 
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
@@ -143,18 +140,6 @@ void setup() {
   setPins();
   i2cAddress = setAddr();
   txBuf[4]   = (uint8_t)(i2cAddress & 0xFF);
-  
-  Serial.print("I2C Address: 0x");
-  Serial.println(i2cAddress, HEX);
-  
-  if (i2cAddress == 0x08) {
-    Serial.println("Expected pattern: SOUTH SOUTH SOUTH");
-  } else if (i2cAddress == 0x09) {
-    Serial.println("Expected pattern: NORTH NORTH NORTH");
-  } else {
-    Serial.println("No correct pattern defined for this address");
-  }
-  
   Wire.begin(i2cAddress);
   Wire.onRequest(onRequest);
 }
@@ -177,6 +162,7 @@ void loop() {
       if (!allUncertain) {
         resetTracks();
         detectState = STATE_REGISTERING;
+        Serial.println("Magnetism detected - entering REGISTERING state (WHITE)");
         setLEDs(CRGB(50, 50, 50));  // dim white — magnetism detected, acquiring
         writeTxBuf(STATE_REGISTERING, cur[0], cur[1], cur[2]);
       }
@@ -221,16 +207,6 @@ void loop() {
       if (allLocked) {
         bool correct = isCorrect();
         detectState  = correct ? STATE_CORRECT : STATE_INCORRECT;
-        
-        Serial.print("All sensors locked! S1:");
-        Serial.print(track[0].confirmed);
-        Serial.print(" S2:");
-        Serial.print(track[1].confirmed);
-        Serial.print(" S3:");
-        Serial.print(track[2].confirmed);
-        Serial.print(" -> ");
-        Serial.println(correct ? "CORRECT (GREEN)" : "INCORRECT (RED)");
-        
         setLEDs(correct ? CRGB(0, 100, 0) : CRGB(100, 0, 0));  // dim green / dim red
         writeTxBuf(detectState,
                    track[0].confirmed,
@@ -242,8 +218,17 @@ void loop() {
 
     // ── CORRECT / INCORRECT — wait for object removal ─────────────────────────
     case STATE_CORRECT:
+      if (allUncertain) {
+        Serial.println("Magnet removed - returning to IDLE state");
+        resetTracks();
+        detectState = STATE_IDLE;
+        setLEDs(CRGB::Black);
+        writeTxBuf(STATE_IDLE, POL_UNCERTAIN, POL_UNCERTAIN, POL_UNCERTAIN);
+      }
+      break;
     case STATE_INCORRECT:
       if (allUncertain) {
+        Serial.println("Magnet removed - returning to IDLE state");
         resetTracks();
         detectState = STATE_IDLE;
         setLEDs(CRGB::Black);
