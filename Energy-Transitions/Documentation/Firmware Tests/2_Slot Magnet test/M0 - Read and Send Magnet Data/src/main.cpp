@@ -15,15 +15,19 @@
  *   Original calibration (2026-04-17, no barrier):
  *   SOUTH < 1450 (~1168 mV), NORTH > 2800 (~2256 mV)
  *
- * Expected correct patterns:
- *   0x08  None   Buoy   S S S
- *   0x09  A      Dam    N N N
- *   0x0A  B      Geo    N S X
- *   0x0B  C      Geo    X N S
- *   0x0C  D      Solar  N X X
- *   0x0D  AB     Solar  X X N
- *   0x0E  AC     Wind   N N X
- *   0x0F  AD     Wind   X N N
+ * PCB sensor layout (left to right): S2 — S1 — S3
+ * All patterns below are given in physical left-to-right order.
+ * The sensor order remapping is:  physical[0]=S2=p1, physical[1]=S1=p0, physical[2]=S3=p2
+ *
+ * Addr   Header  Piece   Physical L→R   p0(S1)  p1(S2)  p2(S3)
+ *  0x08  None    Buoy    S  S  S          S       S       S
+ *  0x09  A       Dam     N  N  N          N       N       N
+ *  0x0A  B       Geo     N  S  X          S       N       X
+ *  0x0B  C       Geo     X  N  S          N       X       S
+ *  0x0C  D       Solar   N  X  X          X       N       X
+ *  0x0D  AB      Solar   X  X  N          X       X       N
+ *  0x0E  AC      Wind    N  N  X          N       N       X
+ *  0x0F  AD      Wind    X  N  N          N       X       N
  *
  * LEDs:
  *   Any magnetism detected (REGISTERING) → dim white
@@ -45,23 +49,23 @@
 #include <FastLED.h>
 #include <i2C_Address.h>
 
-// ── ItsyBitsy M0 DotStar LED pins ─────────────────────────────────────────────
-#define DOTSTAR_DATA  41
-#define DOTSTAR_CLK   40
-
 // ── Sensor pins ───────────────────────────────────────────────────────────────
 #define SENSOR_1_PIN  A0
 #define SENSOR_2_PIN  A1
 #define SENSOR_3_PIN  A2
 
+// ── DotStar pins (ItsyBitsy M0) ───────────────────────────────────────────────
+#define DOTSTAR_DATA  41
+#define DOTSTAR_CLK   40
+
 // ── ADC thresholds (12-bit) ───────────────────────────────────────────────────
 // Adjusted for milkplex barrier - more lenient detection
 // Increase THRESHOLD_SOUTH to catch weaker south pole readings
 // Decrease THRESHOLD_NORTH to catch weaker north pole readings
-#define THRESHOLD_SOUTH  1800  // Was 1450
-#define THRESHOLD_NORTH  2400  // Was 2800
+#define THRESHOLD_SOUTH  1700  // Was 1450 - raised for milkplex barrier
+#define THRESHOLD_NORTH  2400  // Was 2800 - lowered for milkplex barrier
 
-
+// ── Registration: samples each sensor must hold the same polarity ─────────────
 #define CONFIRM_SAMPLES  10
 
 // ── LED ring ──────────────────────────────────────────────────────────────────
@@ -160,34 +164,47 @@ void turnOffDotStar() {
 }
 
 bool isCorrect() {
-  Polarity p0 = track[0].confirmed;
-  Polarity p1 = track[1].confirmed;
-  Polarity p2 = track[2].confirmed;
+  // p0=S1, p1=S2, p2=S3 (code/sensor IDs)
+  // Physical left-to-right on PCB: S2, S1, S3
+  // User spec gives patterns in physical L→R order
+  // 180° rotation reverses the physical L→R sequence
+  
+  Polarity p0 = track[0].confirmed;  // S1 (middle)
+  Polarity p1 = track[1].confirmed;  // S2 (left)
+  Polarity p2 = track[2].confirmed;  // S3 (right)
   
   switch (i2cAddress) {
-    case 0x08:  // None/Buoy: S S S
-      return p0 == POL_SOUTH && p1 == POL_SOUTH && p2 == POL_SOUTH;
+    // ── 0x08: Buoy = S S S (symmetric, no rotation needed) ──
+    case 0x08:
+      return (p0 == POL_SOUTH && p1 == POL_SOUTH && p2 == POL_SOUTH);
     
-    case 0x09:  // A/Dam: N N N
-      return p0 == POL_NORTH && p1 == POL_NORTH && p2 == POL_NORTH;
+    // ── 0x09: Dam = N N N (symmetric, no rotation needed) ──
+    case 0x09:
+      return (p0 == POL_NORTH && p1 == POL_NORTH && p2 == POL_NORTH);
     
-    case 0x0A:  // B/Geo: N S X
-      return p0 == POL_NORTH && p1 == POL_SOUTH && p2 == POL_UNCERTAIN;
+    // ── 0x0A, 0x0B: Both Geo boards accept EITHER Geo pattern ──
+    // Geo B (0x0A): N S X → forward: p0=S,p1=N,p2=X | reversed: p0=S,p1=X,p2=N
+    // Geo C (0x0B): X N S → forward: p0=N,p1=X,p2=S | reversed: p0=N,p1=S,p2=X
+    case 0x0A:
+    case 0x0B:
+      return ((p0 == POL_SOUTH) && ((p1 == POL_NORTH && p2 == POL_UNCERTAIN) || (p1 == POL_UNCERTAIN && p2 == POL_NORTH))) ||
+             ((p0 == POL_NORTH) && ((p1 == POL_UNCERTAIN && p2 == POL_SOUTH) || (p1 == POL_SOUTH && p2 == POL_UNCERTAIN)));
     
-    case 0x0B:  // C/Geo: X N S
-      return p0 == POL_UNCERTAIN && p1 == POL_NORTH && p2 == POL_SOUTH;
+    // ── 0x0C, 0x0D: Both Solar boards accept EITHER Solar pattern ──
+    // Solar D (0x0C):  N X X → forward: p0=X,p1=N,p2=X | reversed: p0=X,p1=X,p2=N
+    // Solar AB (0x0D): X X N → forward: p0=X,p1=X,p2=N | reversed: p0=X,p1=N,p2=X
+    case 0x0C:
+    case 0x0D:
+      return (p0 == POL_UNCERTAIN) &&
+             ((p1 == POL_NORTH && p2 == POL_UNCERTAIN) || (p1 == POL_UNCERTAIN && p2 == POL_NORTH));
     
-    case 0x0C:  // D/Solar: N X X
-      return p0 == POL_NORTH && p1 == POL_UNCERTAIN && p2 == POL_UNCERTAIN;
-    
-    case 0x0D:  // AB/Solar: X X N
-      return p0 == POL_UNCERTAIN && p1 == POL_UNCERTAIN && p2 == POL_NORTH;
-    
-    case 0x0E:  // AC/Wind: N N X
-      return p0 == POL_NORTH && p1 == POL_NORTH && p2 == POL_UNCERTAIN;
-    
-    case 0x0F:  // AD/Wind: X N N
-      return p0 == POL_UNCERTAIN && p1 == POL_NORTH && p2 == POL_NORTH;
+    // ── 0x0E, 0x0F: Both Wind boards accept EITHER Wind pattern ──
+    // Wind AC (0x0E): N N X → forward: p0=N,p1=N,p2=X | reversed: p0=N,p1=X,p2=N
+    // Wind AD (0x0F): X N N → forward: p0=N,p1=X,p2=N | reversed: p0=N,p1=N,p2=X
+    case 0x0E:
+    case 0x0F:
+      return (p0 == POL_NORTH) &&
+             ((p1 == POL_NORTH && p2 == POL_UNCERTAIN) || (p1 == POL_UNCERTAIN && p2 == POL_NORTH));
     
     default:
       return false;
@@ -199,17 +216,19 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
   
+  // Turn off on-board DotStar LED using APA102 protocol
+  turnOffDotStar();
+  
+  // Turn off on-board LED
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+  
   analogReadResolution(12);
 
-  // Initialize WS2812 LED ring first
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
-
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 750);
-  FastLED.setBrightness(75);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 750);  // Increased from 100mA to 500mA
+  FastLED.setBrightness(75);  // Increased from 30 to 50
   setLEDs(CRGB::Black);
-  
-  // Turn off DotStar after LED ring is initialized
-  turnOffDotStar();
 
   resetTracks();
   writeTxBuf(STATE_IDLE, POL_UNCERTAIN, POL_UNCERTAIN, POL_UNCERTAIN);
@@ -231,7 +250,7 @@ void setup() {
     case 0x0C: Serial.println("Solar - N X X"); break;
     case 0x0D: Serial.println("Solar - X X N"); break;
     case 0x0E: Serial.println("Wind - N N X"); break;
-    case 0x0F: Serial.println("Wind - X N N"); break;
+    case 0x0F: Serial.println("Wind - X N N (sensor order: N X N)"); break;
     default: Serial.println("UNKNOWN"); break;
   }
   Serial.println("============================\n");
@@ -244,30 +263,12 @@ void setup() {
 void loop() {
   static const uint8_t PINS[3] = { SENSOR_1_PIN, SENSOR_2_PIN, SENSOR_3_PIN };
   static uint32_t lastDebug = 0;
-  static uint32_t lastSerialSend = 0;
 
   Polarity cur[3];
   uint16_t raw[3];
   for (uint8_t i = 0; i < 3; i++) {
     raw[i] = analogRead(PINS[i]);
     cur[i] = classify(raw[i]);
-  }
-  
-  // Send sensor data to Teensy via Serial every 100ms
-  if (millis() - lastSerialSend > 100) {
-    Serial.print("DATA,");
-    Serial.print(i2cAddress, HEX);
-    Serial.print(",");
-    Serial.print(detectState);
-    Serial.print(",");
-    Serial.print(raw[0]); Serial.print(",");
-    Serial.print(raw[1]); Serial.print(",");
-    Serial.print(raw[2]); Serial.print(",");
-    Serial.print(cur[0]); Serial.print(",");
-    Serial.print(cur[1]); Serial.print(",");
-    Serial.print(cur[2]);
-    Serial.println();
-    lastSerialSend = millis();
   }
 
   bool allUncertain = (cur[0] == POL_UNCERTAIN &&
@@ -351,45 +352,62 @@ void loop() {
 
       // Debug output every 500ms
       if (millis() - lastDebug > 500) {
-        Serial.print("RAW: ");
-        Serial.print(raw[0]); Serial.print("\t"); 
-        Serial.print(raw[1]); Serial.print("\t"); 
+        static const char* POL_LABEL[] = { "  X  ", "  S  ", "  N  " };
+        static const char* LOCK_LABEL[] = { ".....", "LOCK!" };
+
+        Serial.println("         S2      S1      S3    (physical L→R)");
+        Serial.print(  "RAW:   ");
+        Serial.print(raw[1]); Serial.print("\t");
+        Serial.print(raw[0]); Serial.print("\t");
         Serial.println(raw[2]);
-        
-        Serial.print("CUR: ");
-        Serial.print(cur[0]); Serial.print("\t"); 
-        Serial.print(cur[1]); Serial.print("\t"); 
-        Serial.println(cur[2]);
-        
-        Serial.print("Candidate: ");
-        Serial.print(track[0].candidate); Serial.print("\t"); 
-        Serial.print(track[1].candidate); Serial.print("\t"); 
-        Serial.println(track[2].candidate);
-        
-        Serial.print("Count: ");
-        Serial.print(track[0].count); Serial.print("/"); Serial.print(track[0].locked ? "LOCK" : "....");
-        Serial.print("\t");
-        Serial.print(track[1].count); Serial.print("/"); Serial.print(track[1].locked ? "LOCK" : "....");
-        Serial.print("\t");
-        Serial.print(track[2].count); Serial.print("/"); Serial.println(track[2].locked ? "LOCK" : "....");
+        Serial.print(  "CUR:  ");
+        Serial.print(POL_LABEL[cur[1]]); Serial.print("   ");
+        Serial.print(POL_LABEL[cur[0]]); Serial.print("   ");
+        Serial.println(POL_LABEL[cur[2]]);
+        Serial.print(  "CAND: ");
+        Serial.print(POL_LABEL[track[1].candidate]); Serial.print("   ");
+        Serial.print(POL_LABEL[track[0].candidate]); Serial.print("   ");
+        Serial.println(POL_LABEL[track[2].candidate]);
+        Serial.print(  "CNT:  ");
+        Serial.print(track[1].count); Serial.print("/"); Serial.print(LOCK_LABEL[track[1].locked]);
+        Serial.print("  ");
+        Serial.print(track[0].count); Serial.print("/"); Serial.print(LOCK_LABEL[track[0].locked]);
+        Serial.print("  ");
+        Serial.print(track[2].count); Serial.print("/"); Serial.println(LOCK_LABEL[track[2].locked]);
         Serial.println();
-        
+
         lastDebug = millis();
       }
 
       if (allLocked) {
         bool correct = isCorrect();
         detectState  = correct ? STATE_CORRECT : STATE_INCORRECT;
-        timerStarted = false;  // Reset timer for next registration
-        
-        Serial.print("\n=== ALL LOCKED === S1:");
-        Serial.print(track[0].confirmed);
-        Serial.print(" S2:");
-        Serial.print(track[1].confirmed);
-        Serial.print(" S3:");
-        Serial.print(track[2].confirmed);
-        Serial.print(" -> ");
-        Serial.println(correct ? "CORRECT (GREEN)" : "INCORRECT (RED)");
+        timerStarted = false;
+
+        static const char* PL[] = { "X", "S", "N" };
+
+        Serial.print("\n=== ALL SENSORS LOCKED === Address: 0x");
+        Serial.print(i2cAddress, HEX);
+        Serial.print(" (");
+        switch (i2cAddress) {
+          case 0x08: Serial.print("Buoy");  break;
+          case 0x09: Serial.print("Dam");   break;
+          case 0x0A: Serial.print("Geo");   break;
+          case 0x0B: Serial.print("Geo");   break;
+          case 0x0C: Serial.print("Solar"); break;
+          case 0x0D: Serial.print("Solar"); break;
+          case 0x0E: Serial.print("Wind");  break;
+          case 0x0F: Serial.print("Wind");  break;
+          default:   Serial.print("???");   break;
+        }
+        Serial.println(")");
+        Serial.println("         S2    S1    S3    (physical L→R)");
+        Serial.print(  "GOT:     ");
+        Serial.print(PL[track[1].confirmed]); Serial.print("     ");
+        Serial.print(PL[track[0].confirmed]); Serial.print("     ");
+        Serial.println(PL[track[2].confirmed]);
+        Serial.print(  "RESULT:  ");
+        Serial.println(correct ? ">>> CORRECT <<<" : ">>> INCORRECT <<<");
         
         setLEDs(correct ? CRGB(0, 100, 0) : CRGB(100, 0, 0));  // dim green / dim red
         writeTxBuf(detectState,
