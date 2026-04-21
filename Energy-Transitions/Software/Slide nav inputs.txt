@@ -1,6 +1,7 @@
 Keypress Inputs from Teensy 4.1 to B-link computer (slideshow display navigation)
 
 Space = Language 
-'r' = reset
-'g' = game active 
-'s' = result
+'i' = ready idle (gameplay instructions slide)
+'r' = reset (reset instructions slide)
+'g' = game active (last slide)
+'s' = result (last slide)
