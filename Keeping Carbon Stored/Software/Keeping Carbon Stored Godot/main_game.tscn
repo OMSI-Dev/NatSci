@@ -8,8 +8,10 @@
 [ext_resource type="Script" uid="uid://bi2ecw060sefu" path="res://Round2.cs" id="5_mf81u"]
 [ext_resource type="Script" uid="uid://bnwtodx8qn7i6" path="res://Results.cs" id="6_02kkc"]
 [ext_resource type="VideoStream" uid="uid://bgfpjrngd4h3o" path="res://Media/r1Gameplay.ogv" id="6_aomqu"]
+[ext_resource type="FontFile" uid="uid://dll7pxvfgyh6o" path="res://Media/Museo_Slab_700.otf" id="7_aomqu"]
 [ext_resource type="VideoStream" uid="uid://d23ps83dqbg8" path="res://Media/round2Intro.ogv" id="8_krmtw"]
 [ext_resource type="VideoStream" uid="uid://b2wqipxgjv6b6" path="res://Media/r2Gameplay.ogv" id="9_jgkyn"]
+[ext_resource type="VideoStream" uid="uid://bib00vpnnojar" path="res://Media/results.ogv" id="11_02kkc"]
 
 [node name="GameController" type="Node2D" unique_id=2047308611]
 script = ExtResource("1_2pltu")
@@ -33,6 +35,8 @@ gameplayVideo = ExtResource("6_aomqu")
 offset_top = -1.0
 offset_right = 1151.0
 offset_bottom = 647.0
+theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
+theme_override_fonts/normal_font = ExtResource("7_aomqu")
 theme_override_font_sizes/normal_font_size = 60
 text = "ROUND ONE!"
 
@@ -49,6 +53,8 @@ gameplayVideo = ExtResource("9_jgkyn")
 [node name="RoundTwoScore" type="RichTextLabel" parent="Round2" unique_id=1146076865]
 offset_right = 40.0
 offset_bottom = 40.0
+theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
+theme_override_fonts/normal_font = ExtResource("7_aomqu")
 text = "ROUND TWO!"
 
 [node name="RoundTwoVideoPlayer" type="VideoStreamPlayer" parent="Round2" unique_id=795930470]
@@ -62,9 +68,12 @@ script = ExtResource("6_02kkc")
 [node name="FinalScore" type="RichTextLabel" parent="Results" unique_id=35733549]
 offset_right = 40.0
 offset_bottom = 40.0
+theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
+theme_override_fonts/normal_font = ExtResource("7_aomqu")
 text = "COMPLETE! "
 
 [node name="ResultsVideoPlayer" type="VideoStreamPlayer" parent="Results" unique_id=277264892]
 offset_right = 40.0
 offset_bottom = 40.0
+stream = ExtResource("11_02kkc")
 buffering_msec = 100
