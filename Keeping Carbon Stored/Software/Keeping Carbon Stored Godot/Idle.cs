@@ -23,6 +23,7 @@ public partial class Idle : Node2D
 		serCom = GetNode<SerialCom>("/root/SerialCom");
 
 		idleVideo = GetNode<VideoStreamPlayer>("IdleVideoPlayer");
+		idleVideo.Hide();
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -33,7 +34,10 @@ public partial class Idle : Node2D
 			return;
 		}
 
-		if(!idleVideo.IsPlaying()) { idleVideo.Play(); }
+		if(!idleVideo.IsPlaying()) {
+			idleVideo.Show();
+			idleVideo.Play();
+		}
 
 		if(!gameStarted) {
 			string[] newData = serCom.getSplit();

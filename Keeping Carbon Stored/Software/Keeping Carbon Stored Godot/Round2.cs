@@ -62,9 +62,9 @@ public partial class Round2 : Node2D
 				return;
 			}
 
-			if(!tilesSet) { return; }
-
 			if(!_r2VideoPlayer.IsPlaying()) { _r2VideoPlayer.Play(); }
+
+			if(!tilesSet) { return; }
 
 			GD.Print("Round Two started in Round2's _Process function.");
 

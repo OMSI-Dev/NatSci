@@ -101,6 +101,11 @@ public partial class GameController : Node2D
 				} else if (gameStarted) {
 					GD.Print("Game started! End of Idle script, moving on to Round 1...");
 				}
+
+				// Test code
+				if(Input.IsActionJustPressed("two")) {
+					gameStarted = true;
+				}
 			}
 		}
 
@@ -119,11 +124,12 @@ public partial class GameController : Node2D
 					GD.Print("Round One set to start in Game Controller's _Process function.");;
 				}
 
-				GD.Print("Waiting for round one to be over in Game Controller's _Process function...");
+				//GD.Print("Waiting for round one to be over in Game Controller's _Process function...");
 				round1Complete = round1Script.isRound1Over();
+			} else {
+				GD.Print("Round one completed in Game Controller's _Process function.");
+				totalScore = round1Script.round1Score();
 			}
-			GD.Print("Round one completed in Game Controller's _Process function.");
-			totalScore = round1Script.round1Score();
 		}
 
 		// -------------------------------------------------------
