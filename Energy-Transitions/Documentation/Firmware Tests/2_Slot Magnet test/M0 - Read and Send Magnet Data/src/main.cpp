@@ -45,6 +45,10 @@
 #include <FastLED.h>
 #include <i2C_Address.h>
 
+// ── ItsyBitsy M0 DotStar LED pins ─────────────────────────────────────────────
+#define DOTSTAR_DATA  41
+#define DOTSTAR_CLK   40
+
 // ── Sensor pins ───────────────────────────────────────────────────────────────
 #define SENSOR_1_PIN  A0
 #define SENSOR_2_PIN  A1
@@ -54,14 +58,10 @@
 // Adjusted for milkplex barrier - more lenient detection
 // Increase THRESHOLD_SOUTH to catch weaker south pole readings
 // Decrease THRESHOLD_NORTH to catch weaker north pole readings
-#define THRESHOLD_SOUTH  1700  // Was 1450 - raised for milkplex barrier
-#define THRESHOLD_NORTH  2400  // Was 2800 - lowered for milkplex barrier
+#define THRESHOLD_SOUTH  1800  // Was 1450
+#define THRESHOLD_NORTH  2400  // Was 2800
 
-// If detection is still unreliable with barrier, try:
-// THRESHOLD_SOUTH  1800
-// THRESHOLD_NORTH  2300
 
-// ── Registration: samples each sensor must hold the same polarity ─────────────
 #define CONFIRM_SAMPLES  10
 
 // ── LED ring ──────────────────────────────────────────────────────────────────
@@ -119,6 +119,46 @@ void onRequest() {
   Wire.write((uint8_t*)txBuf, 6);
 }
 
+// Turn off DotStar LED (APA102 protocol)
+void turnOffDotStar() {
+  pinMode(DOTSTAR_DATA, OUTPUT);
+  pinMode(DOTSTAR_CLK, OUTPUT);
+  
+  // Start frame (32 bits of 0)
+  for (uint8_t i = 0; i < 32; i++) {
+    digitalWrite(DOTSTAR_CLK, LOW);
+    digitalWrite(DOTSTAR_DATA, LOW);
+    digitalWrite(DOTSTAR_CLK, HIGH);
+  }
+  
+  // LED frame: brightness=0, R=0, G=0, B=0
+  // First byte: 111xxxxx where x=brightness (all 0s = off)
+  for (uint8_t bit = 0; bit < 8; bit++) {
+    digitalWrite(DOTSTAR_CLK, LOW);
+    digitalWrite(DOTSTAR_DATA, (bit < 3) ? HIGH : LOW);  // 111 prefix
+    digitalWrite(DOTSTAR_CLK, HIGH);
+  }
+  // RGB bytes (all zeros)
+  for (uint8_t i = 0; i < 24; i++) {
+    digitalWrite(DOTSTAR_CLK, LOW);
+    digitalWrite(DOTSTAR_DATA, LOW);
+    digitalWrite(DOTSTAR_CLK, HIGH);
+  }
+  
+  // End frame
+  for (uint8_t i = 0; i < 32; i++) {
+    digitalWrite(DOTSTAR_CLK, LOW);
+    digitalWrite(DOTSTAR_DATA, LOW);
+    digitalWrite(DOTSTAR_CLK, HIGH);
+  }
+  
+  // Leave pins in safe state
+  digitalWrite(DOTSTAR_CLK, LOW);
+  digitalWrite(DOTSTAR_DATA, LOW);
+  pinMode(DOTSTAR_DATA, INPUT);
+  pinMode(DOTSTAR_CLK, INPUT);
+}
+
 bool isCorrect() {
   Polarity p0 = track[0].confirmed;
   Polarity p1 = track[1].confirmed;
@@ -159,16 +199,17 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
   
-  // Turn off on-board LED
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
-  
   analogReadResolution(12);
 
+  // Initialize WS2812 LED ring first
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 750);  // Increased from 100mA to 500mA
-  FastLED.setBrightness(75);  // Increased from 30 to 50
+
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 750);
+  FastLED.setBrightness(75);
   setLEDs(CRGB::Black);
+  
+  // Turn off DotStar after LED ring is initialized
+  turnOffDotStar();
 
   resetTracks();
   writeTxBuf(STATE_IDLE, POL_UNCERTAIN, POL_UNCERTAIN, POL_UNCERTAIN);
@@ -203,12 +244,30 @@ void setup() {
 void loop() {
   static const uint8_t PINS[3] = { SENSOR_1_PIN, SENSOR_2_PIN, SENSOR_3_PIN };
   static uint32_t lastDebug = 0;
+  static uint32_t lastSerialSend = 0;
 
   Polarity cur[3];
   uint16_t raw[3];
   for (uint8_t i = 0; i < 3; i++) {
     raw[i] = analogRead(PINS[i]);
     cur[i] = classify(raw[i]);
+  }
+  
+  // Send sensor data to Teensy via Serial every 100ms
+  if (millis() - lastSerialSend > 100) {
+    Serial.print("DATA,");
+    Serial.print(i2cAddress, HEX);
+    Serial.print(",");
+    Serial.print(detectState);
+    Serial.print(",");
+    Serial.print(raw[0]); Serial.print(",");
+    Serial.print(raw[1]); Serial.print(",");
+    Serial.print(raw[2]); Serial.print(",");
+    Serial.print(cur[0]); Serial.print(",");
+    Serial.print(cur[1]); Serial.print(",");
+    Serial.print(cur[2]);
+    Serial.println();
+    lastSerialSend = millis();
   }
 
   bool allUncertain = (cur[0] == POL_UNCERTAIN &&
