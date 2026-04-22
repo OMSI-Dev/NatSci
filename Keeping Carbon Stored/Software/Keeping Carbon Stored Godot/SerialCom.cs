@@ -75,7 +75,7 @@ public partial class SerialCom : Node2D
 	public override void _Process(double delta)
 	{
 		if(serialPort == null || !serialPort.IsOpen) {
-			GD.Print("Serial port not open.");
+			//GD.Print("Serial port not open.");
 			return;
 		}
 

@@ -24,56 +24,74 @@ offset_right = 40.0
 offset_bottom = 40.0
 stream = ExtResource("3_mf81u")
 loop = true
-buffering_msec = 100
+buffering_msec = 10
 
 [node name="Round1" type="Node2D" parent="." unique_id=1924916056]
 script = ExtResource("4_4srsv")
 introVideo = ExtResource("5_02kkc")
 gameplayVideo = ExtResource("6_aomqu")
 
-[node name="RoundOneScore" type="RichTextLabel" parent="Round1" unique_id=1376457684]
-offset_top = -1.0
-offset_right = 1151.0
-offset_bottom = 647.0
-theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
-theme_override_fonts/normal_font = ExtResource("7_aomqu")
-theme_override_font_sizes/normal_font_size = 60
-text = "ROUND ONE!"
-
 [node name="RoundOneVideoPlayer" type="VideoStreamPlayer" parent="Round1" unique_id=952196999]
 offset_right = 40.0
 offset_bottom = 40.0
 buffering_msec = 100
+
+[node name="CanvasLayer" type="CanvasLayer" parent="Round1" unique_id=1213338764]
+
+[node name="RoundOneScore" type="RichTextLabel" parent="Round1/CanvasLayer" unique_id=1376457684]
+offset_left = 1000.0
+offset_top = 500.0
+offset_right = 1490.0
+offset_bottom = 771.0
+theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
+theme_override_fonts/normal_font = ExtResource("7_aomqu")
+theme_override_font_sizes/normal_font_size = 200
+text = "0"
+shortcut_keys_enabled = false
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Round2" type="Node2D" parent="." unique_id=808558755]
 script = ExtResource("5_mf81u")
 introVideo = ExtResource("8_krmtw")
 gameplayVideo = ExtResource("9_jgkyn")
 
-[node name="RoundTwoScore" type="RichTextLabel" parent="Round2" unique_id=1146076865]
-offset_right = 40.0
-offset_bottom = 40.0
-theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
-theme_override_fonts/normal_font = ExtResource("7_aomqu")
-text = "ROUND TWO!"
-
 [node name="RoundTwoVideoPlayer" type="VideoStreamPlayer" parent="Round2" unique_id=795930470]
 offset_right = 40.0
 offset_bottom = 40.0
 buffering_msec = 100
 
-[node name="Results" type="Node2D" parent="." unique_id=36570165]
-script = ExtResource("6_02kkc")
+[node name="CanvasLayer" type="CanvasLayer" parent="Round2" unique_id=1125704180]
 
-[node name="FinalScore" type="RichTextLabel" parent="Results" unique_id=35733549]
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="RoundTwoScore" type="RichTextLabel" parent="Round2/CanvasLayer" unique_id=1146076865]
+offset_left = 1000.0
+offset_top = 500.0
+offset_right = 1490.0
+offset_bottom = 771.0
 theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
 theme_override_fonts/normal_font = ExtResource("7_aomqu")
-text = "COMPLETE! "
+theme_override_font_sizes/normal_font_size = 200
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Results" type="Node2D" parent="." unique_id=36570165]
+script = ExtResource("6_02kkc")
 
 [node name="ResultsVideoPlayer" type="VideoStreamPlayer" parent="Results" unique_id=277264892]
 offset_right = 40.0
 offset_bottom = 40.0
 stream = ExtResource("11_02kkc")
 buffering_msec = 100
+
+[node name="CanvasLayer" type="CanvasLayer" parent="Results" unique_id=1563464306]
+
+[node name="FinalScore" type="RichTextLabel" parent="Results/CanvasLayer" unique_id=35733549]
+offset_left = 176.0
+offset_top = -276.0
+offset_right = 316.0
+offset_bottom = -136.0
+theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
+theme_override_fonts/normal_font = ExtResource("7_aomqu")
+theme_override_font_sizes/normal_font_size = 120
+text = "0"
