@@ -12,8 +12,9 @@ public partial class Idle : Node2D
 {
 	public SerialCom serCom;
 
-	private bool gameStarted = false;
-	private bool startIdle = false;
+	private bool gameStarted  = false;
+	private bool startIdle    = false;
+	private float timeToStart = 20.0f;
 
 	private VideoStreamPlayer idleVideo;
 
@@ -37,6 +38,7 @@ public partial class Idle : Node2D
 		if(!idleVideo.IsPlaying()) {
 			idleVideo.Show();
 			idleVideo.Play();
+			timeToStart = 20.0f;
 		}
 
 		if(!gameStarted) {
@@ -49,6 +51,14 @@ public partial class Idle : Node2D
 					gameStarted = true;
 					idleVideo.Stop();
 				}
+			}
+			if (timeToStart > 0) {
+				timeToStart -= (float)delta;
+				//GD.Print($"Time remaining: {Mathf.Max(0, timeToStart)}");
+			}
+			if(timeToStart <= 0) {
+				GD.Print("Timer up to start the game.");
+				gameStarted = true;
 			}
 		}
 	}

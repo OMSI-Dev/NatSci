@@ -308,7 +308,7 @@ public partial class Round1 : Node2D
 	private void ShowScoreText(bool vis) {
 		txtTriggered = vis;
 		if(txtTriggered) {
-			_r1ScoreText.GlobalPosition = new Vector2((txtPos.X / 2) - 250, txtPos.Y / 4);
+			_r1ScoreText.GlobalPosition = new Vector2((txtPos.X / 2) - 240, txtPos.Y / 4);
 			_r1ScoreText.Show();
 		} else {
 			_r1ScoreText.Hide();

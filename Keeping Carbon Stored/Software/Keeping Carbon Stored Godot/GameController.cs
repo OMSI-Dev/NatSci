@@ -44,7 +44,9 @@ public partial class GameController : Node2D
 		// Move to the second monitor (index 1)
 		//DisplayServer.WindowSetCurrentScreen(1);
 		Vector2I screenSize = DisplayServer.ScreenGetSize();
-		GD.Print("Screen Resolution: " + screenSize);
+		//GD.Print("Screen Resolution: " + screenSize);
+		// Hide mouse.
+		Input.MouseMode = Input.MouseModeEnum.Hidden;
 
 		totalScore      = 0;
 		gameStarted     = false;
@@ -106,11 +108,6 @@ public partial class GameController : Node2D
 					//GD.Print("Waiting for someone to start the game...");
 				} else if (gameStarted) {
 					GD.Print("Game started! End of Idle script, moving on to Round 1...");
-				}
-
-				// Test code
-				if(Input.IsActionJustPressed("two")) {
-					gameStarted = true;
 				}
 			}
 		}
