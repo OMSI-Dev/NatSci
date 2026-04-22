@@ -12,15 +12,19 @@ public partial class Results : Node2D
 {
 	private int totalScore;
 	private bool resultsFinished = false;
+	private bool resultsStarted  = false;
 
 	private VideoStreamPlayer resultsVideo;
+	private RichTextLabel finalScoreText;
 
 	public override void _Ready()
 	{
-		totalScore   = 0;
-		resultsVideo = GetNode<VideoStreamPlayer>("ResultsVideoPlayer");
+		totalScore     = 0;
+		resultsVideo   = GetNode<VideoStreamPlayer>("ResultsVideoPlayer");
+		finalScoreText = GetNode<RichTextLabel>("CanvasLayer/FinalScore");
 
 		resultsVideo.Finished += OnVideoFinished;
+		finalScoreText.Hide();
 	}
 
 	public override void _Process(double delta)
@@ -30,10 +34,30 @@ public partial class Results : Node2D
 			return;
 		}
 
-		if(!resultsVideo.IsPlaying()) {
+		if(!resultsStarted && !resultsFinished) {
+			resultsStarted = true;
+			resultsVideo.Show();
 			resultsVideo.Play();
-			resultsFinished = false;
 		}
+	}
+
+	public bool getResultsFinished() {
+		return resultsFinished;
+	}
+
+	private void OnVideoFinished() {
+		GD.Print("Results video finished.");
+		resultsFinished = true;
+		resultsVideo.Stop();
+		resultsVideo.Hide();
+		finalScoreText.Hide();
+	}
+
+
+	public void resetResults() {
+		resultsStarted  = false;
+		resultsFinished = false;
+		totalScore      = 0;
 	}
 
 	public void setTotalScore(int score) {
@@ -43,13 +67,5 @@ public partial class Results : Node2D
 
 	public int getTotalScore() {
 		return totalScore;
-	}
-
-	public bool getResultsFinished() {
-		return resultsFinished;
-	}
-
-	private void OnVideoFinished() {
-		resultsFinished = true;
 	}
 }
