@@ -18,17 +18,16 @@
  *   UNCERTAIN: Between thresholds
  *   Hysteresis prevents boundary oscillation during transitions.
  *
- * PIECE PATTERNS (by I2C address):
- *   Addr   Header  Piece   Physical L→R   p0(S1)  p1(S2)  p2(S3)
- *   0x08   None    Buoy    S  S  S          S       S       S
- *   0x09   A       Dam     N  N  N          N       N       N
- *   0x0A   B       Geo     N  S  X          S       N       X
- *   0x0B   C       Geo     X  N  S          N       X       S
- *   0x0C   D       Solar   N  X  X          X       N       X
- *   0x0D   AB      Solar   X  X  N          X       X       N
- *   0x0E   AC      Wind    N  N  X          N       N       X
- *   0x0F   AD      Wind    X  N  N          N       X       N
- *   (Geo/Solar/Wind patterns accept either orientation via rotation logic)
+   0x08 (none)   = Buoy   (accepts Buoy + Wind)
+   0x09 (A)      = Dam    (accepts Dam + Wind + Solar)
+   0x0A (B)      = Geo    (accepts Geo + Wind + Solar)
+   0x0B (C)      = Solar  (accepts Solar + Wind)
+   0x0C (D)      = Buoy   (accepts Buoy + Wind)
+   0x0D (AB)     = Dam    (accepts Dam + Wind + Solar)
+   0x0E (AC)     = Geo    (accepts Geo + Wind + Solar)
+   0x0F (AD)     = Geo    (accepts Geo + Wind + Solar)
+   0x10 (BC)     = Dam    (accepts Dam + Wind + Solar)
+   0x11 (BD)     = Geo    (accepts Geo + Wind + Solar)
  *
  * LED FEEDBACK:
  *   IDLE / DEBOUNCING → Off
@@ -44,13 +43,7 @@
  *     [3] S3 pol:   0=UNCERTAIN, 1=SOUTH, 2=NORTH
  *     [4] Address:  Low byte of I2C address
  *     [5] Reserved: 0x00
- *
- * Version: 2.0 (2026-04-21)
- * - Added ADC averaging (5 samples per read)
- * - Implemented hysteresis for stable classification
- * - Added debounce delay (300ms) before registration
- * - Improved candidate switching with stability requirements
- * - Enhanced code documentation and structure
+
  */
 
 #include <Arduino.h>
@@ -103,6 +96,14 @@ enum DetectState : uint8_t {
   STATE_INCORRECT  = 4
 };
 
+enum GameState : uint8_t {
+  GAME_RESET_IDLE  = 0,
+  GAME_READY_IDLE  = 1,
+  GAME_ACTIVE      = 2,
+  GAME_PRE_RESULTS = 3,
+  GAME_RESULTS     = 4
+};
+
 struct SensorTrack {
   Polarity confirmed;        // Locked-in polarity
   Polarity candidate;        // Current candidate polarity
@@ -116,8 +117,12 @@ struct SensorTrack {
 // ── Globals ───────────────────────────────────────────────────────────────────
 uint16_t    i2cAddress  = 0x08;
 DetectState detectState = STATE_IDLE;
+GameState   gameState   = GAME_RESET_IDLE;
+bool        isRegistered = false;
+bool        isCorrectPlacement = false;  // Stored during GAME_ACTIVE for later reporting
+bool        hasReportedResults = false;  // Ensure we only send results once in PRE_RESULTS
 SensorTrack track[3];
-volatile uint8_t txBuf[6] = { 0, 0, 0, 0, 0x08, 0 };
+volatile uint8_t txBuf[8] = { 0, 0, 0, 0, 0x08, 0, 0, 0 };
 
 // ── ADC and Classification Helpers ───────────────────────────────────────────
 
@@ -183,8 +188,64 @@ void setLEDs(CRGB color) {
 }
 
 /**
+ * Set LED ring to breathing effect (sine wave)
+ * @param baseColor Base color to breathe
+ * @param minBrightness Minimum brightness (0-255)
+ * @param maxBrightness Maximum brightness (0-255)
+ * @param periodMs Period of one complete breath cycle in milliseconds
+ */
+void setLEDsBreathing(CRGB baseColor, uint8_t minBrightness, uint8_t maxBrightness, uint16_t periodMs) {
+  uint32_t now = millis();
+  
+  // Calculate breathing intensity using sine wave
+  float phase = (float)(now % periodMs) / periodMs * 2.0 * PI;
+  float sineWave = (sin(phase) + 1.0) / 2.0;  // 0.0 to 1.0
+  uint8_t brightness = minBrightness + (uint8_t)(sineWave * (maxBrightness - minBrightness));
+  
+  // Apply brightness to base color
+  CRGB color = baseColor;
+  color.nscale8(brightness);
+  
+  fill_solid(leds, NUM_LEDS, color);
+  FastLED.show();
+}
+
+/**
+ * Set LED ring to pulsating effect (faster, more abrupt than breathing)
+ * @param baseColor Base color to pulsate
+ * @param minBrightness Minimum brightness (0-255)
+ * @param maxBrightness Maximum brightness (0-255)
+ * @param periodMs Period of one complete pulse cycle in milliseconds
+ */
+void setLEDsPulsating(CRGB baseColor, uint8_t minBrightness, uint8_t maxBrightness, uint16_t periodMs) {
+  uint32_t now = millis();
+  
+  // Use triangle wave for more abrupt pulsing
+  float phase = (float)(now % periodMs) / periodMs;
+  float triangleWave = (phase < 0.5) ? (phase * 2.0) : (2.0 - phase * 2.0);  // 0.0 to 1.0
+  uint8_t brightness = minBrightness + (uint8_t)(triangleWave * (maxBrightness - minBrightness));
+  
+  // Apply brightness to base color
+  CRGB color = baseColor;
+  color.nscale8(brightness);
+  
+  fill_solid(leds, NUM_LEDS, color);
+  FastLED.show();
+}
+
+/**
  * Update I2C transmit buffer with current state and sensor polarities.
  * Thread-safe with interrupt protection.
+ * 
+ * Enhanced packet format (8 bytes):
+ *   [0] DetectState:  0=IDLE, 1=DEBOUNCING, 2=REGISTERING, 3=CORRECT, 4=INCORRECT
+ *   [1] S1 polarity:  0=UNCERTAIN, 1=SOUTH, 2=NORTH
+ *   [2] S2 polarity:  0=UNCERTAIN, 1=SOUTH, 2=NORTH
+ *   [3] S3 polarity:  0=UNCERTAIN, 1=SOUTH, 2=NORTH
+ *   [4] Address:      Low byte of I2C address
+ *   [5] GameState:    Current game state (for Teensy reference)
+ *   [6] IsRegistered: 1 if piece is registered, 0 otherwise
+ *   [7] IsCorrect:    1 if placement is correct, 0 otherwise (valid only if registered)
  */
 void writeTxBuf(DetectState st, Polarity p0, Polarity p1, Polarity p2) {
   noInterrupts();
@@ -193,7 +254,9 @@ void writeTxBuf(DetectState st, Polarity p0, Polarity p1, Polarity p2) {
   txBuf[2] = (uint8_t)p1;
   txBuf[3] = (uint8_t)p2;
   txBuf[4] = (uint8_t)(i2cAddress & 0xFF);
-  txBuf[5] = 0x00;
+  txBuf[5] = (uint8_t)gameState;
+  txBuf[6] = isRegistered ? 1 : 0;
+  txBuf[7] = isCorrectPlacement ? 1 : 0;
   interrupts();
 }
 
@@ -201,7 +264,44 @@ void writeTxBuf(DetectState st, Polarity p0, Polarity p1, Polarity p2) {
  * I2C request handler - sends current state to master device.
  */
 void onRequest() {
-  Wire.write((uint8_t*)txBuf, 6);
+  Wire.write((uint8_t*)txBuf, 8);
+}
+
+/**
+ * I2C receive handler - receives game state commands from Teensy.
+ * Packet format: [gameState]
+ */
+void onReceive(int numBytes) {
+  if (numBytes >= 1) {
+    uint8_t receivedState = Wire.read();
+    
+    // Clear any remaining bytes
+    while (Wire.available()) {
+      Wire.read();
+    }
+    
+    GameState newGameState = (GameState)receivedState;
+    
+    // Only update if state changed
+    if (newGameState != gameState) {
+      gameState = newGameState;
+      
+      // Reset flags on state transitions
+      if (gameState == GAME_PRE_RESULTS) {
+        hasReportedResults = false;
+      }
+      
+      Serial.print(">>> GAME STATE CHANGED: ");
+      switch (gameState) {
+        case GAME_RESET_IDLE:  Serial.println("RESET IDLE"); break;
+        case GAME_READY_IDLE:  Serial.println("READY IDLE"); break;
+        case GAME_ACTIVE:      Serial.println("ACTIVE GAME"); break;
+        case GAME_PRE_RESULTS: Serial.println("PRE-RESULTS"); break;
+        case GAME_RESULTS:     Serial.println("RESULTS"); break;
+        default:               Serial.println("UNKNOWN"); break;
+      }
+    }
+  }
 }
 
 /**
@@ -248,8 +348,13 @@ void turnOffDotStar() {
 }
 
 /**
- * Verify if detected polarity pattern matches expected pattern for this board.
+ * Verify if detected polarity pattern matches expected patterns for this board.
  * Handles both forward and 180° rotated orientations for asymmetric patterns.
+ * Now accepts multiple piece types per address type:
+ *   Type Buoy (0x08, 0x0C):  Buoy + Wind
+ *   Type Dam (0x09, 0x0D, 0x10):   Dam + Wind + Solar
+ *   Type Geo (0x0A, 0x0E, 0x11):   Geo + Wind + Solar
+ *   Type Solar (0x0B, 0x0F): Solar + Wind
  * 
  * @return true if pattern is correct for this board's I2C address
  */
@@ -261,38 +366,40 @@ bool isCorrect() {
   Polarity p1 = track[1].confirmed;  // S2 (left)
   Polarity p2 = track[2].confirmed;  // S3 (right)
   
+  // Define patterns for each piece type
+  bool isBuoy  = (p0 == POL_SOUTH && p1 == POL_SOUTH && p2 == POL_SOUTH);
+  bool isDam   = (p0 == POL_NORTH && p1 == POL_NORTH && p2 == POL_NORTH);
+  bool isGeo   = ((p0 == POL_SOUTH) && ((p1 == POL_NORTH && p2 == POL_UNCERTAIN) || 
+                                         (p1 == POL_UNCERTAIN && p2 == POL_NORTH)));
+  bool isSolar = (p0 == POL_UNCERTAIN) && 
+                 ((p1 == POL_NORTH && p2 == POL_UNCERTAIN) || 
+                  (p1 == POL_UNCERTAIN && p2 == POL_NORTH));
+  bool isWind  = (p0 == POL_NORTH) && 
+                 ((p1 == POL_NORTH && p2 == POL_UNCERTAIN) || 
+                  (p1 == POL_UNCERTAIN && p2 == POL_NORTH));
+  
   switch (i2cAddress) {
-    // ── 0x08: Buoy = S S S (symmetric, no rotation needed) ──
+    // ── Type Buoy: 0x08, 0x0C (accepts Buoy + Wind) ──
     case 0x08:
-      return (p0 == POL_SOUTH && p1 == POL_SOUTH && p2 == POL_SOUTH);
-    
-    // ── 0x09: Dam = N N N (symmetric, no rotation needed) ──
-    case 0x09:
-      return (p0 == POL_NORTH && p1 == POL_NORTH && p2 == POL_NORTH);
-    
-    // ── 0x0A, 0x0B: Both Geo boards accept EITHER Geo pattern ──
-    // Geo B (0x0A): N S X → forward: p0=S,p1=N,p2=X | reversed: p0=S,p1=X,p2=N
-    // Geo C (0x0B): X N S → forward: p0=N,p1=X,p2=S | reversed: p0=N,p1=S,p2=X
-    case 0x0A:
-    case 0x0B:
-      return ((p0 == POL_SOUTH) && ((p1 == POL_NORTH && p2 == POL_UNCERTAIN) || (p1 == POL_UNCERTAIN && p2 == POL_NORTH))) ||
-             ((p0 == POL_NORTH) && ((p1 == POL_UNCERTAIN && p2 == POL_SOUTH) || (p1 == POL_SOUTH && p2 == POL_UNCERTAIN)));
-    
-    // ── 0x0C, 0x0D: Both Solar boards accept EITHER Solar pattern ──
-    // Solar D (0x0C):  N X X → forward: p0=X,p1=N,p2=X | reversed: p0=X,p1=X,p2=N
-    // Solar AB (0x0D): X X N → forward: p0=X,p1=X,p2=N | reversed: p0=X,p1=N,p2=X
     case 0x0C:
-    case 0x0D:
-      return (p0 == POL_UNCERTAIN) &&
-             ((p1 == POL_NORTH && p2 == POL_UNCERTAIN) || (p1 == POL_UNCERTAIN && p2 == POL_NORTH));
+      return (isBuoy || isWind);
     
-    // ── 0x0E, 0x0F: Both Wind boards accept EITHER Wind pattern ──
-    // Wind AC (0x0E): N N X → forward: p0=N,p1=N,p2=X | reversed: p0=N,p1=X,p2=N
-    // Wind AD (0x0F): X N N → forward: p0=N,p1=X,p2=N | reversed: p0=N,p1=N,p2=X
+    // ── Type Dam: 0x09, 0x0D, 0x10 (accepts Dam + Wind + Solar) ──
+    case 0x09:
+    case 0x0D:
+    case 0x10:
+      return (isDam || isWind || isSolar);
+    
+    // ── Type Geo: 0x0A, 0x0E, 0x0F, 0x11 (accepts Geo + Wind + Solar) ──
+    case 0x0A:
     case 0x0E:
     case 0x0F:
-      return (p0 == POL_NORTH) &&
-             ((p1 == POL_NORTH && p2 == POL_UNCERTAIN) || (p1 == POL_UNCERTAIN && p2 == POL_NORTH));
+    case 0x11:
+      return (isGeo || isWind || isSolar);
+    
+    // ── Type Solar: 0x0B (accepts Solar + Wind) ──
+    case 0x0B:
+      return (isSolar || isWind);
     
     default:
       return false;
@@ -321,6 +428,9 @@ void setup() {
 
   // Initialize sensor tracking and I2C buffer
   resetTracks();
+  gameState = GAME_RESET_IDLE;
+  isRegistered = false;
+  isCorrectPlacement = false;
   writeTxBuf(STATE_IDLE, POL_UNCERTAIN, POL_UNCERTAIN, POL_UNCERTAIN);
 
   // Read I2C address from hardware pins
@@ -337,14 +447,16 @@ void setup() {
   Serial.print("Expected Pattern: ");
   
   switch (i2cAddress) {
-    case 0x08: Serial.println("Buoy - S S S"); break;
-    case 0x09: Serial.println("Dam - N N N"); break;
-    case 0x0A: Serial.println("Geo B - N S X"); break;
-    case 0x0B: Serial.println("Geo C - X N S"); break;
-    case 0x0C: Serial.println("Solar D - N X X"); break;
-    case 0x0D: Serial.println("Solar AB - X X N"); break;
-    case 0x0E: Serial.println("Wind AC - N N X"); break;
-    case 0x0F: Serial.println("Wind AD - X N N"); break;
+    case 0x08: Serial.println("Buoy (none) - accepts Buoy + Wind"); break;
+    case 0x09: Serial.println("Dam (A) - accepts Dam + Wind + Solar"); break;
+    case 0x0A: Serial.println("Geo (B) - accepts Geo + Wind + Solar"); break;
+    case 0x0B: Serial.println("Solar (C) - accepts Solar + Wind"); break;
+    case 0x0C: Serial.println("Buoy (D) - accepts Buoy + Wind"); break;
+    case 0x0D: Serial.println("Dam (AB) - accepts Dam + Wind + Solar"); break;
+    case 0x0E: Serial.println("Geo (AC) - accepts Geo + Wind + Solar"); break;
+    case 0x0F: Serial.println("Solar (AD) - accepts Solar + Wind"); break;
+    case 0x10: Serial.println("Dam (BC) - accepts Dam + Wind + Solar"); break;
+    case 0x11: Serial.println("Geo (BD) - accepts Geo + Wind + Solar"); break;
     default: Serial.println("UNKNOWN"); break;
   }
   
@@ -357,6 +469,7 @@ void setup() {
   // Start I2C peripheral
   Wire.begin(i2cAddress);
   Wire.onRequest(onRequest);
+  Wire.onReceive(onReceive);
 }
 
 // ── Loop ──────────────────────────────────────────────────────────────────────
@@ -376,6 +489,9 @@ void loop() {
   bool allUncertain = (cur[0] == POL_UNCERTAIN &&
                        cur[1] == POL_UNCERTAIN &&
                        cur[2] == POL_UNCERTAIN);
+
+  // Update registration status
+  isRegistered = (detectState == STATE_CORRECT || detectState == STATE_INCORRECT);
 
   switch (detectState) {
 
@@ -413,7 +529,7 @@ void loop() {
         resetTracks();
         detectState = STATE_REGISTERING;
         debounceTimerStarted = false;
-        setLEDs(CRGB(50, 50, 50));  // Dim white - actively acquiring
+        // LED feedback now handled by game state logic
         writeTxBuf(STATE_REGISTERING, cur[0], cur[1], cur[2]);
       }
       break;
@@ -434,7 +550,9 @@ void loop() {
         resetTracks();
         detectState = STATE_IDLE;
         timerStarted = false;
-        setLEDs(CRGB::Black);
+        isRegistered = false;
+        isCorrectPlacement = false;
+        // LED feedback now handled by game state logic
         writeTxBuf(STATE_IDLE, POL_UNCERTAIN, POL_UNCERTAIN, POL_UNCERTAIN);
         break;
       }
@@ -550,6 +668,7 @@ void loop() {
       if (allLocked) {
         bool correct = isCorrect();
         detectState  = correct ? STATE_CORRECT : STATE_INCORRECT;
+        isCorrectPlacement = correct;  // Store for game state logic
         timerStarted = false;
 
         static const char* PL[] = { "X", "S", "N" };
@@ -561,11 +680,13 @@ void loop() {
           case 0x08: Serial.print("Buoy");  break;
           case 0x09: Serial.print("Dam");   break;
           case 0x0A: Serial.print("Geo");   break;
-          case 0x0B: Serial.print("Geo");   break;
-          case 0x0C: Serial.print("Solar"); break;
-          case 0x0D: Serial.print("Solar"); break;
-          case 0x0E: Serial.print("Wind");  break;
-          case 0x0F: Serial.print("Wind");  break;
+          case 0x0B: Serial.print("Solar"); break;
+          case 0x0C: Serial.print("Buoy");  break;
+          case 0x0D: Serial.print("Dam");   break;
+          case 0x0E: Serial.print("Geo");   break;
+          case 0x0F: Serial.print("Solar"); break;
+          case 0x10: Serial.print("Dam");   break;
+          case 0x11: Serial.print("Geo");   break;
           default:   Serial.print("???");   break;
         }
         Serial.println(")");
@@ -577,7 +698,7 @@ void loop() {
         Serial.print(  "RESULT:  ");
         Serial.println(correct ? ">>> CORRECT <<<" : ">>> INCORRECT <<<");
         
-        setLEDs(correct ? CRGB(0, 100, 0) : CRGB(100, 0, 0));  // dim green / dim red
+        // LED feedback now handled by game state logic at end of loop
         writeTxBuf(detectState,
                    track[0].confirmed,
                    track[1].confirmed,
@@ -593,8 +714,61 @@ void loop() {
         Serial.println(">>> MAGNET REMOVED - BACK TO IDLE <<<\n");
         resetTracks();
         detectState = STATE_IDLE;
-        setLEDs(CRGB::Black);
+        isRegistered = false;
+        isCorrectPlacement = false;
+        // LED feedback now handled by game state logic
         writeTxBuf(STATE_IDLE, POL_UNCERTAIN, POL_UNCERTAIN, POL_UNCERTAIN);
+      }
+      break;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // GAME STATE LED CONTROL
+  // ══════════════════════════════════════════════════════════════════════════════
+  // LED behavior is controlled by game state, not detection state
+  
+  switch (gameState) {
+    case GAME_RESET_IDLE:
+      // All slots pulsate red
+      setLEDsPulsating(CRGB::Red, 30, 200, 800);
+      break;
+      
+    case GAME_READY_IDLE:
+      // Unregistered slots breathe white
+      if (!isRegistered) {
+        setLEDsBreathing(CRGB::White, 20, 150, 2000);
+      } else {
+        // If somehow registered in ready idle, show it
+        setLEDs(CRGB(50, 50, 50));
+      }
+      break;
+      
+    case GAME_ACTIVE:
+      // Registered pieces: solid white
+      // Unregistered: breathe white
+      if (isRegistered) {
+        setLEDs(CRGB(100, 100, 100));  // Solid white
+      } else {
+        setLEDsBreathing(CRGB::White, 20, 150, 2000);
+      }
+      break;
+      
+    case GAME_PRE_RESULTS:
+      // Keep current LED state, just prepare data for Teensy
+      // The Teensy will poll us and we'll send our stored results
+      break;
+      
+    case GAME_RESULTS:
+      // Show final feedback based on stored result
+      if (!isRegistered) {
+        // Empty slot continues breathing white
+        setLEDsBreathing(CRGB::White, 20, 150, 2000);
+      } else if (isCorrectPlacement) {
+        // Correct placement: green
+        setLEDs(CRGB(0, 200, 0));
+      } else {
+        // Incorrect placement: red
+        setLEDs(CRGB(200, 0, 0));
       }
       break;
   }

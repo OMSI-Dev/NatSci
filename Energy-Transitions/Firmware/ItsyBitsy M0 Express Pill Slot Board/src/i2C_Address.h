@@ -17,12 +17,24 @@ This header should run before Wire is started.
  u_int16_t addr = 0x08;
  u_int16_t addrPin = 0;
  //This array holds the pincount total based on the truth table. 
- uint16_t addrList[10] = {0,1,3,5,9,4,6,10,8,12};
+ // 10 unique addresses for 10 boards
+ uint16_t addrList[10] = {0, 1, 3, 5, 9, 4, 6, 10, 8, 12};
  /*
  This array holds the actual addresses
  0x00-0x07 are reserved by the I2C protocol
+ New mapping with 10 unique addresses, 4 type categories:
+   0x08 (none)   = Buoy   (accepts Buoy + Wind)
+   0x09 (A)      = Dam    (accepts Dam + Wind + Solar)
+   0x0A (B)      = Geo    (accepts Geo + Wind + Solar)
+   0x0B (C)      = Solar  (accepts Solar + Wind)
+   0x0C (D)      = Buoy   (accepts Buoy + Wind)
+   0x0D (AB)     = Dam    (accepts Dam + Wind + Solar)
+   0x0E (AC)     = Geo    (accepts Geo + Wind + Solar)
+   0x0F (AD)     = Solar  (accepts Solar + Wind)
+   0x10 (BC)     = Dam    (accepts Dam + Wind + Solar)
+   0x11 (BD)     = Geo    (accepts Geo + Wind + Solar)
 */
- uint16_t addrID[10] = {0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F,0x10,0x11};
+ uint16_t addrID[10] = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11};
 
  void setPins ()
  {

@@ -1,8 +1,0 @@
-None   = 0x08 = Buoy = S S S
-A = 0x09 = Dam  = N N N 
-B = 0x0A = Geo  = N S X
-C  = 0x0B = Geo  = X N S
-D = 0x0C = Solar = N X X
-AB = 0x0D = Solar = X X N 
-AC = 0x0E = Wind = N N X
-AD = 0x0F = Wind = X N N
