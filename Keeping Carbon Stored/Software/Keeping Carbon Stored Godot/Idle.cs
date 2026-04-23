@@ -31,9 +31,11 @@ public partial class Idle : Node2D
 	public override void _Process(double delta)
 	{
 		if(idleVideo == null) {
-			GD.Print("Idle video failed to load.");
+			GD.Print("Idle video failed to load in Idle script.");
 			return;
 		}
+
+		if(!IsVisibleInTree()) { return; }
 
 		if(!idleVideo.IsPlaying()) {
 			idleVideo.Show();

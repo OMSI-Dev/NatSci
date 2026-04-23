@@ -51,6 +51,32 @@ shortcut_keys_enabled = false
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="RoundOneSmallScore" type="RichTextLabel" parent="Round1/CanvasLayer" unique_id=1851569080]
+offset_left = 1000.0
+offset_top = 500.0
+offset_right = 1122.0
+offset_bottom = 597.0
+theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
+theme_override_fonts/normal_font = ExtResource("7_aomqu")
+theme_override_font_sizes/normal_font_size = 72
+text = "0"
+shortcut_keys_enabled = false
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RoundOneSmallScore2" type="RichTextLabel" parent="Round1/CanvasLayer" unique_id=1454112774]
+offset_left = 1000.0
+offset_top = 500.0
+offset_right = 1122.0
+offset_bottom = 597.0
+theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
+theme_override_fonts/normal_font = ExtResource("7_aomqu")
+theme_override_font_sizes/normal_font_size = 72
+text = "0"
+shortcut_keys_enabled = false
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="Round2" type="Node2D" parent="." unique_id=808558755]
 script = ExtResource("5_mf81u")
 introVideo = ExtResource("8_krmtw")
@@ -75,6 +101,32 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="RoundTwoSmallScore" type="RichTextLabel" parent="Round2/CanvasLayer" unique_id=1970555862]
+offset_left = 1000.0
+offset_top = 500.0
+offset_right = 1122.0
+offset_bottom = 597.0
+theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
+theme_override_fonts/normal_font = ExtResource("7_aomqu")
+theme_override_font_sizes/normal_font_size = 72
+text = "0"
+shortcut_keys_enabled = false
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RoundTwoSmallScore2" type="RichTextLabel" parent="Round2/CanvasLayer" unique_id=218251078]
+offset_left = 1000.0
+offset_top = 500.0
+offset_right = 1122.0
+offset_bottom = 597.0
+theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
+theme_override_fonts/normal_font = ExtResource("7_aomqu")
+theme_override_font_sizes/normal_font_size = 72
+text = "0"
+shortcut_keys_enabled = false
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="Results" type="Node2D" parent="." unique_id=36570165]
 script = ExtResource("6_02kkc")
 
@@ -87,11 +139,18 @@ buffering_msec = 100
 [node name="CanvasLayer" type="CanvasLayer" parent="Results" unique_id=1563464306]
 
 [node name="FinalScore" type="RichTextLabel" parent="Results/CanvasLayer" unique_id=35733549]
-offset_left = 176.0
-offset_top = -276.0
-offset_right = 316.0
-offset_bottom = -136.0
+offset_left = 1000.0
+offset_top = 500.0
+offset_right = 1490.0
+offset_bottom = 771.0
 theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
 theme_override_fonts/normal_font = ExtResource("7_aomqu")
-theme_override_font_sizes/normal_font_size = 120
+theme_override_font_sizes/normal_font_size = 200
 text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Round1SmallScore" type="RichTextLabel" parent="." unique_id=699261191]
+offset_left = 96.0
+offset_right = 97.0
+offset_bottom = 92.0
