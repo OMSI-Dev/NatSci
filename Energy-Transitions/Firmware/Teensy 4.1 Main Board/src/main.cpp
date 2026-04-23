@@ -24,11 +24,11 @@
  *   - I2C commands to M0 boards
  *   - Audio playback via WAV Trigger
  * 
- * Version: 3.0 (2026-04-22) - Phase 1 game state implementation
  */
 
 #include <Arduino.h>
 #include <Wire.h>
+#include <FastLED.h>
 #include <wav_trigger.h>
 
 // ── Audio track definitions ────────────────────────────────────────────────────
@@ -44,9 +44,17 @@
 // ── Pin definitions ────────────────────────────────────────────────────────────
 #define ENERGY_SWITCH_PIN 14
 
+// ── City LED definitions ───────────────────────────────────────────────────────
+#define NUM_LEDS_PER_STRIP 5
+#define NUM_CITIES 7
+#define LED_BRIGHTNESS 128
+#define LED_TYPE WS2812B
+#define COLOR_ORDER GRB
+
 // ── Game configuration ─────────────────────────────────────────────────────────
 #define NUM_M0_BOARDS 4      // Number of M0 sensor boards expected
 #define ENERGY_SWITCH_DEBOUNCE_MS 200  // Debounce time for energy switch
+#define INACTIVITY_TIMEOUT_MS 120000  // 2 minutes of inactivity before auto-reset
 
 // ── Game state enum ────────────────────────────────────────────────────────────
 enum GameState : uint8_t {
@@ -77,6 +85,15 @@ uint8_t m0Addresses[NUM_M0_BOARDS] = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 
 
 wavTrigger wavTrig;
 
+// City LED arrays
+CRGB leds1[NUM_LEDS_PER_STRIP];
+CRGB leds2[NUM_LEDS_PER_STRIP];
+CRGB leds3[NUM_LEDS_PER_STRIP];
+CRGB leds4[NUM_LEDS_PER_STRIP];
+CRGB leds5[NUM_LEDS_PER_STRIP];
+CRGB leds6[NUM_LEDS_PER_STRIP];
+CRGB leds7[NUM_LEDS_PER_STRIP];
+
 // Energy switch state
 bool energySwitchLastState = HIGH;
 uint32_t energySwitchLastDebounceTime = 0;
@@ -88,6 +105,12 @@ const uint32_t RESULTS_DISPLAY_DURATION_MS = 10000;  // Show results for 10 seco
 // State machine control
 bool preResultsProcessed = false;
 
+// Piece registration tracking for PIECE_REGISTERED sound
+uint8_t previousRegisteredCount = 0;
+
+// Inactivity timer for auto-reset
+uint32_t lastActivityTime = 0;
+
 void changeGameState(GameState newState);
 void sendGameStateToM0s();
 void pollM0Boards(bool verbose = false);
@@ -97,6 +120,11 @@ void handleSerialDevTools();
 bool checkEnergySwitchPulled();
 void printCurrentStateStatus();
 const char* getGameStateName(GameState state);
+void updateCityLEDs();
+void setAllCitiesColor(CRGB color);
+void setAllCitiesPulsating(CRGB baseColor, uint8_t minBright, uint8_t maxBright, uint16_t periodMs);
+void setAllCitiesRainbow();
+void setAllCitiesOff();
 
 void setup() {
   Serial.begin(115200);
@@ -123,6 +151,19 @@ void setup() {
   wavTrig.setReporting(true);
   Serial.println("✓ WAV Trigger initialized");
   
+  // Initialize City LEDs
+  FastLED.addLeds<LED_TYPE, 3, COLOR_ORDER>(leds1, NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<LED_TYPE, 4, COLOR_ORDER>(leds2, NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<LED_TYPE, 5, COLOR_ORDER>(leds3, NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<LED_TYPE, 6, COLOR_ORDER>(leds4, NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<LED_TYPE, 7, COLOR_ORDER>(leds5, NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<LED_TYPE, 8, COLOR_ORDER>(leds6, NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<LED_TYPE, 9, COLOR_ORDER>(leds7, NUM_LEDS_PER_STRIP);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 2000);
+  FastLED.setBrightness(LED_BRIGHTNESS);
+  setAllCitiesOff();
+  Serial.println("✓ City LEDs initialized on pins 3-9");
+  
   // Initialize M0 board tracking
   for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
     m0Boards[i].detectState = 0;
@@ -134,6 +175,7 @@ void setup() {
   
   // Start in RESET_IDLE state
   changeGameState(GAME_RESET_IDLE);
+  lastActivityTime = millis();
   
 
   Serial.println("'1' = Force RESET_IDLE");
@@ -153,6 +195,9 @@ void loop() {
   static uint32_t lastStatusPrintTime = 0;
   const uint32_t POLL_INTERVAL = 500;  // Poll M0s every 500ms
   const uint32_t STATUS_PRINT_INTERVAL = 5000;  // Print status every 5 seconds
+  
+  // Update city LEDs continuously
+  updateCityLEDs();
   
   // Handle serial dev tools
   handleSerialDevTools();
@@ -185,6 +230,12 @@ void loop() {
     
     // READY_IDLE: Wait for piece registration 
     case GAME_READY_IDLE:
+      // Check if energy switch is pulled (play ERROR and stay in READY_IDLE)
+      if (checkEnergySwitchPulled()) {
+        Serial.println("\n[READY_IDLE] Energy switch pulled too early!");
+        wavTrig.trackPlayPoly(ERROR);
+      }
+      
       // Poll M0 boards periodically to update status
       if (millis() - lastPollTime >= POLL_INTERVAL) {
         // Poll quietly (detailed status available via 's' dev command)
@@ -208,6 +259,8 @@ void loop() {
         
         if (anyPieceDetected) {
           Serial.println("\n>>> PIECE DETECTED - Game starting!");
+          previousRegisteredCount = 0;  // Reset for ACTIVE state
+          lastActivityTime = millis();  // Reset inactivity timer
           changeGameState(GAME_ACTIVE);
         }
       }
@@ -219,11 +272,39 @@ void loop() {
       if (millis() - lastPollTime >= POLL_INTERVAL) {
         pollM0Boards();
         lastPollTime = millis();
+        
+        // Track piece registration changes for activity timer and sound
+        uint8_t currentRegisteredCount = 0;
+        for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
+          if (m0Boards[i].isRegistered) {
+            currentRegisteredCount++;
+          }
+        }
+        
+        // Check if registration count changed (piece added or removed)
+        if (currentRegisteredCount != previousRegisteredCount) {
+          lastActivityTime = millis();  // Reset inactivity timer
+          
+          // Play PIECE_REGISTERED sound when a NEW piece is added
+          if (currentRegisteredCount > previousRegisteredCount) {
+            Serial.println("[ACTIVE] Piece registered!");
+            wavTrig.trackPlayPoly(PIECE_REGISTERED);
+          }
+          
+          previousRegisteredCount = currentRegisteredCount;
+        }
+      }
+      
+      // Check for inactivity timeout (2 minutes)
+      if (millis() - lastActivityTime >= INACTIVITY_TIMEOUT_MS) {
+        Serial.println("\n>>> INACTIVITY TIMEOUT - Auto-resetting game!");
+        changeGameState(GAME_RESET_IDLE);
       }
       
       // Energy switch only works in ACTIVE state
       if (checkEnergySwitchPulled()) {
         Serial.println("\n>>> ENERGY SWITCH PULLED - Checking results!");
+        wavTrig.trackPlayPoly(PULL_SWITCH);  // Play sound immediately
         preResultsProcessed = false;  // Reset flag for next results check
         changeGameState(GAME_PRE_RESULTS);
       }
@@ -314,7 +395,7 @@ void changeGameState(GameState newState) {
       
     case GAME_PRE_RESULTS:
       Serial.println("[INIT] Preparing to check results...");
-      wavTrig.trackPlayPoly(PULL_SWITCH);
+      // PULL_SWITCH sound now plays when switch is physically pulled
       preResultsProcessed = false;
       break;
       
@@ -671,4 +752,106 @@ void printCurrentStateStatus() {
   // Serial.println();
   
   // Serial.println("└────────────────────────────────────────────────────────┘");
+}
+
+//Update City LEDs
+void updateCityLEDs() {
+  switch (currentGameState) {
+    case GAME_RESET_IDLE:
+      // All cities pulsate red (same as M0 rings)
+      setAllCitiesPulsating(CRGB::Red, 30, 200, 800);
+      break;
+      
+    case GAME_READY_IDLE:
+    case GAME_ACTIVE:
+      // No lights during gameplay
+      setAllCitiesOff();
+      break;
+      
+    case GAME_RESULTS:
+      // Show results-based colors
+      {
+        uint8_t registeredCount = 0;
+        uint8_t correctCount = 0;
+        uint8_t incorrectCount = 0;
+        
+        for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
+          if (m0Boards[i].isRegistered) {
+            registeredCount++;
+            if (m0Boards[i].isCorrect) {
+              correctCount++;
+            } else {
+              incorrectCount++;
+            }
+          }
+        }
+        
+        // All correct - Rainbow animation
+        if (correctCount == NUM_M0_BOARDS) {
+          setAllCitiesRainbow();
+        }
+        // Some wrong - Yellow
+        else if (registeredCount == NUM_M0_BOARDS && correctCount > 0 && incorrectCount > 0) {
+          setAllCitiesColor(CRGB::Yellow);
+        }
+        // All wrong or other fail conditions - Red
+        else {
+          setAllCitiesColor(CRGB::Red);
+        }
+      }
+      break;
+      
+    case GAME_PRE_RESULTS:
+      // Keep lights off during pre-results
+      setAllCitiesOff();
+      break;
+  }
+}
+
+void setAllCitiesColor(CRGB color) {
+  fill_solid(leds1, NUM_LEDS_PER_STRIP, color);
+  fill_solid(leds2, NUM_LEDS_PER_STRIP, color);
+  fill_solid(leds3, NUM_LEDS_PER_STRIP, color);
+  fill_solid(leds4, NUM_LEDS_PER_STRIP, color);
+  fill_solid(leds5, NUM_LEDS_PER_STRIP, color);
+  fill_solid(leds6, NUM_LEDS_PER_STRIP, color);
+  fill_solid(leds7, NUM_LEDS_PER_STRIP, color);
+  FastLED.show();
+}
+
+void setAllCitiesPulsating(CRGB baseColor, uint8_t minBright, uint8_t maxBright, uint16_t periodMs) {
+  uint32_t now = millis();
+  
+  // Use triangle wave for pulsing
+  float phase = (float)(now % periodMs) / periodMs;
+  float triangleWave = (phase < 0.5) ? (phase * 2.0) : (2.0 - phase * 2.0);
+  uint8_t brightness = minBright + (uint8_t)(triangleWave * (maxBright - minBright));
+  
+  // Apply brightness to base color
+  CRGB color = baseColor;
+  color.nscale8(brightness);
+  
+  setAllCitiesColor(color);
+}
+
+void setAllCitiesRainbow() {
+  static uint8_t hueOffset = 0;
+  
+  // Shifting rainbow gradient
+  fill_rainbow(leds1, NUM_LEDS_PER_STRIP, hueOffset, 255 / NUM_LEDS_PER_STRIP);
+  fill_rainbow(leds2, NUM_LEDS_PER_STRIP, hueOffset + 10, 255 / NUM_LEDS_PER_STRIP);
+  fill_rainbow(leds3, NUM_LEDS_PER_STRIP, hueOffset + 20, 255 / NUM_LEDS_PER_STRIP);
+  fill_rainbow(leds4, NUM_LEDS_PER_STRIP, hueOffset + 30, 255 / NUM_LEDS_PER_STRIP);
+  fill_rainbow(leds5, NUM_LEDS_PER_STRIP, hueOffset + 40, 255 / NUM_LEDS_PER_STRIP);
+  fill_rainbow(leds6, NUM_LEDS_PER_STRIP, hueOffset + 50, 255 / NUM_LEDS_PER_STRIP);
+  fill_rainbow(leds7, NUM_LEDS_PER_STRIP, hueOffset + 60, 255 / NUM_LEDS_PER_STRIP);
+  
+  FastLED.show();
+  
+  // Animate by shifting hue over time
+  hueOffset += 2;  // Speed of rainbow shift
+}
+
+void setAllCitiesOff() {
+  setAllCitiesColor(CRGB::Black);
 }

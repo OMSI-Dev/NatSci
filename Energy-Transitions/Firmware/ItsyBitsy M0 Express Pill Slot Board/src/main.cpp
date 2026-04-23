@@ -43,13 +43,7 @@
  *     [3] S3 pol:   0=UNCERTAIN, 1=SOUTH, 2=NORTH
  *     [4] Address:  Low byte of I2C address
  *     [5] Reserved: 0x00
- *
- * Version: 2.0 (2026-04-21)
- * - Added ADC averaging (5 samples per read)
- * - Implemented hysteresis for stable classification
- * - Added debounce delay (300ms) before registration
- * - Improved candidate switching with stability requirements
- * - Enhanced code documentation and structure
+
  */
 
 #include <Arduino.h>
