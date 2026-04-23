@@ -52,7 +52,7 @@
 #define COLOR_ORDER GRB
 
 // ── Game configuration ─────────────────────────────────────────────────────────
-#define NUM_M0_BOARDS 4      // Number of M0 sensor boards expected
+#define NUM_M0_BOARDS 10      // Number of M0 sensor boards expected
 #define ENERGY_SWITCH_DEBOUNCE_MS 200  // Debounce time for energy switch
 #define INACTIVITY_TIMEOUT_MS 120000  // 2 minutes of inactivity before auto-reset
 
