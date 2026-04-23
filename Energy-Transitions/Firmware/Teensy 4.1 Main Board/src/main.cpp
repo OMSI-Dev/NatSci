@@ -73,8 +73,7 @@ struct M0Status {
 // ── Global variables ───────────────────────────────────────────────────────────
 GameState currentGameState = GAME_RESET_IDLE;
 M0Status m0Boards[NUM_M0_BOARDS];
-uint8_t m0Addresses[NUM_M0_BOARDS] = {0x10, 0x09, 0x0A, 0x0B};
-// uint8_t m0Addresses[NUM_M0_BOARDS] = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11};
+uint8_t m0Addresses[NUM_M0_BOARDS] = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11};
 
 wavTrigger wavTrig;
 
@@ -89,7 +88,6 @@ const uint32_t RESULTS_DISPLAY_DURATION_MS = 10000;  // Show results for 10 seco
 // State machine control
 bool preResultsProcessed = false;
 
-// ── Function prototypes ────────────────────────────────────────────────────────
 void changeGameState(GameState newState);
 void sendGameStateToM0s();
 void pollM0Boards(bool verbose = false);
@@ -100,20 +98,16 @@ bool checkEnergySwitchPulled();
 void printCurrentStateStatus();
 const char* getGameStateName(GameState state);
 
-// ══════════════════════════════════════════════════════════════════════════════
-// SETUP
-// ══════════════════════════════════════════════════════════════════════════════
-
 void setup() {
   Serial.begin(115200);
   delay(1000);
 
-  // Initialize I2C as master
+  // Initialize I2C as big friend
   Wire.begin();
   Wire.setClock(100000);  // 100kHz I2C clock
-  Serial.println("✓ I2C initialized (Master mode, 100kHz)");
+  Serial.println("✓ I2C handshake)");
   
-  // Initialize energy switch pin
+  //Energy switch 
   pinMode(ENERGY_SWITCH_PIN, INPUT_PULLUP);
   energySwitchLastState = digitalRead(ENERGY_SWITCH_PIN);
   Serial.println("✓ Energy switch initialized on pin 14");
@@ -137,31 +131,22 @@ void setup() {
     m0Boards[i].responseReceived = false;
     m0Boards[i].address = m0Addresses[i];
   }
-  Serial.print("✓ Configured for ");
-  Serial.print(NUM_M0_BOARDS);
-  Serial.println(" M0 boards");
   
   // Start in RESET_IDLE state
   changeGameState(GAME_RESET_IDLE);
   
-  Serial.println("\n═══════════════════════════════════════════════════════════");
-  Serial.println("DEV TOOLS:");
-  Serial.println("  Press '1' = Force RESET_IDLE");
-  Serial.println("  Press '2' = Force READY_IDLE");
-  Serial.println("  Press '3' = Force ACTIVE");
-  Serial.println("  Press '4' = Force PRE_RESULTS");
-  Serial.println("  Press '5' = Force RESULTS");
-  Serial.println("  Press 'p' = Poll M0 boards");
-  Serial.println("  Press 'e' = Simulate energy switch pull");
-  Serial.println("  Press 's' = Print current state status");
-  Serial.println("  Press 'r' = Reset to RESET_IDLE");
-  Serial.println("═══════════════════════════════════════════════════════════");
+
+  Serial.println("'1' = Force RESET_IDLE");
+  Serial.println("'2' = Force READY_IDLE");
+  Serial.println("'3' = Force ACTIVE");
+  Serial.println("'4' = Force PRE_RESULTS");
+  Serial.println("'5' = Force RESULTS");
+  Serial.println("'p' = Poll M0 boards");
+  Serial.println("'e' = Simulate energy switch pull");
+  Serial.println("'s' = Print current state status");
+  Serial.println("'r' = Reset to RESET_IDLE");
 
 }
-
-// ══════════════════════════════════════════════════════════════════════════════
-// MAIN LOOP
-// ══════════════════════════════════════════════════════════════════════════════
 
 void loop() {
   static uint32_t lastPollTime = 0;
@@ -172,7 +157,7 @@ void loop() {
   // Handle serial dev tools
   handleSerialDevTools();
   
-  // Periodic status printing (except in PRE_RESULTS to avoid clutter)
+  // Periodic status printing 
   if (currentGameState != GAME_PRE_RESULTS && 
       (millis() - lastStatusPrintTime >= STATUS_PRINT_INTERVAL)) {
     printCurrentStateStatus();
@@ -182,7 +167,7 @@ void loop() {
   // State machine
   switch (currentGameState) {
     
-    // ── RESET_IDLE: Wait for all M0s to report unregistered ────────────────────
+    // RESET_IDLE: Wait for all M0s to report unregistered 
     case GAME_RESET_IDLE:
       // Poll M0 boards periodically
       if (millis() - lastPollTime >= POLL_INTERVAL) {
@@ -198,7 +183,7 @@ void loop() {
       }
       break;
     
-    // ── READY_IDLE: Wait for piece registration ────────────────────────────────
+    // READY_IDLE: Wait for piece registration 
     case GAME_READY_IDLE:
       // Poll M0 boards periodically to update status
       if (millis() - lastPollTime >= POLL_INTERVAL) {
@@ -210,7 +195,6 @@ void loop() {
         // detectState: 0=IDLE, 1=DEBOUNCING, 2=REGISTERING, 3=CORRECT, 4=INCORRECT
         bool anyPieceDetected = false;
         for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
-          // Trigger on REGISTERING (2) or higher states (piece being processed or registered)
           if (m0Boards[i].detectState >= 2) {
             anyPieceDetected = true;
             Serial.print("\n  Detected piece on M0 #");
@@ -233,12 +217,11 @@ void loop() {
     case GAME_ACTIVE:
       // Poll M0 boards periodically to update status
       if (millis() - lastPollTime >= POLL_INTERVAL) {
-        // Poll quietly (detailed status available via 's' dev command)
         pollM0Boards();
         lastPollTime = millis();
       }
       
-      // Energy switch ONLY works in ACTIVE state
+      // Energy switch only works in ACTIVE state
       if (checkEnergySwitchPulled()) {
         Serial.println("\n>>> ENERGY SWITCH PULLED - Checking results!");
         preResultsProcessed = false;  // Reset flag for next results check
@@ -246,27 +229,22 @@ void loop() {
       }
       break;
     
-    // ── PRE_RESULTS: Poll M0s for final results ────────────────────────────────
+    // PRE_RESULTS: Poll M0s for final results 
     case GAME_PRE_RESULTS:
       // Only process results once when entering this state
       if (!preResultsProcessed) {
         Serial.println("\n[PRE_RESULTS] Collecting final board states...");
-        pollM0Boards(true);  // Verbose output for results
+        pollM0Boards(false);  //turn to true for verbose output
         
-        // Small delay to ensure all responses collected
         delay(100);
-        
-        // Process and display results
         processResults();
         
         preResultsProcessed = true;
-        
-        // Transition to RESULTS state
         changeGameState(GAME_RESULTS);
       }
       break;
     
-    // ── RESULTS: Display results, then auto-reset ──────────────────────────────
+    // RESULTS: Display results, then auto-reset
     case GAME_RESULTS:
       {
         // Check if results display time has elapsed
@@ -458,17 +436,14 @@ void pollM0Boards(bool verbose = false) {
   }
 }
 
-/**
- * Check if all M0 boards are truly idle (no pieces detected)
- * For RESET_IDLE state - must have NO pieces present at all
- */
+//M0 boards status - registered/unregistered, correct/incorrect, response received
 bool checkAllM0sUnregistered() {
   bool allClear = true;
   
   for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
     if (!m0Boards[i].responseReceived) {
       // Haven't received response from this board yet
-      Serial.print("  ⚠ M0 #");
+      Serial.print("  !!! M0 #");
       Serial.print(i + 1);
       Serial.print(" at 0x");
       Serial.print(m0Addresses[i], HEX);
@@ -479,8 +454,7 @@ bool checkAllM0sUnregistered() {
     // Check that board is in IDLE or DEBOUNCING state (0 or 1)
     // detectState: 0=IDLE, 1=DEBOUNCING, 2=REGISTERING, 3=CORRECT, 4=INCORRECT
     if (m0Boards[i].detectState >= 2) {
-      // Board has a piece being registered or fully registered
-      Serial.print("  ⚠ M0 #");
+      Serial.print("  !!! M0 #");
       Serial.print(i + 1);
       Serial.print(" at 0x");
       Serial.print(m0Addresses[i], HEX);
@@ -491,12 +465,10 @@ bool checkAllM0sUnregistered() {
     }
   }
   
-  return allClear;  // All boards are truly idle (no pieces present)
+  return allClear; 
 }
 
-/**
- * Process results and determine WIN/YELLOW/FAIL outcome
- */
+//Process results and determine WIN/YELLOW/FAIL
 void processResults() {
   Serial.println("\n═══════════════════════════════════════════════════════════");
   Serial.println("  FINAL RESULTS:");
@@ -506,7 +478,6 @@ void processResults() {
   uint8_t correctCount = 0;
   uint8_t incorrectCount = 0;
   
-  // Detailed breakdown
   for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
     Serial.print("  Slot ");
     Serial.print(i + 1);
@@ -518,44 +489,38 @@ void processResults() {
       registeredCount++;
       if (m0Boards[i].isCorrect) {
         correctCount++;
-        Serial.println("✓ CORRECT");
+        Serial.println("O CORRECT");
       } else {
         incorrectCount++;
-        Serial.println("✗ INCORRECT");
+        Serial.println("X INCORRECT");
       }
     } else {
       Serial.println("○ EMPTY");
     }
   }
   
-  Serial.println("───────────────────────────────────────────────────────────");
-  Serial.print("  Total: ");
-  Serial.print(correctCount);
-  Serial.print(" correct, ");
-  Serial.print(incorrectCount);
-  Serial.print(" incorrect, ");
-  Serial.print(NUM_M0_BOARDS - registeredCount);
-  Serial.println(" empty");
-  Serial.println("═══════════════════════════════════════════════════════════");
-  
-  // Determine outcome
-  // FAIL: All wrong/some unregistered (no correct placements)
-  // YELLOW: All registered/some right/some wrong
-  // WIN: All correct
+  // Serial.println("───────────────────────────────────────────────────────────");
+  // Serial.print("  Total: ");
+  // Serial.print(correctCount);
+  // Serial.print(" correct, ");
+  // Serial.print(incorrectCount);
+  // Serial.print(" incorrect, ");
+  // Serial.print(NUM_M0_BOARDS - registeredCount);
+  // Serial.println(" empty");
+  // Serial.println("═══════════════════════════════════════════════════════════");
   
   if (correctCount == NUM_M0_BOARDS) {
-    // All correct - WIN!
-    Serial.println("  🏆 OUTCOME: WIN - All placements correct!");
+    // All correct - WIN
+    Serial.println("OUTCOME: WIN");
     wavTrig.trackPlayPoly(WIN);
   }
   else if (registeredCount == NUM_M0_BOARDS && correctCount > 0 && incorrectCount > 0) {
     // All registered, mix of correct and incorrect - YELLOW
-    Serial.println("  ⚠ OUTCOME: YELLOW - Some correct, some incorrect");
+    Serial.println("OUTCOME: YELLOW");
     wavTrig.trackPlayPoly(YELLOW);
   }
   else {
-    // All wrong or some empty - FAIL
-    Serial.println("  ✗ OUTCOME: FAIL - Try again!");
+    Serial.println("OUTCOME: FAIL");
     wavTrig.trackPlayPoly(FAIL);
   }
   
@@ -612,7 +577,7 @@ void handleSerialDevTools() {
           // Energy switch only works during ACTIVE state
           changeGameState(GAME_PRE_RESULTS);
         } else {
-          Serial.println("  ⚠ Energy switch only works during ACTIVE state!");
+          Serial.println("  X Energy switch only works during ACTIVE state!");
         }
         break;
         
@@ -640,14 +605,6 @@ void handleSerialDevTools() {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// HELPER FUNCTIONS
-// ══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Check if energy switch was pulled (with debouncing)
- * Returns true on HIGH to LOW transition after debounce period
- */
 bool checkEnergySwitchPulled() {
   bool currentState = digitalRead(ENERGY_SWITCH_PIN);
   
@@ -668,9 +625,6 @@ bool checkEnergySwitchPulled() {
   return false;
 }
 
-/**
- * Get human-readable name for game state
- */
 const char* getGameStateName(GameState state) {
   switch (state) {
     case GAME_RESET_IDLE:  return "RESET_IDLE";
@@ -682,42 +636,39 @@ const char* getGameStateName(GameState state) {
   }
 }
 
-/**
- * Print current state status with detailed information
- */
+
 void printCurrentStateStatus() {
   Serial.println("\n┌────────────────────────────────────────────────────────┐");
   Serial.print("│  Current State: ");
   Serial.print(getGameStateName(currentGameState));
   for (int i = 0; i < 38 - strlen(getGameStateName(currentGameState)); i++) Serial.print(" ");
-  Serial.println("│");
-  Serial.println("├────────────────────────────────────────────────────────┤");
+ 
+  // uint8_t registered = 0, correct = 0, incorrect = 0;
+  // for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
+  //   if (m0Boards[i].isRegistered) {
+  //     registered++;
+  //     if (m0Boards[i].isCorrect) correct++;
+  //     else incorrect++;
+  //   }
+  // }
   
-  uint8_t registered = 0, correct = 0, incorrect = 0;
-  for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
-    if (m0Boards[i].isRegistered) {
-      registered++;
-      if (m0Boards[i].isCorrect) correct++;
-      else incorrect++;
-    }
-  }
+  // Serial.print("│  Registered: ");
+  // Serial.print(registered);
+  // Serial.print("/");
+  // Serial.print(NUM_M0_BOARDS);
+  // Serial.print(" | Correct: ");
+  // Serial.print(correct);
+  // Serial.print(" | Incorrect: ");
+  // Serial.print(incorrect);
+
+  // int padding = 24 - (registered >= 10 ? 2 : 1) - (correct >= 10 ? 2 : 1) - (incorrect >= 10 ? 2 : 1);
+  // for (int i = 0; i < padding; i++) Serial.print(" ");
+  // Serial.println("│");
   
-  Serial.print("│  Registered: ");
-  Serial.print(registered);
-  Serial.print("/");
-  Serial.print(NUM_M0_BOARDS);
-  Serial.print(" | Correct: ");
-  Serial.print(correct);
-  Serial.print(" | Incorrect: ");
-  Serial.print(incorrect);
-  int padding = 24 - (registered >= 10 ? 2 : 1) - (correct >= 10 ? 2 : 1) - (incorrect >= 10 ? 2 : 1);
-  for (int i = 0; i < padding; i++) Serial.print(" ");
-  Serial.println("│");
+  // Serial.print("│  Energy Switch: ");
+  // Serial.print(digitalRead(ENERGY_SWITCH_PIN) == HIGH ? "READY" : "PULLED");
+  // Serial.print("                              │");
+  // Serial.println();
   
-  Serial.print("│  Energy Switch: ");
-  Serial.print(digitalRead(ENERGY_SWITCH_PIN) == HIGH ? "READY" : "PULLED");
-  Serial.print("                              │");
-  Serial.println();
-  
-  Serial.println("└────────────────────────────────────────────────────────┘");
+  // Serial.println("└────────────────────────────────────────────────────────┘");
 }
