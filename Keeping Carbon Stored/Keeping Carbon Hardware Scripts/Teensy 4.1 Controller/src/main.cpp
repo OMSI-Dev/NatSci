@@ -11,7 +11,7 @@ void setup() {
   //Serial.println("Teensy 4.1 (Parent) - Starting up...");
   
   // Initialize Serial1 for communication with Teensy 4.0
-  Serial1.begin(115200);
+  Serial1.begin(2400,SERIAL_8E1);
   Serial2.begin(115200);
   Serial3.begin(115200);
   Serial4.begin(115200);
@@ -33,23 +33,35 @@ void setup() {
 void loop() {
   //read incoming messages from PC
   //format A1255000000
+  //A2255000000
+  //A1000000000
+  //B1255000000
+  //C1255000000
+  //D1255000000
+  //E1255000000
   if (Serial.available()) 
   {
     Serial.readBytesUntil('\n', data,dataBuffer);
+    Serial.println(data[0]);
   }
   
   switch (data[0])
   {
     case 65:
       //send to row 1, button and RGB
-      for(uint8_t i=1; i<dataBuffer-1; i++)
+      for(uint8_t i=1; i!=dataBuffer-1; i++)
       {
+        //Serial.print(i);
+        //Serial.print(":");
         Serial1.print(data[i]);
+        //Serial.println(data[i]);
       }
+        Serial1.println();
       break;
     case 66:
-      for(uint8_t i=1; i<dataBuffer-1; i++)
+      for(uint8_t i=1; i<=dataBuffer-1; i++)
       {
+        
         Serial2.print(data[i]);
       }
       break;
