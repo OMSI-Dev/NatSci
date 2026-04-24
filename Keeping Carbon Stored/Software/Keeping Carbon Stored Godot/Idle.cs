@@ -44,16 +44,16 @@ public partial class Idle : Node2D
 		}
 
 		if(!gameStarted) {
-			string[] newData = serCom.getSplit();
+			//string[] newData = serCom.getSplit();
 			//GD.Print(newData);
 			//GD.Print(newData[0]);
-			if(newData != null) {
-				if(newData[0] != "0") {
-					GD.Print("Recieved Serial data while in Idle script. startGame is true.");
-					gameStarted = true;
-					idleVideo.Stop();
-				}
-			}
+			//if(newData != null) {
+				//if(newData[0] != "0") {
+					//GD.Print("Recieved Serial data while in Idle script. startGame is true.");
+					//gameStarted = true;
+					//idleVideo.Stop();
+				//}
+			//}
 			if (timeToStart > 0) {
 				timeToStart -= (float)delta;
 				//GD.Print($"Time remaining: {Mathf.Max(0, timeToStart)}");
