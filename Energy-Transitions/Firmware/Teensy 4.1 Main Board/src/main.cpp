@@ -95,7 +95,8 @@ CRGB leds6[NUM_LEDS_PER_STRIP];
 CRGB leds7[NUM_LEDS_PER_STRIP];
 
 // Energy switch state
-bool energySwitchLastState = HIGH;
+bool energySwitchStableState = HIGH;      // Debounced stable state
+bool energySwitchLastReading = HIGH;      // Last raw reading
 uint32_t energySwitchLastDebounceTime = 0;
 
 // Results display timer
@@ -137,7 +138,8 @@ void setup() {
   
   //Energy switch 
   pinMode(ENERGY_SWITCH_PIN, INPUT_PULLUP);
-  energySwitchLastState = digitalRead(ENERGY_SWITCH_PIN);
+  energySwitchStableState = digitalRead(ENERGY_SWITCH_PIN);
+  energySwitchLastReading = energySwitchStableState;
   Serial.println("✓ Energy switch initialized on pin 14");
   
   // Initialize WAV Trigger
@@ -164,6 +166,8 @@ void setup() {
   setAllCitiesOff();
   Serial.println("✓ City LEDs initialized on pins 3-9");
   
+
+  delay(1000);
   // Initialize M0 board tracking
   for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
     m0Boards[i].detectState = 0;
@@ -687,22 +691,29 @@ void handleSerialDevTools() {
 }
 
 bool checkEnergySwitchPulled() {
-  bool currentState = digitalRead(ENERGY_SWITCH_PIN);
+  bool currentReading = digitalRead(ENERGY_SWITCH_PIN);
   
-  if (currentState != energySwitchLastState) {
+  // Reset timer when raw reading changes
+  if (currentReading != energySwitchLastReading) {
     energySwitchLastDebounceTime = millis();
   }
   
+  // After debounce period, accept the new stable state
   if ((millis() - energySwitchLastDebounceTime) > ENERGY_SWITCH_DEBOUNCE_MS) {
-    // Switch state has been stable for debounce period
-    if (currentState == LOW && energySwitchLastState == HIGH) {
-      // Switch was pulled (HIGH to LOW transition)
-      energySwitchLastState = currentState;
-      return true;
+    // Check if stable state changed
+    if (currentReading != energySwitchStableState) {
+      bool oldStableState = energySwitchStableState;
+      energySwitchStableState = currentReading;
+      
+      // Detect HIGH to LOW transition (switch pulled)
+      if (oldStableState == HIGH && energySwitchStableState == LOW) {
+        energySwitchLastReading = currentReading;
+        return true;
+      }
     }
   }
   
-  energySwitchLastState = currentState;
+  energySwitchLastReading = currentReading;
   return false;
 }
 
@@ -723,35 +734,80 @@ void printCurrentStateStatus() {
   Serial.print("│  Current State: ");
   Serial.print(getGameStateName(currentGameState));
   for (int i = 0; i < 38 - strlen(getGameStateName(currentGameState)); i++) Serial.print(" ");
+  Serial.println("│");
  
-  // uint8_t registered = 0, correct = 0, incorrect = 0;
-  // for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
-  //   if (m0Boards[i].isRegistered) {
-  //     registered++;
-  //     if (m0Boards[i].isCorrect) correct++;
-  //     else incorrect++;
-  //   }
-  // }
+  uint8_t registered = 0, correct = 0, incorrect = 0, responding = 0;
+  for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
+    if (m0Boards[i].responseReceived) {
+      responding++;
+      if (m0Boards[i].isRegistered) {
+        registered++;
+        if (m0Boards[i].isCorrect) correct++;
+        else incorrect++;
+      }
+    }
+  }
   
-  // Serial.print("│  Registered: ");
-  // Serial.print(registered);
-  // Serial.print("/");
-  // Serial.print(NUM_M0_BOARDS);
-  // Serial.print(" | Correct: ");
-  // Serial.print(correct);
-  // Serial.print(" | Incorrect: ");
-  // Serial.print(incorrect);
-
-  // int padding = 24 - (registered >= 10 ? 2 : 1) - (correct >= 10 ? 2 : 1) - (incorrect >= 10 ? 2 : 1);
-  // for (int i = 0; i < padding; i++) Serial.print(" ");
+  Serial.print("│  M0 Boards: ");
+  Serial.print(responding);
+  Serial.print("/");
+  Serial.print(NUM_M0_BOARDS);
+  Serial.print(" responding");
+  int padding1 = 36 - (responding >= 10 ? 2 : 1) - (NUM_M0_BOARDS >= 10 ? 2 : 1);
+  for (int i = 0; i < padding1; i++) Serial.print(" ");
   // Serial.println("│");
   
-  // Serial.print("│  Energy Switch: ");
-  // Serial.print(digitalRead(ENERGY_SWITCH_PIN) == HIGH ? "READY" : "PULLED");
-  // Serial.print("                              │");
-  // Serial.println();
+  Serial.print("│  Registered: ");
+  Serial.print(registered);
+  Serial.print("/");
+  Serial.print(NUM_M0_BOARDS);
+  Serial.print(" | Correct: ");
+  Serial.print(correct);
+  Serial.print(" | Incorrect: ");
+  Serial.print(incorrect);
+
+  int padding = 24 - (registered >= 10 ? 2 : 1) - (correct >= 10 ? 2 : 1) - (incorrect >= 10 ? 2 : 1);
+  for (int i = 0; i < padding; i++) Serial.print(" ");
+  Serial.println("");
   
-  // Serial.println("└────────────────────────────────────────────────────────┘");
+  Serial.print("│  Energy Switch: ");
+  Serial.print(digitalRead(ENERGY_SWITCH_PIN) == HIGH ? "READY" : "PULLED");
+  Serial.print("                              │");
+  Serial.println();
+  
+  Serial.println("├────────────────────────────────────────────────────────┤");
+  Serial.println("│  Individual M0 Board Status:                          │");
+  
+  for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
+    Serial.print("│  M0#");
+    Serial.print(i + 1);
+    if (i < 9) Serial.print(" ");
+    Serial.print(" [0x");
+    Serial.print(m0Addresses[i], HEX);
+    Serial.print("]: ");
+    
+    if (!m0Boards[i].responseReceived) {
+      Serial.print("NO RESPONSE");
+      for (int j = 0; j < 30; j++) Serial.print(" ");
+    } else if (!m0Boards[i].isRegistered) {
+      Serial.print("Empty (state=");
+      Serial.print(m0Boards[i].detectState);
+      Serial.print(")");
+      int pad = 22 - (m0Boards[i].detectState >= 10 ? 2 : 1);
+      for (int j = 0; j < pad; j++) Serial.print(" ");
+    } else {
+      if (m0Boards[i].isCorrect) {
+        Serial.print("✓ CORRECT");
+        for (int j = 0; j < 32; j++) Serial.print(" ");
+      } else {
+        Serial.print("✗ INCORRECT");
+        for (int j = 0; j < 30; j++) Serial.print(" ");
+      }
+    }
+    Serial.println("│");
+  }
+  
+  Serial.println("└────────────────────────────────────────────────────────┘");
 }
 
 //Update City LEDs
