@@ -1,28 +1,48 @@
 #include <Arduino.h>
-#include <FastLED.h>
+//#include <FastLED.h>
+#include <Adafruit_NeoPixel.h>
 
-// LED Strip Configuration (APA102 / DotStar type)
-#define NUM_LEDS 4
-#define DATA_PIN 11
-#define CLOCK_PIN 13
-CRGB leds[NUM_LEDS];
+const uint8_t dataBuffer = 11;
+uint8_t data[dataBuffer];
+
+#define btn1DataPin 16
+#define btn2DataPin 15
+#define btn3DataPin 14
+#define btn4DataPin 13
+#define btn5DataPin 12
+
+#define NUM_LEDS 44
+
+// CRGB btn1LEDS[NUM_LEDS];
+// CRGB btn2LEDS[NUM_LEDS];
+// CRGB btn3LEDS[NUM_LEDS];
+// CRGB btn4LEDS[NUM_LEDS];
+// CRGB btn5LEDS[NUM_LEDS];
+
+Adafruit_NeoPixel Btn1LEDS(NUM_LEDS, btn1DataPin, NEO_GRBW + NEO_KHZ800);
 
 // Button Configuration
 #define BUTTON1_PIN 2
 #define BUTTON2_PIN 3
 #define BUTTON3_PIN 4
 #define BUTTON4_PIN 5
+#define BUTTON5_PIN 6
+
+uint8_t red = 0;
+uint8_t green = 0;
+uint8_t blue = 0;
 
 // Button state tracking
-bool lastButtonState[4] = {HIGH, HIGH, HIGH, HIGH};
-bool currentButtonState[4] = {HIGH, HIGH, HIGH, HIGH};
-unsigned long lastDebounceTime[4] = {0, 0, 0, 0};
-const unsigned long debounceDelay = 50;
+// bool lastButtonState[4] = {HIGH, HIGH, HIGH, HIGH};
+// bool currentButtonState[4] = {HIGH, HIGH, HIGH, HIGH};
+// unsigned long lastDebounceTime[4] = {0, 0, 0, 0};
+// const unsigned long debounceDelay = 50;
 
 void setup() {
   // Initialize USB Serial for debugging
-  Serial.begin(115200);
+  //Serial.begin(115200);
   delay(1000);
+  pinMode(13, OUTPUT);
   Serial.println("Teensy 4.0 (Child) - Starting up...");
   
   // Initialize Serial1 for communication with Teensy 4.1
@@ -34,80 +54,85 @@ void setup() {
   pinMode(BUTTON2_PIN, INPUT_PULLUP);
   pinMode(BUTTON3_PIN, INPUT_PULLUP);
   pinMode(BUTTON4_PIN, INPUT_PULLUP);
-  Serial.println("Buttons initialized on pins 2, 3, 4, 5");
-  
-  // Initialize LED strip
-  FastLED.addLeds<APA102, DATA_PIN, CLOCK_PIN, BGR>(leds, NUM_LEDS);
-  FastLED.setBrightness(50);
+  pinMode(BUTTON5_PIN, INPUT_PULLUP);
+
+  // // Initialize LED strips
+  //FastLED.addLeds<WS2812, btn1DataPin, GRB>(btn1LEDS, NUM_LEDS).setRgbw(RgbwDefault());
+  // FastLED.addLeds<WS2812, btn2DataPin, GRB>(btn2LEDS, NUM_LEDS).setRgbw(RgbwDefault());
+  // FastLED.addLeds<WS2812, btn3DataPin, GRB>(btn3LEDS, NUM_LEDS).setRgbw(RgbwDefault());
+  // FastLED.addLeds<WS2812, btn4DataPin, GRB>(btn4LEDS, NUM_LEDS).setRgbw(RgbwDefault());
+  // FastLED.addLeds<WS2812, btn5DataPin, GRB>(btn5LEDS, NUM_LEDS).setRgbw(RgbwDefault());
+
+  //prevent the overall powerdraw to 23 Watts
+  //FastLED.setMaxPowerInMilliWatts(23000);
   
   // Turn off all LEDs initially
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = CRGB::Black;
-  }
-  FastLED.show();
-  Serial.println("LED strip initialized on pins 11 (DATA), 13 (CLOCK)");
-  Serial.println("Ready to send button data and receive LED commands");
+  //fill_solid(btn1LEDS, NUM_LEDS, CRGB::Black);
+  // fill_solid(btn2LEDS, NUM_LEDS, CRGB::Black);
+  // fill_solid(btn3LEDS, NUM_LEDS, CRGB::Black);
+  // fill_solid(btn4LEDS, NUM_LEDS, CRGB::Black);
+  // fill_solid(btn5LEDS, NUM_LEDS, CRGB::Black);
+  //FastLED.show();
+
+  Btn1LEDS.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
+  Btn1LEDS.show();            // Turn OFF all pixels ASAP
+  Btn1LEDS.setBrightness(200);
+ 
 }
 
+void rgbValues()
+{
+  //set red values array postions 1 2 3
+  //convert ascii to int
+  uint8_t r1Temp = (data[1] - '0') * 100;
+  uint8_t r2Temp = (data[2] - '0')* 10;
+
+  red = r1Temp + r2Temp + (data[3]- '0');
+
+  Serial.print("R1: ");
+  Serial.println(r1Temp);
+  Serial.print("R2: ");
+  Serial.println(r2Temp); 
+  Serial.print("R3: ");
+  Serial.println(data[3]- '0');
+  Serial.print("Total: ");
+  Serial.println(red);
+}
+
+
 void loop() {
-  // Read button states with debouncing
-  int buttonPins[4] = {BUTTON1_PIN, BUTTON2_PIN, BUTTON3_PIN, BUTTON4_PIN};
+  //read incoming messages from 4.1
+  //format 1255000000
+  if (Serial.available()) 
+  {
+    Serial.readBytesUntil('\n', data,dataBuffer);
+    Serial.println(data[0]);
+    rgbValues();
+  }
+
   
-  for (int i = 0; i < 4; i++) {
-    int reading = digitalRead(buttonPins[i]);
-    
-    if (reading != lastButtonState[i]) {
-      lastDebounceTime[i] = millis();
-    }
-    
-    if ((millis() - lastDebounceTime[i]) > debounceDelay) {
-      if (reading != currentButtonState[i]) {
-        currentButtonState[i] = reading;
-        
-        // Button pressed (LOW because of INPUT_PULLUP)
-        if (currentButtonState[i] == LOW) {
-          // Send button press to Teensy 4.1
-          Serial1.print("BTN:");
-          Serial1.println(i + 1);  // Buttons numbered 1-4
-          
-          Serial.print("Button ");
-          Serial.print(i + 1);
-          Serial.println(" pressed - Sent to 4.1");
-        }
-      }
-    }
-    
-    lastButtonState[i] = reading;
+  switch (data[0])
+  {
+  case 49:
+    // fill_solid(btn1LEDS, NUM_LEDS, CRGB(red,green,blue));
+    Btn1LEDS.fill((red,green,blue),0);
+    Btn1LEDS.show();
+    Serial.println("Color update for button 1");
+    //FastLED.show();
+    break;
+  
+  default:
+    break;
   }
   
-  // Check for LED commands from Teensy 4.1
-  if (Serial1.available()) {
-    String command = Serial1.readStringUntil('\n');
-    command.trim();
-    
-    Serial.print("Received command from 4.1: ");
-    Serial.println(command);
-    
-    // Parse command format: "LED:X" where X is 1-4
-    if (command.startsWith("LED:")) {
-      int ledNum = command.substring(4).toInt();
-      
-      if (ledNum >= 1 && ledNum <= NUM_LEDS) {
-        // Turn off all LEDs
-        for (int i = 0; i < NUM_LEDS; i++) {
-          leds[i] = CRGB::Black;
-        }
-        
-        // Turn on the specified LED
-        leds[ledNum - 1] = CRGB::Green;
-        FastLED.show();
-        
-        Serial.print("LED ");
-        Serial.print(ledNum);
-        Serial.println(" turned ON (Green)");
-      }
-    }
+
+  for(uint8_t i = 0; i<dataBuffer; i++)
+  {
+    data[i] = 0;
   }
+
   
   delay(10);  // Small delay to prevent overwhelming the serial buffer
 }
+
+//1255000000
