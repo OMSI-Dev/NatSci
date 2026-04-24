@@ -4,6 +4,8 @@
 const uint8_t dataBuffer = 12;
 uint8_t data[dataBuffer];
 
+uint32_t PCData =0;
+
 void setup() {
   // Initialize USB Serial for debugging
   Serial.begin(115200);
@@ -43,7 +45,7 @@ void loop() {
   //A1255000000A
   if (Serial.available()) 
   {
-    Serial.readBytesUntil('\n', data,dataBuffer);
+    PCData = Serial.readBytesUntil('\n', data,dataBuffer);
     Serial.println(data[0]);
   }
   delay(100);
@@ -51,6 +53,7 @@ void loop() {
   {
     case 65:
       //send to row 1, button and RGB
+<<<<<<< Updated upstream
       for(uint8_t i=1; i!=dataBuffer-1; i++)
       {
         //Serial.print(i);
@@ -64,6 +67,10 @@ void loop() {
           data[i] = 0;
         }
         //Serial1.print('\n');
+=======
+      Serial1.write(data + 1, PCData - 1);  // send "1255000000"
+      Serial1.write('\n');
+>>>>>>> Stashed changes
       break;
     case 66:
       for(uint8_t i=1; i<=dataBuffer-1; i++)

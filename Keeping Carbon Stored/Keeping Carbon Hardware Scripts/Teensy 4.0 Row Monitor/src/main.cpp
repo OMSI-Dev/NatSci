@@ -33,14 +33,14 @@ uint8_t blue = 0;
 
 void setup() {
   // Initialize USB Serial for debugging
-  Serial.begin(115200);
+  Serial.begin(9600);
   while(!Serial);
   delay(1000);
   //pinMode(13, OUTPUT);
   Serial.println("Teensy 4.0 (Child) - Starting up...");
   
   // Initialize Serial1 for communication with Teensy 4.1
-  Serial1.begin(2400,SERIAL_8E1);
+  Serial1.begin(9600,SERIAL_8E1);
   Serial.println("Serial1 initialized for communication with 4.1");
   
   // // Setup buttons with internal pullup resistors
