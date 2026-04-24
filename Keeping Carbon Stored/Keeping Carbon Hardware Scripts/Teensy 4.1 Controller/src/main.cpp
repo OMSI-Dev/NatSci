@@ -11,13 +11,13 @@ void setup() {
   //Serial.println("Teensy 4.1 (Parent) - Starting up...");
   
   // Initialize Serial1 for communication with Teensy 4.0
-  Serial1.begin(2400,SERIAL_8E1);
-  Serial2.begin(115200);
-  Serial3.begin(115200);
-  Serial4.begin(115200);
-  Serial5.begin(115200);
-  Serial6.begin(115200);
-  Serial7.begin(115200);
+  Serial1.begin(9600,SERIAL_8E1);
+  // Serial2.begin(115200);
+  // Serial3.begin(115200);
+  // Serial4.begin(115200);
+  // Serial5.begin(115200);
+  // Serial6.begin(115200);
+  // Serial7.begin(115200);
 
   //Serial.println("Serial ports initialized:");
   // Serial.println("  Serial1 - Row 1");
@@ -39,12 +39,14 @@ void loop() {
   //C1255000000
   //D1255000000
   //E1255000000
+
+  //A1255000000A
   if (Serial.available()) 
   {
     Serial.readBytesUntil('\n', data,dataBuffer);
     Serial.println(data[0]);
   }
-  
+  delay(100);
   switch (data[0])
   {
     case 65:
@@ -55,8 +57,13 @@ void loop() {
         //Serial.print(":");
         Serial1.print(data[i]);
         //Serial.println(data[i]);
+        Serial1.flush();
       }
-        Serial1.println();
+        for(uint8_t i= 0; i<dataBuffer; i++)
+        {
+          data[i] = 0;
+        }
+        //Serial1.print('\n');
       break;
     case 66:
       for(uint8_t i=1; i<=dataBuffer-1; i++)
@@ -105,5 +112,5 @@ void loop() {
     data[i] = 0;
   }
 
-  delay(10);  // Small delay to prevent overwhelming the serial buffer
+  //delay(10);  // Small delay to prevent overwhelming the serial buffer
 }
