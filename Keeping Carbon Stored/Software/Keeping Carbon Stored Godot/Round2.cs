@@ -120,7 +120,7 @@ public partial class Round2 : Node2D
 
 			// Demo score
 			if(txtTriggered && _r2ScoreText.IsVisible()) {
-				if(GD.RandRange(0, 20) % 4 == 0 && GD.RandRange(0, 200) == 10) {
+				if(GD.RandRange(0, 20) % 4 == 0 && GD.RandRange(0, 100) < 5) {
 				// Only pick from tiles that are still active
 					List<string> activeTiles = new List<string>();
 					for(int i = 0; i < r2Tiles.Count; i++) {
@@ -320,14 +320,14 @@ public partial class Round2 : Node2D
 		txtTriggered = vis;
 		smallTxtTrigger = small;
 		if(txtTriggered && !smallTxtTrigger) {
-			_r2ScoreText.GlobalPosition = new Vector2((txtPos.X / 2) - 240, txtPos.Y / 4);
+			_r2ScoreText.GlobalPosition = new Vector2((txtPos.X / 2) - 245, (txtPos.Y / 4) - 10);
 			_r2ScoreText.Show();
 		} else if(!txtTriggered && !small){
 			_r2ScoreText.Hide();
 		} else if(txtTriggered && small) {
-			_r2SmallScoreText.GlobalPosition = new Vector2(1360, 517);
+			_r2SmallScoreText.GlobalPosition = new Vector2(1040, 340);
 			_r2SmallScoreText.Show();
-			_r2SmallScoreText2.GlobalPosition = new Vector2(1450, 668);
+			_r2SmallScoreText2.GlobalPosition = new Vector2(1085, 440);
 			_r2SmallScoreText2.Show();
 		} else if(!txtTriggered && small) {
 			_r2SmallScoreText.Hide();

@@ -40,7 +40,7 @@ public partial class Idle : Node2D
 		if(!idleVideo.IsPlaying()) {
 			idleVideo.Show();
 			idleVideo.Play();
-			timeToStart = 20.0f;
+			timeToStart = 2.0f;
 		}
 
 		if(!gameStarted) {

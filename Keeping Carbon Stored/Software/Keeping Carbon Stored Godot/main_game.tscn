@@ -2,16 +2,16 @@
 
 [ext_resource type="Script" uid="uid://ci6qdvwtb00m0" path="res://GameController.cs" id="1_2pltu"]
 [ext_resource type="Script" uid="uid://v5m23mhbesex" path="res://Idle.cs" id="2_f52ns"]
-[ext_resource type="VideoStream" uid="uid://xp3ucmr1f3px" path="res://Media/idleScreen.ogv" id="3_mf81u"]
+[ext_resource type="VideoStream" uid="uid://rbkjtwch7n4l" path="res://Media/idleScreen1080.ogv" id="3_aomqu"]
 [ext_resource type="Script" uid="uid://bkg2sm4plkcj8" path="res://Round1.cs" id="4_4srsv"]
-[ext_resource type="VideoStream" uid="uid://q8xlxe436qs3" path="res://Media/round1Intro.ogv" id="5_02kkc"]
+[ext_resource type="VideoStream" uid="uid://bn4ayogsch3u5" path="res://Media/round1Intro1080.ogv" id="5_aomqu"]
 [ext_resource type="Script" uid="uid://bi2ecw060sefu" path="res://Round2.cs" id="5_mf81u"]
 [ext_resource type="Script" uid="uid://bnwtodx8qn7i6" path="res://Results.cs" id="6_02kkc"]
-[ext_resource type="VideoStream" uid="uid://bgfpjrngd4h3o" path="res://Media/r1Gameplay.ogv" id="6_aomqu"]
+[ext_resource type="VideoStream" uid="uid://bpgmmolmephjo" path="res://Media/r1Gameplay1080.ogv" id="6_aomqu"]
 [ext_resource type="FontFile" uid="uid://dll7pxvfgyh6o" path="res://Media/Museo_Slab_700.otf" id="7_aomqu"]
-[ext_resource type="VideoStream" uid="uid://d23ps83dqbg8" path="res://Media/round2Intro.ogv" id="8_krmtw"]
-[ext_resource type="VideoStream" uid="uid://b2wqipxgjv6b6" path="res://Media/r2Gameplay.ogv" id="9_jgkyn"]
-[ext_resource type="VideoStream" uid="uid://bib00vpnnojar" path="res://Media/results.ogv" id="11_02kkc"]
+[ext_resource type="VideoStream" uid="uid://d2yb3sjngnleo" path="res://Media/round2Intro1080.ogv" id="9_krmtw"]
+[ext_resource type="VideoStream" uid="uid://msk71lavvr8d" path="res://Media/r2Gameplay1080.ogv" id="10_jgkyn"]
+[ext_resource type="VideoStream" uid="uid://orrebqemdclx" path="res://Media/results1080.ogv" id="12_aomqu"]
 
 [node name="GameController" type="Node2D" unique_id=2047308611]
 script = ExtResource("1_2pltu")
@@ -22,13 +22,13 @@ script = ExtResource("2_f52ns")
 [node name="IdleVideoPlayer" type="VideoStreamPlayer" parent="Idle" unique_id=1828615339]
 offset_right = 2460.0
 offset_bottom = 1580.0
-stream = ExtResource("3_mf81u")
+stream = ExtResource("3_aomqu")
 loop = true
 buffering_msec = 10
 
 [node name="Round1" type="Node2D" parent="." unique_id=1924916056]
 script = ExtResource("4_4srsv")
-introVideo = ExtResource("5_02kkc")
+introVideo = ExtResource("5_aomqu")
 gameplayVideo = ExtResource("6_aomqu")
 
 [node name="RoundOneVideoPlayer" type="VideoStreamPlayer" parent="Round1" unique_id=952196999]
@@ -45,7 +45,7 @@ offset_right = 1490.0
 offset_bottom = 771.0
 theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
 theme_override_fonts/normal_font = ExtResource("7_aomqu")
-theme_override_font_sizes/normal_font_size = 200
+theme_override_font_sizes/normal_font_size = 120
 text = "0"
 shortcut_keys_enabled = false
 horizontal_alignment = 1
@@ -58,7 +58,7 @@ offset_right = 1122.0
 offset_bottom = 597.0
 theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
 theme_override_fonts/normal_font = ExtResource("7_aomqu")
-theme_override_font_sizes/normal_font_size = 72
+theme_override_font_sizes/normal_font_size = 54
 text = "0"
 shortcut_keys_enabled = false
 horizontal_alignment = 1
@@ -71,7 +71,7 @@ offset_right = 1122.0
 offset_bottom = 597.0
 theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
 theme_override_fonts/normal_font = ExtResource("7_aomqu")
-theme_override_font_sizes/normal_font_size = 72
+theme_override_font_sizes/normal_font_size = 54
 text = "0"
 shortcut_keys_enabled = false
 horizontal_alignment = 1
@@ -79,8 +79,8 @@ vertical_alignment = 1
 
 [node name="Round2" type="Node2D" parent="." unique_id=808558755]
 script = ExtResource("5_mf81u")
-introVideo = ExtResource("8_krmtw")
-gameplayVideo = ExtResource("9_jgkyn")
+introVideo = ExtResource("9_krmtw")
+gameplayVideo = ExtResource("10_jgkyn")
 
 [node name="RoundTwoVideoPlayer" type="VideoStreamPlayer" parent="Round2" unique_id=795930470]
 offset_right = 1920.0
@@ -96,7 +96,7 @@ offset_right = 1490.0
 offset_bottom = 771.0
 theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
 theme_override_fonts/normal_font = ExtResource("7_aomqu")
-theme_override_font_sizes/normal_font_size = 200
+theme_override_font_sizes/normal_font_size = 120
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -108,7 +108,7 @@ offset_right = 1122.0
 offset_bottom = 597.0
 theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
 theme_override_fonts/normal_font = ExtResource("7_aomqu")
-theme_override_font_sizes/normal_font_size = 72
+theme_override_font_sizes/normal_font_size = 54
 text = "0"
 shortcut_keys_enabled = false
 horizontal_alignment = 1
@@ -121,7 +121,7 @@ offset_right = 1122.0
 offset_bottom = 597.0
 theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
 theme_override_fonts/normal_font = ExtResource("7_aomqu")
-theme_override_font_sizes/normal_font_size = 72
+theme_override_font_sizes/normal_font_size = 54
 text = "0"
 shortcut_keys_enabled = false
 horizontal_alignment = 1
@@ -133,7 +133,7 @@ script = ExtResource("6_02kkc")
 [node name="ResultsVideoPlayer" type="VideoStreamPlayer" parent="Results" unique_id=277264892]
 offset_right = 2460.0
 offset_bottom = 1580.0
-stream = ExtResource("11_02kkc")
+stream = ExtResource("12_aomqu")
 buffering_msec = 100
 
 [node name="CanvasLayer" type="CanvasLayer" parent="Results" unique_id=1563464306]
@@ -145,7 +145,7 @@ offset_right = 1490.0
 offset_bottom = 771.0
 theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
 theme_override_fonts/normal_font = ExtResource("7_aomqu")
-theme_override_font_sizes/normal_font_size = 200
+theme_override_font_sizes/normal_font_size = 120
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1

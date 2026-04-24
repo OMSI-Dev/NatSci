@@ -93,7 +93,8 @@ public partial class Results : Node2D
 	private void ShowScoreText(bool vis) {
 		txtTriggered = vis;
 		if(txtTriggered) {
-			finalScoreText.GlobalPosition = new Vector2((txtPos.X / 2) - 240, txtPos.Y / 4);
+			//finalScoreText.GlobalPosition = new Vector2((txtPos.X / 2) - 240, txtPos.Y / 4);
+			finalScoreText.GlobalPosition = new Vector2(700, 270);
 			finalScoreText.Show();
 		} else {
 			finalScoreText.Hide();
