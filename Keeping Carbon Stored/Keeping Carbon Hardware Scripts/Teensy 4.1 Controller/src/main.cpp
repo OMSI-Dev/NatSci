@@ -4,6 +4,8 @@
 const uint8_t dataBuffer = 12;
 uint8_t data[dataBuffer];
 
+uint32_t PCData =0;
+
 void setup() {
   // Initialize USB Serial for debugging
   Serial.begin(115200);
@@ -11,13 +13,13 @@ void setup() {
   //Serial.println("Teensy 4.1 (Parent) - Starting up...");
   
   // Initialize Serial1 for communication with Teensy 4.0
-  Serial1.begin(115200);
-  Serial2.begin(115200);
-  Serial3.begin(115200);
-  Serial4.begin(115200);
-  Serial5.begin(115200);
-  Serial6.begin(115200);
-  Serial7.begin(115200);
+  Serial1.begin(9600,SERIAL_8E1);
+  Serial2.begin(9600,SERIAL_8E1);
+  Serial3.begin(9600,SERIAL_8E1);
+  Serial4.begin(9600,SERIAL_8E1);
+  Serial5.begin(9600,SERIAL_8E1);
+  Serial6.begin(9600,SERIAL_8E1);
+  Serial7.begin(9600,SERIAL_8E1);
 
   //Serial.println("Serial ports initialized:");
   // Serial.println("  Serial1 - Row 1");
@@ -33,55 +35,60 @@ void setup() {
 void loop() {
   //read incoming messages from PC
   //format A1255000000
+  //A2000000000
+  //A2000255000
+  //A2000000255
+  //B2000000255
+  //D1255000000
+  //E1255000000
+//E5255000000
+  //A1255000000A
   if (Serial.available()) 
   {
-    Serial.readBytesUntil('\n', data,dataBuffer);
+    PCData = Serial.readBytesUntil('\n', data,dataBuffer);
   }
+
   
+
+  delay(100);
   switch (data[0])
   {
     case 65:
       //send to row 1, button and RGB
-      for(uint8_t i=1; i<dataBuffer-1; i++)
-      {
-        Serial1.print(data[i]);
-      }
+      Serial1.write(data + 1, PCData - 1);  // send "1255000000"
+      Serial1.write('\n');
+
       break;
     case 66:
-      for(uint8_t i=1; i<dataBuffer-1; i++)
-      {
-        Serial2.print(data[i]);
-      }
+      //send to row 1, button and RGB
+      Serial2.write(data + 1, PCData - 1);  // send "1255000000"
+      Serial2.write('\n');
+
       break;
     case 67:
-      for(uint8_t i=1; i<dataBuffer-1; i++)
-      {
-        Serial3.print(data[i]);
-      }
+      //send to row 1, button and RGB
+      Serial3.write(data + 1, PCData - 1);  // send "1255000000"
+      Serial3.write('\n');
       break;
     case 68:
-      for(uint8_t i=1; i<dataBuffer-1; i++)
-      {
-        Serial4.print(data[i]);
-      }
+      //send to row 1, button and RGB
+      Serial4.write(data + 1, PCData - 1);  // send "1255000000"
+      Serial4.write('\n');
       break;
     case 69:
-      for(uint8_t i=1; i<dataBuffer-1; i++)
-      {
-        Serial5.print(data[i]);
-      }
+      //send to row 1, button and RGB
+      Serial5.write(data + 1, PCData - 1);  // send "1255000000"
+      Serial5.write('\n');
       break;
     case 70:
-      for(uint8_t i=1; i<dataBuffer-1; i++)
-      {
-        Serial6.print(data[i]);
-      }
+      //send to row 1, button and RGB
+      Serial6.write(data + 1, PCData - 1);  // send "1255000000"
+      Serial6.write('\n');
       break;
     case 71:
-            for(uint8_t i=1; i<dataBuffer-1; i++)
-      {
-        Serial7.print(data[i]);
-      }
+      //send to row 1, button and RGB
+      Serial7.write(data + 1, PCData - 1);  // send "1255000000"
+      Serial7.write('\n');
       break;
   default:
     break;
@@ -93,5 +100,5 @@ void loop() {
     data[i] = 0;
   }
 
-  delay(10);  // Small delay to prevent overwhelming the serial buffer
+  //delay(10);  // Small delay to prevent overwhelming the serial buffer
 }

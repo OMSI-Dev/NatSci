@@ -13,13 +13,15 @@ uint8_t data[dataBuffer];
 
 #define NUM_LEDS 44
 
-// CRGB btn1LEDS[NUM_LEDS];
-// CRGB btn2LEDS[NUM_LEDS];
-// CRGB btn3LEDS[NUM_LEDS];
-// CRGB btn4LEDS[NUM_LEDS];
-// CRGB btn5LEDS[NUM_LEDS];
-
 Adafruit_NeoPixel Btn1LEDS(NUM_LEDS, btn1DataPin, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel Btn2LEDS(NUM_LEDS, btn2DataPin, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel Btn3LEDS(NUM_LEDS, btn3DataPin, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel Btn4LEDS(NUM_LEDS, btn4DataPin, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel Btn5LEDS(NUM_LEDS, btn5DataPin, NEO_GRBW + NEO_KHZ800);
+
+uint8_t red = 0;
+uint8_t green = 0;
+uint8_t blue = 0;
 
 // Button Configuration
 #define BUTTON1_PIN 2
@@ -28,111 +30,171 @@ Adafruit_NeoPixel Btn1LEDS(NUM_LEDS, btn1DataPin, NEO_GRBW + NEO_KHZ800);
 #define BUTTON4_PIN 5
 #define BUTTON5_PIN 6
 
-uint8_t red = 0;
-uint8_t green = 0;
-uint8_t blue = 0;
-
-// Button state tracking
-// bool lastButtonState[4] = {HIGH, HIGH, HIGH, HIGH};
-// bool currentButtonState[4] = {HIGH, HIGH, HIGH, HIGH};
-// unsigned long lastDebounceTime[4] = {0, 0, 0, 0};
-// const unsigned long debounceDelay = 50;
 
 void setup() {
   // Initialize USB Serial for debugging
-  //Serial.begin(115200);
+  Serial.begin(9600);
+  while(!Serial);
   delay(1000);
-  pinMode(13, OUTPUT);
+  //pinMode(13, OUTPUT);
   Serial.println("Teensy 4.0 (Child) - Starting up...");
   
   // Initialize Serial1 for communication with Teensy 4.1
-  Serial1.begin(115200);
+  Serial1.begin(9600,SERIAL_8E1);
   Serial.println("Serial1 initialized for communication with 4.1");
   
-  // Setup buttons with internal pullup resistors
+  // // Setup buttons with internal pullup resistors
   pinMode(BUTTON1_PIN, INPUT_PULLUP);
   pinMode(BUTTON2_PIN, INPUT_PULLUP);
   pinMode(BUTTON3_PIN, INPUT_PULLUP);
   pinMode(BUTTON4_PIN, INPUT_PULLUP);
   pinMode(BUTTON5_PIN, INPUT_PULLUP);
 
-  // // Initialize LED strips
-  //FastLED.addLeds<WS2812, btn1DataPin, GRB>(btn1LEDS, NUM_LEDS).setRgbw(RgbwDefault());
-  // FastLED.addLeds<WS2812, btn2DataPin, GRB>(btn2LEDS, NUM_LEDS).setRgbw(RgbwDefault());
-  // FastLED.addLeds<WS2812, btn3DataPin, GRB>(btn3LEDS, NUM_LEDS).setRgbw(RgbwDefault());
-  // FastLED.addLeds<WS2812, btn4DataPin, GRB>(btn4LEDS, NUM_LEDS).setRgbw(RgbwDefault());
-  // FastLED.addLeds<WS2812, btn5DataPin, GRB>(btn5LEDS, NUM_LEDS).setRgbw(RgbwDefault());
+  Btn1LEDS.begin();
+  Btn2LEDS.begin(); 
+  Btn3LEDS.begin(); 
+  Btn4LEDS.begin(); 
+  Btn5LEDS.begin(); 
 
-  //prevent the overall powerdraw to 23 Watts
-  //FastLED.setMaxPowerInMilliWatts(23000);
-  
-  // Turn off all LEDs initially
-  //fill_solid(btn1LEDS, NUM_LEDS, CRGB::Black);
-  // fill_solid(btn2LEDS, NUM_LEDS, CRGB::Black);
-  // fill_solid(btn3LEDS, NUM_LEDS, CRGB::Black);
-  // fill_solid(btn4LEDS, NUM_LEDS, CRGB::Black);
-  // fill_solid(btn5LEDS, NUM_LEDS, CRGB::Black);
-  //FastLED.show();
+  Btn1LEDS.show(); 
+  Btn2LEDS.show(); 
+  Btn3LEDS.show(); 
+  Btn4LEDS.show(); 
+  Btn5LEDS.show();  
 
-  Btn1LEDS.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
-  Btn1LEDS.show();            // Turn OFF all pixels ASAP
   Btn1LEDS.setBrightness(200);
+  Btn2LEDS.setBrightness(200);
+  Btn3LEDS.setBrightness(200);
+  Btn4LEDS.setBrightness(200);
+  Btn5LEDS.setBrightness(200);
+
+
  
 }
 
 void rgbValues()
 {
-  //set red values array postions 1 2 3
-  //convert ascii to int
-  uint8_t r1Temp = (data[1] - '0') * 100;
-  uint8_t r2Temp = (data[2] - '0')* 10;
+  ///convert to packed RGB packet
+  uint32_t r1Temp = (data[1] - '0') * 100;
+  uint32_t r2Temp = (data[2] - '0') *  10;
+  uint32_t  r3Temp = (data[3] - '0');
+  
+  uint32_t g1Temp = (data[4] - '0') * 100;
+  uint32_t g2Temp = (data[5] - '0') *  10;
+  uint32_t g3Temp = (data[6] - '0' );
 
-  red = r1Temp + r2Temp + (data[3]- '0');
+  uint32_t b1Temp = (data[7] - '0') * 100;
+  uint32_t b2Temp = (data[8] - '0') * 10;
+  uint32_t b3Temp = (data[9] - '0');
+ 
+  red = (r1Temp + r2Temp + r3Temp);
+  green = (g1Temp + g2Temp + g3Temp);
+  blue = (b1Temp + b2Temp + b3Temp);
 
-  Serial.print("R1: ");
-  Serial.println(r1Temp);
-  Serial.print("R2: ");
-  Serial.println(r2Temp); 
-  Serial.print("R3: ");
-  Serial.println(data[3]- '0');
-  Serial.print("Total: ");
-  Serial.println(red);
 }
 
+void clearRGB()
+{
+  red = 0;
+  green = 0;
+  blue = 0;
+}
 
 void loop() {
   //read incoming messages from 4.1
   //format 1255000000
-  if (Serial.available()) 
+  
+  if (Serial1.available()) 
   {
-    Serial.readBytesUntil('\n', data,dataBuffer);
+    Serial1.readBytesUntil('\n', data,dataBuffer);
+    Serial.print("Button: ");
     Serial.println(data[0]);
-    rgbValues();
+    
+    for(uint8_t i =0; i<dataBuffer; i++)
+    {
+      Serial.print(i);
+      Serial.print(":");
+      Serial.println(data[i]);
+    }
+    Serial.println();
+   // Serial1.clear();
   }
 
-  
+  /*
   switch (data[0])
   {
+
   case 49:
     // fill_solid(btn1LEDS, NUM_LEDS, CRGB(red,green,blue));
-    Btn1LEDS.fill((red,green,blue),0);
+    rgbValues();
+    //Btn1LEDS.fill(255000000);
+    Btn1LEDS.fill(Btn1LEDS.Color(red, green, blue, 0));
     Btn1LEDS.show();
     Serial.println("Color update for button 1");
+    clearRGB();
+    //FastLED.show();
+
+    break;
+
+  case 50:
+    rgbValues();
+    Btn2LEDS.fill(Btn2LEDS.Color(red, green, blue, 0));
+    Btn2LEDS.show();
+    Serial.println("Color update for button 2");
+     clearRGB();
     //FastLED.show();
     break;
-  
+
+  case 51:
+    // fill_solid(btn1LEDS, NUM_LEDS, CRGB(red,green,blue));
+    rgbValues();
+    //Btn1LEDS.fill(255000000);
+    Btn3LEDS.fill(Btn3LEDS.Color(red, green, blue, 0));
+    Btn3LEDS.show();
+    Serial.println("Color update for button 3");
+     clearRGB();
+    //FastLED.show();
+    break;
+
+  case 52:
+    rgbValues();
+    Btn4LEDS.fill(Btn4LEDS.Color(red, green, blue, 0));
+    Btn4LEDS.show();
+    Serial.println("Color update for button 4");
+     clearRGB();
+    //FastLED.show();
+    break;
+
+  case 53:
+    rgbValues();
+    Btn5LEDS.fill(Btn5LEDS.Color(red, green, blue, 0));
+    Btn5LEDS.show();
+    Serial.println("Color update for button 5");
+     clearRGB();
+    //FastLED.show();
+    break;
+
   default:
     break;
   }
   
-
   for(uint8_t i = 0; i<dataBuffer; i++)
   {
-    data[i] = 0;
+  data[i] = 0;
   }
-
   
-  delay(10);  // Small delay to prevent overwhelming the serial buffer
+  delay(100);  // Small delay to prevent overwhelming the serial buffer
+  */
 }
 
 //1255000000
+//1000255000
+//1000000255
+
+//2255000000
+
+//3255000000
+
+//4255000000
+
+//5255000000
