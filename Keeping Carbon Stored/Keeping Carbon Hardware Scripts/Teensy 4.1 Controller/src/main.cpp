@@ -53,24 +53,8 @@ void loop() {
   {
     case 65:
       //send to row 1, button and RGB
-<<<<<<< Updated upstream
-      for(uint8_t i=1; i!=dataBuffer-1; i++)
-      {
-        //Serial.print(i);
-        //Serial.print(":");
-        Serial1.print(data[i]);
-        //Serial.println(data[i]);
-        Serial1.flush();
-      }
-        for(uint8_t i= 0; i<dataBuffer; i++)
-        {
-          data[i] = 0;
-        }
-        //Serial1.print('\n');
-=======
       Serial1.write(data + 1, PCData - 1);  // send "1255000000"
       Serial1.write('\n');
->>>>>>> Stashed changes
       break;
     case 66:
       for(uint8_t i=1; i<=dataBuffer-1; i++)
