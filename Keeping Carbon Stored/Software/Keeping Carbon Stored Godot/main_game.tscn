@@ -20,8 +20,8 @@ script = ExtResource("1_2pltu")
 script = ExtResource("2_f52ns")
 
 [node name="IdleVideoPlayer" type="VideoStreamPlayer" parent="Idle" unique_id=1828615339]
-offset_right = 40.0
-offset_bottom = 40.0
+offset_right = 2460.0
+offset_bottom = 1580.0
 stream = ExtResource("3_mf81u")
 loop = true
 buffering_msec = 10
@@ -32,8 +32,8 @@ introVideo = ExtResource("5_02kkc")
 gameplayVideo = ExtResource("6_aomqu")
 
 [node name="RoundOneVideoPlayer" type="VideoStreamPlayer" parent="Round1" unique_id=952196999]
-offset_right = 40.0
-offset_bottom = 40.0
+offset_right = 1920.0
+offset_bottom = 1080.0
 buffering_msec = 100
 
 [node name="CanvasLayer" type="CanvasLayer" parent="Round1" unique_id=1213338764]
@@ -83,8 +83,8 @@ introVideo = ExtResource("8_krmtw")
 gameplayVideo = ExtResource("9_jgkyn")
 
 [node name="RoundTwoVideoPlayer" type="VideoStreamPlayer" parent="Round2" unique_id=795930470]
-offset_right = 40.0
-offset_bottom = 40.0
+offset_right = 1920.0
+offset_bottom = 1080.0
 buffering_msec = 100
 
 [node name="CanvasLayer" type="CanvasLayer" parent="Round2" unique_id=1125704180]
@@ -131,8 +131,8 @@ vertical_alignment = 1
 script = ExtResource("6_02kkc")
 
 [node name="ResultsVideoPlayer" type="VideoStreamPlayer" parent="Results" unique_id=277264892]
-offset_right = 40.0
-offset_bottom = 40.0
+offset_right = 2460.0
+offset_bottom = 1580.0
 stream = ExtResource("11_02kkc")
 buffering_msec = 100
 
@@ -149,8 +149,3 @@ theme_override_font_sizes/normal_font_size = 200
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
-
-[node name="Round1SmallScore" type="RichTextLabel" parent="." unique_id=699261191]
-offset_left = 96.0
-offset_right = 97.0
-offset_bottom = 92.0

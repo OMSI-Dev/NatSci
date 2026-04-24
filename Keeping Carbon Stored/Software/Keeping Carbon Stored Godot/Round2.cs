@@ -186,7 +186,7 @@ public partial class Round2 : Node2D
 		int i = 0;
 		GD.Print("Sending serial com to turn round two tiles on:");
 		foreach(var tile in r2Tiles) {
-			toSend = tile + "255000000";
+			toSend = tile + "000255000";
 			if(serialCom == null) {
 				GD.Print("Serial communication not connected in Round Two's startRound2Tiles function.");
 			}
