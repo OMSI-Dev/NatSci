@@ -1,6 +1,6 @@
 #include <Arduino.h>
+#include <serial_Handler.h>
 
-//A1255000000
 const uint8_t dataBuffer = 12;
 uint8_t data[dataBuffer];
 
@@ -13,7 +13,7 @@ void setup() {
   //Serial.println("Teensy 4.1 (Parent) - Starting up...");
   
   // Initialize Serial1 for communication with Teensy 4.0
-  Serial1.begin(9600,SERIAL_8E1);
+  setSerial1();
   Serial2.begin(9600,SERIAL_8E1);
   Serial3.begin(9600,SERIAL_8E1);
   Serial4.begin(9600,SERIAL_8E1);
@@ -48,16 +48,15 @@ void loop() {
     PCData = Serial.readBytesUntil('\n', data,dataBuffer);
   }
 
-  
-
-  delay(100);
   switch (data[0])
   {
     case 65:
       //send to row 1, button and RGB
       Serial1.write(data + 1, PCData - 1);  // send "1255000000"
       Serial1.write('\n');
-
+      #ifdef debug
+      Serial.println("Sending to row 1");
+      #endif
       break;
     case 66:
       //send to row 1, button and RGB
