@@ -45,7 +45,7 @@
 #define ENERGY_SWITCH_PIN 14
 
 // ── City LED definitions ───────────────────────────────────────────────────────
-#define NUM_LEDS_PER_STRIP 5
+#define NUM_LEDS_PER_STRIP 35
 #define NUM_CITIES 7
 #define LED_BRIGHTNESS 128
 #define LED_TYPE WS2812B
