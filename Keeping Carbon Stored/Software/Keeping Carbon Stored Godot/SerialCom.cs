@@ -114,7 +114,7 @@ public partial class SerialCom : Node2D
 	}
 
 	public string[] getSplit() {
-		if(dataSplit != null) {
+		if(dataSplit != null && dataSplit.Length > 0) {
 			return dataSplit;
 		}
 		return null;
