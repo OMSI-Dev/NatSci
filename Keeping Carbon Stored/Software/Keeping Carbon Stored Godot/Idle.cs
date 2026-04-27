@@ -10,7 +10,7 @@ using System;
 
 public partial class Idle : Node2D
 {
-	public SerialCom serCom;
+	SerialCom serialCom;
 
 	private bool gameStarted  = false;
 	private bool idleSent	  = false;
@@ -22,7 +22,7 @@ public partial class Idle : Node2D
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-		serCom = GetNode<SerialCom>("/root/SerialCom");
+		serialCom = GetNode<SerialCom>("/root/SerialCom");
 
 		idleVideo = GetNode<VideoStreamPlayer>("IdleVideoPlayer");
 		idleVideo.Hide();
@@ -46,13 +46,13 @@ public partial class Idle : Node2D
 
 		if(!gameStarted) {
 			if(!idleSent) {
-				serCom.sendData("I");
+				serialCom.sendData("I");
 				idleSent = true;
 			}
-			string[] newData = serCom.getSplit();
-			GD.Print("New data recieved: " + newData);
+			string[] newData = serialCom.getSplit();
 			if(newData != null) {
 				if(newData[0] != "0") {
+					GD.Print("New data recieved: " + newData);
 					GD.Print("Recieved Serial data while in Idle script. startGame is true.");
 					gameStarted = true;
 					idleVideo.Stop();
