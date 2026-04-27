@@ -9,28 +9,16 @@ uint32_t PCData =0;
 void setup() {
   // Initialize USB Serial for debugging
   Serial.begin(115200);
-  while(!Serial);
   delay(1000);
   //Serial.println("Teensy 4.1 (Parent) - Starting up...");
-  pinMode(2,INPUT);
   // Initialize Serial1 for communication with Teensy 4.0
   setSerial1();
-  Serial2.begin(9600,SERIAL_8E1);
-  Serial3.begin(9600,SERIAL_8E1);
-  Serial4.begin(9600,SERIAL_8E1);
-  Serial5.begin(9600,SERIAL_8E1);
-  Serial6.begin(9600,SERIAL_8E1);
-  Serial7.begin(9600,SERIAL_8E1);
-
-  //Serial.println("Serial ports initialized:");
-  // Serial.println("  Serial1 - Row 1");
-  // Serial.println("  Serial2 - Row 2");
-  // Serial.println("  Serial3 - Row 3");
-  // Serial.println("  Serial4 - Row 4");
-  // Serial.println("  Serial5 - Row 5");
-  // Serial.println("  Serial6 - Row 6");
-  // Serial.println("  Serial7 - Row 7");
-  //Serial.println("Ready to receive button data and send LED commands");
+  setSerial2();
+  setSerial3();
+  setSerial4();
+  setSerial5();
+  setSerial6();
+  setSerial7();
 }
 
 void loop() {
@@ -42,9 +30,15 @@ void loop() {
   //B2000000255
   //D1255000000
   //E1255000000
-//E5255000000
+  //E5255000000
   //A1255000000A
   readSerial1();
+  readSerial2();
+  readSerial3();
+  readSerial4();
+  readSerial5();
+  readSerial6();
+  readSerial7();
 
   if (Serial.available()) 
   {
@@ -96,12 +90,10 @@ void loop() {
   default:
     break;
   }
-
+  
   //clear array for next incoming
-  for(uint8_t i= 0; i<dataBuffer; i++)
-  {
-    data[i] = 0;
-  }
-
-  //delay(10);  // Small delay to prevent overwhelming the serial buffer
+  // for(uint8_t i= 0; i<dataBuffer; i++)
+  // {
+  //   data[i] = 0;
+  // }
 }
