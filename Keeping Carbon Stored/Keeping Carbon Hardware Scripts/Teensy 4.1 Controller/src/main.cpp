@@ -9,9 +9,10 @@ uint32_t PCData =0;
 void setup() {
   // Initialize USB Serial for debugging
   Serial.begin(115200);
+  while(!Serial);
   delay(1000);
   //Serial.println("Teensy 4.1 (Parent) - Starting up...");
-  
+  pinMode(2,INPUT);
   // Initialize Serial1 for communication with Teensy 4.0
   setSerial1();
   Serial2.begin(9600,SERIAL_8E1);
@@ -43,6 +44,8 @@ void loop() {
   //E1255000000
 //E5255000000
   //A1255000000A
+  readSerial1();
+
   if (Serial.available()) 
   {
     PCData = Serial.readBytesUntil('\n', data,dataBuffer);
@@ -54,6 +57,7 @@ void loop() {
       //send to row 1, button and RGB
       Serial1.write(data + 1, PCData - 1);  // send "1255000000"
       Serial1.write('\n');
+      Serial1.flush();
       #ifdef debug
       Serial.println("Sending to row 1");
       #endif

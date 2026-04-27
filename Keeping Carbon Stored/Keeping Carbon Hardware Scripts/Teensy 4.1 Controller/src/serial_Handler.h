@@ -6,8 +6,8 @@ uint8_t data1[buttonDataBuffer];
 void setSerial1()
 {
     Serial1.begin(115200,SERIAL_8E1);
-    Serial1.attachRts(6);
-    Serial1.attachCts(2);
+    // Serial1.attachRts(6);
+    // Serial1.attachCts(2);
     #ifdef debug
     Serial.println("Serial 1 has started.");
     #endif
@@ -15,24 +15,24 @@ void setSerial1()
 
 void readSerial1()
 {
+
     if (Serial1.available()) 
   {
     //clear data
-    for(uint8_t i = 0; i<buttonDataBuffer; i++)
-    {
-    data1[i] = 0;
-    }
+    // for(uint8_t i = 0; i<buttonDataBuffer; i++)
+    // {
+    // data1[i] = 0;
+    // }
 
     //load buffer
     Serial1.readBytesUntil('\n', data1,buttonDataBuffer);
-    Serial.print("Button: ");
+
+
+    #ifdef debug
+    Serial.print("Received button pressed: ");
     Serial.println(data1[0]);
+    #endif
+    Serial.print("A");
+    Serial.println(data1[0]);}
     
-    for(uint8_t i =0; i<buttonDataBuffer; i++)
-    {
-      Serial.print(i);
-      Serial.print(":");
-      Serial.println(data1[i]);
-    }
-  }
 }
