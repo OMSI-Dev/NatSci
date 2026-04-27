@@ -58,9 +58,9 @@ public partial class Round1 : Node2D
 		//var auto = GetNodeOrNull<Node>("/root/SerialCom");
 		//GD.Print(auto == null ? "Autoload NOT found" : "Autoload FOUND");
 
-		_r1VideoPlayer = GetNode<VideoStreamPlayer>("RoundOneVideoPlayer");
-		_r1ScoreText = GetNode<RichTextLabel>("CanvasLayer/RoundOneScore");
-		_r1SmallScoreText = GetNode<RichTextLabel>("CanvasLayer/RoundOneSmallScore");
+		_r1VideoPlayer     = GetNode<VideoStreamPlayer>("RoundOneVideoPlayer");
+		_r1ScoreText       = GetNode<RichTextLabel>("CanvasLayer/RoundOneScore");
+		_r1SmallScoreText  = GetNode<RichTextLabel>("CanvasLayer/RoundOneSmallScore");
 		_r1SmallScoreText2 = GetNode<RichTextLabel>("CanvasLayer/RoundOneSmallScore2");
 
 		_r1ScoreText.Hide();
@@ -118,7 +118,30 @@ public partial class Round1 : Node2D
 				ShowScoreText(true, false);
 			}
 
-			// Demo score
+			// Real gameplay
+			if(txtTriggered && _r1ScoreText.IsVisible()) {
+				string[] newData = serCom.getSplit();
+				GD.Print("New data recieved in Round One: " + newData);
+				if(newData != null) {
+					if(newData[0] != "0") {
+						string selected = new string(new char[] {newData[0], newData[1]});
+						GD.Print(selected + " tile pressed while playing Round One.");
+						int indx = getTileIndex(selected);
+						if(!r1States[index]) {
+							GD.Print(tile + " already off.");
+						} else {
+							bool done = allTilesOff(selected);
+							score++;
+							if(done) {
+								GD.Print("All tiles have been pressed in Round One. Turning them on again...");
+								startRound1Tiles();
+							}
+						}
+					}
+				}
+			}
+
+			/*// Demo score
 			if(txtTriggered && _r1ScoreText.IsVisible()) {
 				if(GD.RandRange(0, 20) % 4 == 0 && GD.RandRange(0, 100) < 5) {
 				// Only pick from tiles that are still active
@@ -139,7 +162,7 @@ public partial class Round1 : Node2D
 						}
 					}
 				}
-			}
+			} */
 			_r1ScoreText.Text       = score.ToString();
 			_r1SmallScoreText.Text  = score.ToString();
 			_r1SmallScoreText2.Text = score.ToString();
@@ -231,11 +254,20 @@ public partial class Round1 : Node2D
 	}
 
 	// ------------------------------------------------------------
+	//  ********************* GET TILE INDEX *********************
+	// ------------------------------------------------------------
+	private int getTileIndex(string tile) {
+		int index = r1Tiles.IndexOf(tile);
+		GD.Print(tile + " index: " + index);
+
+		return index;
+	}
+
+	// ------------------------------------------------------------
 	//  ********************* TURN TILES OFF *********************
 	// ------------------------------------------------------------
 	private bool allTilesOff(string tile) {
-		int index = r1Tiles.IndexOf(tile);
-		GD.Print(tile + " index: " + index);
+		int index = getTileIndex(tile);
 
 		if(!r1States[index]) {
 			GD.Print(tile + " already off.");

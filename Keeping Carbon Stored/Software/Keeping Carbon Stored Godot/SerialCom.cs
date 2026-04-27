@@ -49,7 +49,7 @@ public partial class SerialCom : Node2D
 		// Set port properties.
 		serialPort      = new SerialPort {
 			PortName    = portName,
-			BaudRate    = 9600,
+			BaudRate    = 115200,
 			ReadTimeout = 5,
 			DiscardNull = true
 		};

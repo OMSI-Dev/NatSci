@@ -122,16 +122,20 @@ public partial class Results : Node2D
 	private void resultsAnimation() {
 		for(int i = 0; i < 3; i++) {
 			foreach(var tile in r1Tiles) {
-				serialCom.sendData(tile + "000255000");
+				serialCom.sendData(tile + "255000000");
+				delay(200);
 			}
 			foreach(var tile in r2Tiles) {
 				serialCom.sendData(tile + "000255000");
+				delay(200);
 			}
 			foreach(var tile in r1Tiles) {
 				serialCom.sendData(tile + "000000000");
+				delay(200);
 			}
 			foreach(var tile in r2Tiles) {
 				serialCom.sendData(tile + "000000000");
+				delay(200);
 			}
 		}
 		GD.Print("Results animation finished.");
