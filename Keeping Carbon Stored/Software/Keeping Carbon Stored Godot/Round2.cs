@@ -256,8 +256,8 @@ public partial class Round2 : Node2D
 		}
 
 		r2States[index] = false;
-		serialCom.sendData(tile + "000000000");
-		GD.Print("Serial com data sent to " + tile + ": " + tile + "000000000");
+		//serialCom.sendData(tile + "000000000");
+		//GD.Print("Serial com data sent to " + tile + ": " + tile + "000000000");
 		GD.Print(tile + " turned off in Round Two.");
 
 		if (!r2States.Contains(true)) {

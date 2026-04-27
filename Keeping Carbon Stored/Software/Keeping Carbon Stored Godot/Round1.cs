@@ -120,15 +120,15 @@ public partial class Round1 : Node2D
 
 			// Real gameplay
 			if(txtTriggered && _r1ScoreText.IsVisible()) {
-				string[] newData = serCom.getSplit();
+				string[] newData = serialCom.getSplit();
 				GD.Print("New data recieved in Round One: " + newData);
 				if(newData != null) {
 					if(newData[0] != "0") {
-						string selected = new string(new char[] {newData[0], newData[1]});
+						string selected = $"{newData[0]}{newData[1]}";;
 						GD.Print(selected + " tile pressed while playing Round One.");
 						int indx = getTileIndex(selected);
-						if(!r1States[index]) {
-							GD.Print(tile + " already off.");
+						if(!r1States[indx]) {
+							GD.Print(selected + " already off.");
 						} else {
 							bool done = allTilesOff(selected);
 							score++;
@@ -288,8 +288,8 @@ public partial class Round1 : Node2D
 		}
 
 		r1States[index] = false;
-		serialCom.sendData(tile + "000000000");
-		GD.Print("Serial com data sent to " + tile + ": " + tile + "000000000");
+		//serialCom.sendData(tile + "000000000");
+		//GD.Print("Serial com data sent to " + tile + ": " + tile + "000000000");
 		GD.Print(tile + " turned off in Round One.");
 
 		if (!r1States.Contains(true)) {

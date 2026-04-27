@@ -56,6 +56,7 @@ public partial class Idle : Node2D
 					GD.Print("Recieved Serial data while in Idle script. startGame is true.");
 					gameStarted = true;
 					idleVideo.Stop();
+					idleSent = false;
 				}
 			}
 			//if (timeToStart > 0) {
@@ -71,9 +72,5 @@ public partial class Idle : Node2D
 
 	public bool isGameStarted() {
 		return gameStarted;
-	}
-
-	public void setIdleSent(bool snt) {
-		idleSent = snt;
 	}
 }
