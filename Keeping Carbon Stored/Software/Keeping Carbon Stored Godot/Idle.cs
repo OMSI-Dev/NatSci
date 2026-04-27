@@ -13,6 +13,7 @@ public partial class Idle : Node2D
 	public SerialCom serCom;
 
 	private bool gameStarted  = false;
+	private bool idleSent	  = false;
 	private bool startIdle    = false;
 	private float timeToStart = 20.0f;
 
@@ -44,6 +45,10 @@ public partial class Idle : Node2D
 		//}
 
 		if(!gameStarted) {
+			if(!idleSent) {
+				serCom.sendData("I");
+				idleSent = true;
+			}
 			string[] newData = serCom.getSplit();
 			GD.Print("New data recieved: " + newData);
 			if(newData != null) {
@@ -66,5 +71,9 @@ public partial class Idle : Node2D
 
 	public bool isGameStarted() {
 		return gameStarted;
+	}
+
+	public void setIdleSent(bool snt) {
+		idleSent = snt;
 	}
 }

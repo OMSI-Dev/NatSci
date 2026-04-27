@@ -205,6 +205,7 @@ public partial class GameController : Node2D
 		GD.Print("Game starting over in restartGame function in GameController...");
 
 		idleStarted = false;
+		idleNode.setIdleSent(false);
 
 		round1Complete       = false;
 		round1ScoreCollected = false;
