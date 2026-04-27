@@ -81,6 +81,10 @@ public partial class SerialCom : Node2D
 
 		// Try to read, ignore timeout errors to prevent a flood of debug errors
 		try {
+			// Clear input buffer (data received but not read)
+			serialPort.DiscardInBuffer();
+			// Clear output buffer (data written but not sent)
+			serialPort.DiscardOutBuffer();
 			// ReadLine() will hold the data in the variable
 			// until it is changed. Problems with being able to
 			// equate the string values using readline
@@ -107,6 +111,10 @@ public partial class SerialCom : Node2D
 		// By default, NewLine is "\r\n". Set to "\n".
 		serialPort.NewLine = "\n";
 		serialPort.WriteLine(data);
+		// Clear input buffer (data received but not read)
+		serialPort.DiscardInBuffer();
+		// Clear output buffer (data written but not sent)
+		serialPort.DiscardOutBuffer();
 	}
 
 	public string getRawData() {

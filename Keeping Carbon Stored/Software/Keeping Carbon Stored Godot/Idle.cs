@@ -52,7 +52,7 @@ public partial class Idle : Node2D
 			string[] newData = serialCom.getSplit();
 			if(newData != null && newData.Length > 0) {
 				//if(newData[0] != "0") {
-					GD.Print("New data recieved: " + newData);
+					GD.Print("New data recieved: " + string.Join(", ", newData));
 					GD.Print("Recieved Serial data while in Idle script. startGame is true.");
 					gameStarted = true;
 					idleVideo.Stop();
