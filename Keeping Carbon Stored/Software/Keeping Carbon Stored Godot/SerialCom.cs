@@ -98,8 +98,8 @@ public partial class SerialCom : Node2D
 		if(data == null) {
 			return;
 		} else {
-			//dataSplit = data.Split(':');
-			dataSplit   = data.Select(c => c.ToString()).ToArray();
+			dataSplit = data.Split('\n');
+			//dataSplit = data.Select(c => c.ToString()).ToArray();
 		}
 	}
 
@@ -114,7 +114,10 @@ public partial class SerialCom : Node2D
 	}
 
 	public string[] getSplit() {
-		return dataSplit;
+		if(dataSplit != null) {
+			return dataSplit;
+		}
+		return null;
 	}
 
 	private async void DelayCall(float sec) {
