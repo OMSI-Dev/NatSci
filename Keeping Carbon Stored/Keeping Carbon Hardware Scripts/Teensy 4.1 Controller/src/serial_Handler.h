@@ -11,7 +11,7 @@ uint8_t data7[buttonDataBuffer];
 
 void setSerial1()
 {
-    Serial1.begin(115200,SERIAL_8E1);
+    Serial1.begin(38400,SERIAL_8E1);
     // Serial1.attachRts(6);
     // Serial1.attachCts(2);
     #ifdef debug
@@ -20,7 +20,7 @@ void setSerial1()
 }
 void setSerial2()
 {
-    Serial2.begin(115200,SERIAL_8E1);
+    Serial2.begin(38400,SERIAL_8E1);
     // Serial1.attachRts(6);
     // Serial1.attachCts(2);
     #ifdef debug
@@ -29,7 +29,7 @@ void setSerial2()
 }
 void setSerial3()
 {
-    Serial3.begin(115200,SERIAL_8E1);
+    Serial3.begin(38400, SERIAL_8E1);
     // Serial1.attachRts(6);
     // Serial1.attachCts(2);
     #ifdef debug
@@ -38,7 +38,7 @@ void setSerial3()
 }
 void setSerial4()
 {
-    Serial4.begin(115200,SERIAL_8E1);
+    Serial4.begin(38400,SERIAL_8E1);
     // Serial1.attachRts(6);
     // Serial1.attachCts(2);
     #ifdef debug
@@ -48,7 +48,7 @@ void setSerial4()
 
 void setSerial5()
 {
-    Serial5.begin(115200,SERIAL_8E1);
+    Serial5.begin(38400,SERIAL_8E1);
     // Serial1.attachRts(6);
     // Serial1.attachCts(2);
     #ifdef debug
@@ -58,17 +58,17 @@ void setSerial5()
 
 void setSerial6()
 {
-    Serial6.begin(115200,SERIAL_8E1);
+    Serial6.begin(38400,SERIAL_8E1);
     // Serial1.attachRts(6);
     // Serial1.attachCts(2);
     #ifdef debug
     Serial.println("Serial 6 has started.");
-    #endif
+    #endif 
 }
 
 void setSerial7()
 {
-    Serial7.begin(115200,SERIAL_8E1);
+    Serial7.begin(38400,SERIAL_8E1);
     // Serial1.attachRts(6);
     // Serial1.attachCts(2);
     #ifdef debug

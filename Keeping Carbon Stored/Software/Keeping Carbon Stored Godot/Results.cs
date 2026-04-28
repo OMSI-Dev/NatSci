@@ -123,26 +123,26 @@ public partial class Results : Node2D
 		for(int i = 0; i < 3; i++) {
 			foreach(var tile in r1Tiles) {
 				serialCom.sendData(tile + "255000000");
-				Delayer();
+				Delayer(0.2f);
 			}
 			foreach(var tile in r2Tiles) {
 				serialCom.sendData(tile + "000255000");
-				Delayer();
+				Delayer(0.2f);
 			}
-			foreach(var tile in r1Tiles) {
+			/*foreach(var tile in r1Tiles) {
 				serialCom.sendData(tile + "000000000");
 				Delayer();
 			}
 			foreach(var tile in r2Tiles) {
 				serialCom.sendData(tile + "000000000");
 				Delayer();
-			}
+			} */
 		}
 		GD.Print("Results animation finished.");
 	}
 
-	public async void Delayer() {
-		await ToSignal(GetTree().CreateTimer(0.25f), SceneTreeTimer.SignalName.Timeout);
+	public async void Delayer(float time) {
+		await ToSignal(GetTree().CreateTimer(time), SceneTreeTimer.SignalName.Timeout);
 	}
 
 	private void ConnectVideoSignal() {

@@ -11,7 +11,7 @@ using System;
 
 public partial class GameController : Node2D
 {
-	public int totalScore;
+	public int  totalScore;
 	public bool gameStarted;
 	public bool round1Complete;
 	public bool round2Complete;
@@ -40,13 +40,8 @@ public partial class GameController : Node2D
 
 	public override void _Ready()
 	{
-		// Set to Fullscreen Mode
+		// Set to Fullscreen Mode & hide mouse
 		DisplayServer.WindowSetMode(DisplayServer.WindowMode.Fullscreen);
-		// Move to the second monitor (index 1)
-		//DisplayServer.WindowSetCurrentScreen(1);
-		//Vector2I screenSize = DisplayServer.ScreenGetSize();
-		//GD.Print("Screen Resolution: " + screenSize);
-		// Hide mouse.
 		Input.MouseMode = Input.MouseModeEnum.Hidden;
 
 		totalScore      = 0;

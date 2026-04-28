@@ -74,9 +74,7 @@ public partial class Round2 : Node2D
 	// ------------------------------------------------------------
 	public override void _Process(double delta)
 	{
-		if(round2Over) {
-			return;
-		}
+		if(round2Over) { return; }
 
 		if(tileInfo == null)  { GD.Print("Tile Info node is NULL in Round Two."); }
 		if(serialCom == null) { GD.Print("SerialCom node is NULL in Round Two."); }
@@ -119,7 +117,8 @@ public partial class Round2 : Node2D
 				ShowScoreText(true, false);
 			}
 
-			// Real gameplay
+			// __________________________________________________
+			// ***************** REAL GAMEPLAY *****************
 			if(txtTriggered && _r2ScoreText.IsVisible()) {
 				if(!tilesSet) {
 					startRound2Tiles();

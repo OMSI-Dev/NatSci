@@ -4,8 +4,9 @@
 const uint8_t dataBuffer = 12;
 uint8_t data[dataBuffer];
 
-uint32_t PCData =0;
-
+uint32_t PCData = 0;
+//II000000000
+//A1255000000
 void setup() {
   // Initialize USB Serial for debugging
   Serial.begin(115200);
@@ -42,7 +43,7 @@ void loop() {
 
   if (Serial.available()) 
   {
-    PCData = Serial.readBytesUntil('\n', data,dataBuffer);
+    PCData = Serial.readBytesUntil('\n', data, dataBuffer);
   }
 
   switch (data[0])
@@ -51,44 +52,67 @@ void loop() {
       //send to row 1, button and RGB
       Serial1.write(data + 1, PCData - 1);  // send "1255000000"
       Serial1.write('\n');
-      Serial1.flush();
+      //Serial1.flush();
       #ifdef debug
       Serial.println("Sending to row 1");
       #endif
       break;
     case 66:
-      //send to row 1, button and RGB
-      Serial2.write(data + 1, PCData - 1);  // send "1255000000"
-      Serial2.write('\n');
-
+      //send to row 2, button and RGB
+      //Serial2.write(data + 1, PCData - 1);  // send "1255000000"
+      //Serial2.write('\n');
+      //Serial2.flush();
+      #ifdef debug
+      Serial.println("Sending to row 2");
+      #endif
       break;
     case 67:
-      //send to row 1, button and RGB
-      Serial3.write(data + 1, PCData - 1);  // send "1255000000"
-      Serial3.write('\n');
+      //send to row 3, button and RGB
+      //Serial3.write(data + 1, PCData - 1);  // send "1255000000"
+      //Serial3.write('\n');
+      //Serial3.flush();
+      #ifdef debug
+      Serial.println("Sending to row 3");
+      #endif
       break;
     case 68:
-      //send to row 1, button and RGB
-      Serial4.write(data + 1, PCData - 1);  // send "1255000000"
-      Serial4.write('\n');
+      //send to row 4, button and RGB
+      //Serial4.write(data + 1, PCData - 1);  // send "1255000000"
+      //Serial4.write('\n');
+      //Serial4.flush();
+      #ifdef debug
+      Serial.println("Sending to row 4");
+      #endif
       break;
     case 69:
-      //send to row 1, button and RGB
-      Serial5.write(data + 1, PCData - 1);  // send "1255000000"
-      Serial5.write('\n');
+      //send to row 5, button and RGB
+      //Serial5.write(data + 1, PCData - 1);  // send "1255000000"
+      //Serial5.write('\n');
+      //Serial5.flush();
+      #ifdef debug
+      Serial.println("Sending to row 5");
+      #endif
       break;
     case 70:
-      //send to row 1, button and RGB
-      Serial6.write(data + 1, PCData - 1);  // send "1255000000"
-      Serial6.write('\n');
+      //send to row 6, button and RGB
+      //Serial6.write(data + 1, PCData - 1);  // send "1255000000"
+      //Serial6.write('\n');
+      //Serial6.flush();
+      #ifdef debug
+      Serial.println("Sending to row 6");
+      #endif
       break;
     case 71:
-      //send to row 1, button and RGB
-      Serial7.write(data + 1, PCData - 1);  // send "1255000000"
-      Serial7.write('\n');
+      //send to row 7, button and RGB
+      //Serial7.write(data + 1, PCData - 1);  // send "1255000000"
+      //Serial7.write('\n');
+      //Serial7.flush();
+      #ifdef debug
+      Serial.println("Sending to row 7");
+      #endif
       break;
-  default:
-    break;
+    default:
+      break;
   }
   
   //clear array for next incoming

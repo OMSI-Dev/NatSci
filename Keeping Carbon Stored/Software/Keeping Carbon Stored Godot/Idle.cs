@@ -62,6 +62,7 @@ public partial class Idle : Node2D
 					idleSent = false;
 				}
 			}
+			// Demon mode
 			//if (timeToStart > 0) {
 				//timeToStart -= (float)delta;
 				//GD.Print($"Time remaining: {Mathf.Max(0, timeToStart)}");
