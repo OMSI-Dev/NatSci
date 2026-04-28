@@ -38,26 +38,29 @@ public partial class Idle : Node2D
 
 		if(!IsVisibleInTree()) { return; }
 
-		//if(!idleVideo.IsPlaying()) {
-			//idleVideo.Show();
-			//idleVideo.Play();
+		if(!idleVideo.IsPlaying()) {
+			idleVideo.Show();
+			idleVideo.Play();
 			//timeToStart = 2.0f;
-		//}
+		}
 
 		if(!gameStarted) {
 			if(!idleSent) {
-				serialCom.sendData("I");
+				serialCom.sendData("II000000000");
+				GD.Print("Sent 'II00000000' through serial communication.");
 				idleSent = true;
 			}
-			string[] newData = serialCom.getSplit();
-			if(newData != null && newData.Length > 0) {
-				//if(newData[0] != "0") {
-					GD.Print("New data recieved: " + string.Join(", ", newData));
+			//string[] newData = serialCom.getSplit();
+			string newData = serialCom.getRawData();
+			if(newData != null && newData.Length != 0) {
+				if(newData != "") {
+					//GD.Print("New data recieved: " + string.Join(", ", newData));
+					GD.Print("New data recieved: " + newData);
 					GD.Print("Recieved Serial data while in Idle script. startGame is true.");
 					gameStarted = true;
 					idleVideo.Stop();
 					idleSent = false;
-				//}
+				}
 			}
 			//if (timeToStart > 0) {
 				//timeToStart -= (float)delta;

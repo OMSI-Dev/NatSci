@@ -82,15 +82,16 @@ public partial class SerialCom : Node2D
 		// Try to read, ignore timeout errors to prevent a flood of debug errors
 		try {
 			// Clear input buffer (data received but not read)
-			serialPort.DiscardInBuffer();
+			//serialPort.DiscardInBuffer();
 			// Clear output buffer (data written but not sent)
-			serialPort.DiscardOutBuffer();
+			//serialPort.DiscardOutBuffer();
 			// ReadLine() will hold the data in the variable
 			// until it is changed. Problems with being able to
 			// equate the string values using readline
 			// ReadExisting() will hold the data in the variable
 			// only for the moment that it is recieved
-			data = serialPort.ReadExisting();
+			data = serialPort.ReadExisting().Trim('\n');
+			//GD.Print("Recieved " + data + " in SerialCom.");
 		}
 		catch(System.Exception) {
 			// Here to ignore timeout errors.
@@ -99,11 +100,12 @@ public partial class SerialCom : Node2D
 		// If there's no data sent, just return.
 		// Prevents NullReferenceException Error to try and
 		// reference data when there is no data incoming.
-		if(data == null) {
+		if(string.IsNullOrEmpty(data)) {
 			return;
 		} else {
 			dataSplit = data.Split('\n');
 			//dataSplit = data.Select(c => c.ToString()).ToArray();
+			//GD.Print("Data split in serial communication: " + data);
 		}
 	}
 
@@ -121,12 +123,12 @@ public partial class SerialCom : Node2D
 		return data;
 	}
 
-	public string[] getSplit() {
-		if(dataSplit != null && dataSplit.Length > 0) {
-			return dataSplit;
+	/*public string[] getSplit() {
+		if(dataSplit == null || dataSplit.Length == 0) {
+			return null;
 		}
-		return null;
-	}
+		return dataSplit;
+	}*/
 
 	private async void DelayCall(float sec) {
 		GD.Print("Delay starting...");

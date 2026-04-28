@@ -45,7 +45,7 @@
 #define ENERGY_SWITCH_PIN 14
 
 // ── City LED definitions ───────────────────────────────────────────────────────
-#define NUM_LEDS_PER_STRIP 5
+#define NUM_LEDS_PER_STRIP 35
 #define NUM_CITIES 7
 #define LED_BRIGHTNESS 128
 #define LED_TYPE WS2812B
@@ -55,6 +55,8 @@
 #define NUM_M0_BOARDS 10      // Number of M0 sensor boards expected
 #define ENERGY_SWITCH_DEBOUNCE_MS 200  // Debounce time for energy switch
 #define INACTIVITY_TIMEOUT_MS 120000  // 2 minutes of inactivity before auto-reset
+#define RESET_IDLE_TIMEOUT_MS 30000   // 30 seconds before attempting bypass
+#define RESET_IDLE_MIN_CLEAR_BOARDS 5 // Minimum boards that must be clear to bypass
 
 // ── Game state enum ────────────────────────────────────────────────────────────
 enum GameState : uint8_t {
@@ -112,10 +114,15 @@ uint8_t previousRegisteredCount = 0;
 // Inactivity timer for auto-reset
 uint32_t lastActivityTime = 0;
 
+// RESET_IDLE bypass control
+uint32_t resetIdleStartTime = 0;
+bool bypassResetIdleCheck = false;
+
 void changeGameState(GameState newState);
 void sendGameStateToM0s();
 void pollM0Boards(bool verbose = false);
 bool checkAllM0sUnregistered();
+int countClearM0Boards();
 void processResults();
 void handleSerialDevTools();
 bool checkEnergySwitchPulled();
@@ -228,6 +235,31 @@ void loop() {
         if (checkAllM0sUnregistered()) {
           Serial.println(">>> All pieces removed - ready for new game!");
           changeGameState(GAME_READY_IDLE);
+        }
+        // Bypass: After timeout, check if "enough" boards are clear
+        else if (!bypassResetIdleCheck && (millis() - resetIdleStartTime >= RESET_IDLE_TIMEOUT_MS)) {
+          int clearBoards = countClearM0Boards();
+          Serial.print("\n⚠ RESET_IDLE TIMEOUT (");
+          Serial.print(RESET_IDLE_TIMEOUT_MS / 1000);
+          Serial.print("s) - ");
+          Serial.print(clearBoards);
+          Serial.print("/");
+          Serial.print(NUM_M0_BOARDS);
+          Serial.println(" boards clear");
+          
+          if (clearBoards >= RESET_IDLE_MIN_CLEAR_BOARDS) {
+            Serial.println(">>> BYPASSING stuck M0s - proceeding to READY_IDLE anyway!");
+            Serial.println("    (Some M0s may still show as registered - this is a workaround)");
+            bypassResetIdleCheck = false;
+            changeGameState(GAME_READY_IDLE);
+          } else {
+            Serial.println("⚠ Not enough boards clear to bypass safely.");
+            Serial.print("    Need at least ");
+            Serial.print(RESET_IDLE_MIN_CLEAR_BOARDS);
+            Serial.println(" clear boards.");
+            Serial.println("    Waiting 10 more seconds...");
+            resetIdleStartTime = millis() - (RESET_IDLE_TIMEOUT_MS - 10000);
+          }
         }
       }
       break;
@@ -385,6 +417,8 @@ void changeGameState(GameState newState) {
     case GAME_RESET_IDLE:
       Serial.println("[INIT] Remove all pieces (M0s show pulsing RED)...");
       wavTrig.trackPlayPoly(RESET);
+      resetIdleStartTime = millis();
+      bypassResetIdleCheck = false;
       break;
       
     case GAME_READY_IDLE:
@@ -551,6 +585,17 @@ bool checkAllM0sUnregistered() {
   }
   
   return allClear; 
+}
+
+// Count how many M0 boards are clear (responding and in IDLE/DEBOUNCING state)
+int countClearM0Boards() {
+  int clearCount = 0;
+  for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
+    if (m0Boards[i].responseReceived && m0Boards[i].detectState < 2) {
+      clearCount++;
+    }
+  }
+  return clearCount;
 }
 
 //Process results and determine WIN/YELLOW/FAIL
