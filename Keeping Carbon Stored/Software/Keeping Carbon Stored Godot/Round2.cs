@@ -133,15 +133,19 @@ public partial class Round2 : Node2D
 						string selected = newData.Substring(0, 2);
 						GD.Print(selected + " tile pressed while playing Round Two.");
 						int indx = getTileIndex(selected);
-						if(!r2States[indx]) {
-							GD.Print(selected + " already OFF.");
-						} else {
-							bool done = allTilesOff(selected);
-							score++;
-							if(done) {
-								GD.Print("All tiles have been pressed in Round Two. Turning them on again...");
-								//startRound1Tiles();
+						if(indx >= 0) {
+							if(!r2States[indx]) {
+								GD.Print(selected + " already OFF.");
+							} else {
+								bool done = allTilesOff(selected);
+								score++;
+								if(done) {
+									GD.Print("All tiles have been pressed in Round Two. Turning them on again...");
+									startRound2Tiles();
+								}
 							}
+						} else {
+							GD.Print("Tile " + selected + " is not in Round Two.");
 						}
 					}
 				}
@@ -215,7 +219,7 @@ public partial class Round2 : Node2D
 		int i = 0;
 		GD.Print("Sending serial com to Round Two's tiles:");
 		foreach(var tile in r2Tiles) {
-			toSend = tile + "000255000";
+			toSend = tile + "255000000";
 			if(serialCom == null) {
 				GD.Print("Serial communication NOT CONNECTED in Round Two's startRound2Tiles function.");
 			}
@@ -296,7 +300,7 @@ public partial class Round2 : Node2D
 		//GD.Print("Serial com data sent to " + tile + ": " + tile + "000000000");
 		GD.Print(tile + " with index #" + index + " turned OFF in Round Two.");
 
-		if (!r2States.Contains(true)) {
+		if(!r2States.Contains(true)) {
 			GD.Print("ALL tiles turned OFF in Round Two.");
 			return true;
 		}
@@ -307,15 +311,7 @@ public partial class Round2 : Node2D
 	//  ********************* ROUND TWO FINISHED *********************
 	// ----------------------------------------------------------------
 	private void roundTwoFinished() {
-		GD.Print("ROUND TWO FINISHED.");
-
-		// Turn all remaining tiles off.
-		GD.Print("Turning OFF remaining tiles in Round Two...");
-		foreach(var tile in r2Tiles) {
-			serialCom.sendData(tile + "000000000");
-			allTilesOff(tile);
-		}
-		GD.Print(r2States.Count + " states set in Round Two: " + string.Join(", ", r2States));
+		GD.Print("ROUND TWO FINISHED." + r2States.Count + " states set in Round Two: " + string.Join(", ", r2States));
 
 		round2Start  = false;
 		round2Over   = true;
@@ -356,9 +352,13 @@ public partial class Round2 : Node2D
 		smallTxtTrigger = small;
 
 		if(txtTriggered && !smallTxtTrigger) {
+			// Score is actively collecting input
 			_r2ScoreText.GlobalPosition = new Vector2((txtPos.X / 2) - 245, (txtPos.Y / 4) - 10);
 			_r2ScoreText.Show();
 		} else if(!txtTriggered && !small){
+			// Round Two game is over. Turn all remaining tiles off.
+			GD.Print("Turning OFF remaining tiles in Round Two...");
+			TilesOff();
 			_r2ScoreText.Hide();
 		} else if(txtTriggered && small) {
 			_r2SmallScoreText.GlobalPosition = new Vector2(1040, 340);
@@ -385,5 +385,10 @@ public partial class Round2 : Node2D
 
 	public int round2Score() {
 		return score;
+	}
+
+	public void TilesOff() {
+		// Turn off all of the tiles.
+		foreach(var tile in r2Tiles) { serialCom.sendData(tile + "000000000"); }
 	}
 }

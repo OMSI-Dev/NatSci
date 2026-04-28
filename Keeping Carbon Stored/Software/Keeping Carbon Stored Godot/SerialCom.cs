@@ -111,8 +111,9 @@ public partial class SerialCom : Node2D
 
 	public void sendData(string data) {
 		// By default, NewLine is "\r\n". Set to "\n".
-		serialPort.NewLine = "\n";
-		serialPort.WriteLine(data);
+		//serialPort.NewLine = "\n";
+		//serialPort.WriteLine(data);
+		serialPort.Write(data + '\0');
 		// Clear input buffer (data received but not read)
 		serialPort.DiscardInBuffer();
 		// Clear output buffer (data written but not sent)

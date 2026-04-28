@@ -84,6 +84,9 @@ public partial class Results : Node2D
 	private void OnVideoFinished() {
 		GD.Print("Results video finished.");
 		resultsFinished = true;
+
+		TilesOff();
+
 		DisconnectVideoSignal();
 		resultsVideo.Stop();
 		resultsVideo.Hide();
@@ -96,9 +99,7 @@ public partial class Results : Node2D
 			//finalScoreText.GlobalPosition = new Vector2((txtPos.X / 2) - 240, txtPos.Y / 4);
 			finalScoreText.GlobalPosition = new Vector2(700, 270);
 			finalScoreText.Show();
-		} else {
-			finalScoreText.Hide();
-		}
+		} else { finalScoreText.Hide(); }
 	}
 
 	public void resetResults() {
@@ -120,25 +121,13 @@ public partial class Results : Node2D
 	}
 
 	private void resultsAnimation() {
-		for(int i = 0; i < 3; i++) {
-			foreach(var tile in r1Tiles) {
-				serialCom.sendData(tile + "255000000");
-				Delayer(0.2f);
-			}
-			foreach(var tile in r2Tiles) {
-				serialCom.sendData(tile + "000255000");
-				Delayer(0.2f);
-			}
-			/*foreach(var tile in r1Tiles) {
-				serialCom.sendData(tile + "000000000");
-				Delayer();
-			}
-			foreach(var tile in r2Tiles) {
-				serialCom.sendData(tile + "000000000");
-				Delayer();
-			} */
+		foreach(var tile in r1Tiles) {
+			serialCom.sendData(tile + "255000000");
 		}
-		GD.Print("Results animation finished.");
+		foreach(var tile in r2Tiles) {
+			serialCom.sendData(tile + "000255000");
+		}
+		GD.Print("Results lights up.");
 	}
 
 	public async void Delayer(float time) {
@@ -157,5 +146,11 @@ public partial class Results : Node2D
 			resultsVideo.Finished -= OnVideoFinished;
 			vidSigConnected = false;
 		}
+	}
+
+	public void TilesOff() {
+		// Turn off all of the tiles.
+		foreach(var tile in r1Tiles) { serialCom.sendData(tile + "000000000"); }
+		foreach(var tile in r2Tiles) { serialCom.sendData(tile + "000000000"); }
 	}
 }

@@ -133,15 +133,19 @@ public partial class Round1 : Node2D
 						string selected = newData.Substring(0, 2);
 						GD.Print(selected + " tile pressed while playing Round One.");
 						int indx = getTileIndex(selected);
-						if(!r1States[indx]) {
-							GD.Print(selected + " already OFF.");
-						} else {
-							bool done = allTilesOff(selected);
-							score++;
-							if(done) {
-								GD.Print("All tiles have been pressed in Round One. Turning them on again...");
-								//startRound1Tiles();
+						if(indx >= 0) {
+							if(!r1States[indx]) {
+								GD.Print(selected + " already OFF.");
+							} else {
+								bool done = allTilesOff(selected);
+								score++;
+								if(done) {
+									GD.Print("All tiles have been pressed in Round One. Turning them on again...");
+									startRound1Tiles();
+								}
 							}
+						} else {
+							GD.Print("Tile " + selected + " is not in Round One.");
 						}
 					}
 				}
@@ -307,15 +311,7 @@ public partial class Round1 : Node2D
 	//  ********************* ROUND ONE FINISHED *********************
 	// ----------------------------------------------------------------
 	private void roundOneFinished() {
-		GD.Print("ROUND ONE FINISHED.");
-
-		// Turn all remaining tiles off.
-		GD.Print("Turning OFF remaining tiles in Round One...");
-		foreach(var tile in r1Tiles) {
-			serialCom.sendData(tile + "000000000");
-			allTilesOff(tile);
-		}
-		GD.Print(r1States.Count + " states set in Round One: " + string.Join(", ", r1States));
+		GD.Print("ROUND ONE FINISHED." + r1States.Count + " states set in Round One: " + string.Join(", ", r1States));
 
 		round1Start  = false;
 		round1Over   = true;
@@ -356,9 +352,13 @@ public partial class Round1 : Node2D
 		smallTxtTrigger = small;
 
 		if(txtTriggered && !smallTxtTrigger) {
+			// Score is actively collecting input
 			_r1ScoreText.GlobalPosition = new Vector2((txtPos.X / 2) - 240, (txtPos.Y / 4) - 10);
 			_r1ScoreText.Show();
 		} else if(!txtTriggered && !small){
+			// Round One game is over. Turn all remaining tiles off.
+			GD.Print("Turning OFF remaining tiles in Round One...");
+			TilesOff();
 			_r1ScoreText.Hide();
 		} else if(txtTriggered && small) {
 			_r1SmallScoreText.GlobalPosition  = new Vector2(1047, 340);
@@ -385,5 +385,10 @@ public partial class Round1 : Node2D
 
 	public int round1Score() {
 		return score;
+	}
+
+	public void TilesOff() {
+		// Turn off all of the tiles.
+		foreach(var tile in r1Tiles) { serialCom.sendData(tile + "000000000"); }
 	}
 }
