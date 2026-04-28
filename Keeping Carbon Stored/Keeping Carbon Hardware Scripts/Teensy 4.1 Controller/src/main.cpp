@@ -111,6 +111,22 @@ void loop() {
       Serial.println("Sending to row 7");
       #endif
       break;
+    case 73:
+      Serial1.write(data + 1, PCData - 1);  
+      Serial1.write('\n');
+      Serial2.write(data + 1, PCData - 1);  
+      Serial2.write('\n');
+      Serial3.write(data + 1, PCData - 1);  
+      Serial3.write('\n');
+      Serial4.write(data + 1, PCData - 1);  
+      Serial4.write('\n');
+      Serial5.write(data + 1, PCData - 1);  
+      Serial5.write('\n');
+      Serial6.write(data + 1, PCData - 1);  
+      Serial6.write('\n');
+      Serial7.write(data + 1, PCData - 1);  
+      Serial7.write('\n');      
+      break;
     default:
       break;
   }
