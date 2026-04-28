@@ -30,6 +30,7 @@
 #include <Wire.h>
 #include <FastLED.h>
 #include <wav_trigger.h>
+#include <Keyboard.h>
 
 // ── Audio track definitions ────────────────────────────────────────────────────
 #define READY_STATE 1
@@ -55,7 +56,7 @@
 #define NUM_M0_BOARDS 10      // Number of M0 sensor boards expected
 #define ENERGY_SWITCH_DEBOUNCE_MS 200  // Debounce time for energy switch
 #define INACTIVITY_TIMEOUT_MS 120000  // 2 minutes of inactivity before auto-reset
-#define RESET_IDLE_TIMEOUT_MS 30000   // 30 seconds before attempting bypass
+#define RESET_IDLE_TIMEOUT_MS 5000   // 5 seconds before attempting bypass
 #define RESET_IDLE_MIN_CLEAR_BOARDS 5 // Minimum boards that must be clear to bypass
 
 // ── Game state enum ────────────────────────────────────────────────────────────
@@ -138,6 +139,10 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
+  // Initialize USB Keyboard
+  Keyboard.begin();
+  Serial.println("✓ USB Keyboard initialized");
+
   // Initialize I2C as big friend
   Wire.begin();
   Wire.setClock(100000);  // 100kHz I2C clock
@@ -168,7 +173,8 @@ void setup() {
   FastLED.addLeds<LED_TYPE, 7, COLOR_ORDER>(leds5, NUM_LEDS_PER_STRIP);
   FastLED.addLeds<LED_TYPE, 8, COLOR_ORDER>(leds6, NUM_LEDS_PER_STRIP);
   FastLED.addLeds<LED_TYPE, 9, COLOR_ORDER>(leds7, NUM_LEDS_PER_STRIP);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 2000);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 2000); // 5V and 2A max for all LEDs combined
+  // FastLED.setMaxPowerInVoltsAndMilliamps(3.3, 2000); // 3.3V and 2A max for all LEDs combined
   FastLED.setBrightness(LED_BRIGHTNESS);
   setAllCitiesOff();
   Serial.println("✓ City LEDs initialized on pins 3-9");
@@ -415,6 +421,9 @@ void changeGameState(GameState newState) {
   // State-specific initialization
   switch (currentGameState) {
     case GAME_RESET_IDLE:
+      Keyboard.press('r');
+      delay(50);
+      Keyboard.release('r');
       Serial.println("[INIT] Remove all pieces (M0s show pulsing RED)...");
       wavTrig.trackPlayPoly(RESET);
       resetIdleStartTime = millis();
@@ -422,11 +431,17 @@ void changeGameState(GameState newState) {
       break;
       
     case GAME_READY_IDLE:
+      Keyboard.press('i');
+      delay(50);
+      Keyboard.release('i');
       Serial.println("[INIT] Ready! Place a piece to start (M0s show pulsing WHITE).");
       wavTrig.trackPlayPoly(READY_STATE);
       break;
       
     case GAME_ACTIVE:
+      Keyboard.press('g');
+      delay(50);
+      Keyboard.release('g');
       Serial.println("[INIT] Game active! Arrange pieces, pull energy switch to check.");
       // No sound on transition to active
       break;
@@ -438,6 +453,9 @@ void changeGameState(GameState newState) {
       break;
       
     case GAME_RESULTS:
+      Keyboard.press('s');
+      delay(50);
+      Keyboard.release('s');
       Serial.println("[INIT] Displaying results...");
       resultsDisplayStartTime = millis();
       // Sound played in processResults()

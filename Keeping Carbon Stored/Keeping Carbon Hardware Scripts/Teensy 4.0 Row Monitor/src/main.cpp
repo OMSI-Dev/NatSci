@@ -1,46 +1,18 @@
 #include <Arduino.h>
+//#include </include/serialOverride/HardwareSerial.h>
 #include <Adafruit_NeoPixel.h>
+bool idle = 1;
 #include <serial_handler.h>
-#include <button_handler.h>
 #include <led_Handler.h>
-
-#define led1DataPin 16
-#define led2DataPin 15
-#define led3DataPin 14
-#define led4DataPin 13
-#define led5DataPin 12
-
-//ADA buttons needs to be defined as RGB
-//uncomment for the ADA Rows
-//#define RGB
-#ifndef RGB
-#define NUM_LEDS 44
-#else
-#define NUM_LEDS 84
-#endif
-
-//Switch between RGB || RGBW
-#ifndef RGB
-  Adafruit_NeoPixel Btn1LEDS(NUM_LEDS, led1DataPin, NEO_GRBW + NEO_KHZ800);
-  Adafruit_NeoPixel Btn2LEDS(NUM_LEDS, led2DataPin, NEO_GRBW + NEO_KHZ800);
-  Adafruit_NeoPixel Btn3LEDS(NUM_LEDS, led3DataPin, NEO_GRBW + NEO_KHZ800);
-  Adafruit_NeoPixel Btn4LEDS(NUM_LEDS, led4DataPin, NEO_GRBW + NEO_KHZ800);
-  Adafruit_NeoPixel Btn5LEDS(NUM_LEDS, led5DataPin, NEO_GRBW + NEO_KHZ800);
-#else
-  Adafruit_NeoPixel Btn1LEDS(NUM_LEDS, led1DataPin, NEO_GRB + NEO_KHZ800);
-  Adafruit_NeoPixel Btn2LEDS(NUM_LEDS, led2DataPin, NEO_GRB + NEO_KHZ800);
-  Adafruit_NeoPixel Btn3LEDS(NUM_LEDS, led3DataPin, NEO_GRB + NEO_KHZ800);
-  Adafruit_NeoPixel Btn4LEDS(NUM_LEDS, led4DataPin, NEO_GRB + NEO_KHZ800);
-  Adafruit_NeoPixel Btn5LEDS(NUM_LEDS, led5DataPin, NEO_GRB + NEO_KHZ800);
-#endif
+#include <button_handler.h>
 
 
 
 void setup() {
   //Initialize USB Serial for debugging
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(1000);
-  while(!Serial);
+  //while(!Serial);
   Serial.println("Teensy 4.0 (Child) - Starting up...");
   setSerial();
   setPins();
@@ -51,11 +23,11 @@ void setup() {
   Btn4LEDS.begin(); 
   Btn5LEDS.begin(); 
 
-  Btn1LEDS.show(); 
-  Btn2LEDS.show(); 
-  Btn3LEDS.show(); 
-  Btn4LEDS.show(); 
-  Btn5LEDS.show();  
+  clearLED(1);
+  clearLED(2);
+  clearLED(3);
+  clearLED(4);
+  clearLED(5);
 
   #ifndef RGB
   Btn1LEDS.setBrightness(200);
@@ -83,6 +55,8 @@ void loop() {
   buttonUpdate();
   rgbValues();
 
+  if(idle)idleButton();
+
   switch (data[0])
   {
 
@@ -95,12 +69,15 @@ void loop() {
     Btn1LEDS.show();
     Serial.println("Color update for button 1");
     clearRGB();
+    Serial.println("Clear RGB Values");
+    clearBuffer();
+    Serial.println("Clear buffer values");
     //Set allow button press state
+    Serial.println("Set button state to true.");
     buttonStates[0] = true;
     break;
 
   case 50:
-    
     #ifndef RGB
     Btn2LEDS.fill(Btn1LEDS.Color(red, green, blue, 0));
     #else
@@ -108,7 +85,12 @@ void loop() {
     #endif
     Btn2LEDS.show();
     Serial.println("Color update for button 2");
-     clearRGB();
+    clearRGB();
+    Serial.println("Clear RGB Values");
+    clearBuffer();
+    Serial.println("Clear buffer values");
+    //Set allow button press state
+    Serial.println("Set button state to true.");
     //Set allow button press state
     buttonStates[1] = true;
     break;
@@ -121,8 +103,11 @@ void loop() {
     #endif
     Btn3LEDS.show();
     Serial.println("Color update for button 3");
-     clearRGB();
-    //Set allow button press state
+    clearRGB();
+    Serial.println("Clear RGB Values");
+    clearBuffer();
+    Serial.println("Clear buffer values");
+    Serial.println("Set button state to true.");
     buttonStates[2] = true;
     break;
 
@@ -136,6 +121,11 @@ void loop() {
     Btn4LEDS.show();
     Serial.println("Color update for button 4");
      clearRGB();
+    Serial.println("Clear RGB Values");
+    clearBuffer();
+    Serial.println("Clear buffer values");
+    //Set allow button press state
+    Serial.println("Set button state to true.");
     //Set allow button press state
     buttonStates[3] = true;
     break;
@@ -149,13 +139,24 @@ void loop() {
     #endif
     Btn5LEDS.show();
     Serial.println("Color update for button 5");
-     clearRGB();
+    clearRGB();
+    Serial.println("Clear RGB Values");
+    clearBuffer();
+    Serial.println("Clear buffer values");
+    //Set allow button press state
+    Serial.println("Set button state to true.");
     //Set allow button press state
     buttonStates[4] = true;
     break;
-
+  case 73:
+    //idle mode
+    idle = 1;
+    Serial.println("Set to idle mode.");
+    clearBuffer();
+    Serial.println("Clear buffer values");
   default:
     break;
   }
   
 }
+
