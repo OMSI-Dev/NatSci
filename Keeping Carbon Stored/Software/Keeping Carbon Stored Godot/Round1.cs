@@ -78,11 +78,11 @@ public partial class Round1 : Node2D
 			return;
 		}
 
-		if(tileInfo == null)  { GD.Print("Tile Info node is null in Round One."); }
-		if(serialCom == null) { GD.Print("SerialCom node is null in Round One."); }
+		if(tileInfo == null)  { GD.Print("Tile Info node is NULL in Round One."); }
+		if(serialCom == null) { GD.Print("SerialCom node is NULL in Round One."); }
 
 		if(_r1VideoPlayer == null) {
-			GD.Print("Round One videos failed to load in Round One script.");
+			GD.Print("Round One videos FAILED TO LOAD in Round One script.");
 			return;
 		}
 
@@ -94,12 +94,13 @@ public partial class Round1 : Node2D
 				_r1VideoPlayer.Play();
 			}
 
-			if(tilesSet == false) { return; }
+			string vidSource = "res://Media/r1Gameplay1080.ogv";
+			if(_r1VideoPlayer.Stream.ResourcePath != vidSource) { return; }
 
 			// Check if video is playing and target time is reached for the big score
 			if (!txtTriggered && _r1VideoPlayer.IsPlaying() && _r1VideoPlayer.StreamPosition >= showTriggerTime)
 			{
-				if(_r1ScoreText == null) { GD.Print("Text node is null in Round One's _Process function."); }
+				if(_r1ScoreText == null) { GD.Print("Text node is NULL in Round One's _Process function."); }
 				ShowScoreText(false, true);
 			}
 
@@ -110,7 +111,7 @@ public partial class Round1 : Node2D
 			// Check if video is playing and target time is reached for the small score
 			if (!smallTxtTrigger && _r1VideoPlayer.IsPlaying() && _r1VideoPlayer.StreamPosition >= showSmallTriggerTime)
 			{
-				if(_r1SmallScoreText == null) { GD.Print("Text node is null in Round One's _Process function."); }
+				if(_r1SmallScoreText == null) { GD.Print("Text node is NULL in Round One's _Process function."); }
 				ShowScoreText(true, true);
 			}
 
@@ -120,21 +121,27 @@ public partial class Round1 : Node2D
 
 			// Real gameplay
 			if(txtTriggered && _r1ScoreText.IsVisible()) {
-				string[] newData = serialCom.getSplit();
-				GD.Print("New data recieved in Round One: " + newData);
-				if(newData != null) {
-					if(newData[0] != "0") {
-						string selected = $"{newData[0]}{newData[1]}";;
+				if(!tilesSet) {
+					startRound1Tiles();
+					GD.Print(r1States.Count + " tiles set in Round One: " + string.Join(", ", r1States));
+				}
+
+				//string[] newData = serialCom.getSplit();
+				string newData = serialCom.getRawData();
+				if(newData != null || newData.Length != 0) {
+					if(newData != "") {
+						//GD.Print("New data recieved in Round One gameplay: " + newData);
+						string selected = newData.Substring(0, 2);
 						GD.Print(selected + " tile pressed while playing Round One.");
 						int indx = getTileIndex(selected);
 						if(!r1States[indx]) {
-							GD.Print(selected + " already off.");
+							GD.Print(selected + " already OFF.");
 						} else {
 							bool done = allTilesOff(selected);
 							score++;
 							if(done) {
 								GD.Print("All tiles have been pressed in Round One. Turning them on again...");
-								startRound1Tiles();
+								//startRound1Tiles();
 							}
 						}
 					}
@@ -207,11 +214,11 @@ public partial class Round1 : Node2D
 		// Send the data to the round 1 tiles to turn on. All tiles turn on at once.
 		string toSend;
 		int i = 0;
-		GD.Print("Sending serial com to turn round one tiles on:");
+		GD.Print("Sending serial com to Round One's tiles:");
 		foreach(var tile in r1Tiles) {
 			toSend = tile + "255000000";
 			if(serialCom == null) {
-				GD.Print("Serial communication not connected in Round One's startRound1Tiles function.");
+				GD.Print("Serial communication NOT CONNECTED in Round One's startRound1Tiles function.");
 			}
 			serialCom.sendData(toSend);
 			GD.Print(toSend);
@@ -225,7 +232,7 @@ public partial class Round1 : Node2D
 		_r1ScoreText.Text       = "0";
 		_r1SmallScoreText.Text  = "0";
 		_r1SmallScoreText2.Text = "0";
-		GD.Print(i + " tiles have been turned on in Round 1's startRound1Tiles() function. Scores set to: " + _r1ScoreText.Text + _r1SmallScoreText.Text + _r1SmallScoreText2.Text);;
+		GD.Print(i + " tiles have been turned ON in Round 1's startRound1Tiles() function. Scores set to: " + _r1ScoreText.Text + _r1SmallScoreText.Text + _r1SmallScoreText2.Text);;
 		GD.Print("Round One tile list: " + string.Join(", ", r1Tiles));
 	}
 
@@ -248,9 +255,9 @@ public partial class Round1 : Node2D
 		var texture = _r1VideoPlayer.GetVideoTexture();
 		if(texture != null) { txtPos = texture.GetSize(); }
 
-		startRound1Tiles();
-		GD.Print(r1States.Count + " states set in Round One.");
-		GD.Print("Tiles on: " + string.Join(", ", r1States));
+		//startRound1Tiles();
+		//GD.Print(r1States.Count + " states set in Round One.");
+		//GD.Print("Tiles on: " + string.Join(", ", r1States));
 	}
 
 	// ------------------------------------------------------------
@@ -258,8 +265,6 @@ public partial class Round1 : Node2D
 	// ------------------------------------------------------------
 	private int getTileIndex(string tile) {
 		int index = r1Tiles.IndexOf(tile);
-		GD.Print(tile + " index: " + index);
-
 		return index;
 	}
 
@@ -270,30 +275,30 @@ public partial class Round1 : Node2D
 		int index = getTileIndex(tile);
 
 		if(!r1States[index]) {
-			GD.Print(tile + " already off.");
+			GD.Print(tile + " with index #" + index + " already OFF.");
 			return false;
 		}
 
 		// Guard against tile not found
 		if(index == -1) {
-			GD.Print(tile + " not found in r1Tiles list.");
+			GD.Print(tile + " NOT FOUND in r1Tiles list.");
 			GD.Print("Current tile list: " + string.Join(", ", r1Tiles));
 			return false;
 		}
 
 		// Guard against r1States being out of sync with r1Tiles
 		if(index >= r1States.Count) {
-			GD.Print("Index " + index + " is out of range for r1States (count: " + r1States.Count + ")");
+			GD.Print("Index " + index + " is OUT OF RANGE for r1States (count: " + r1States.Count + ")");
 			return false;
 		}
 
 		r1States[index] = false;
 		//serialCom.sendData(tile + "000000000");
 		//GD.Print("Serial com data sent to " + tile + ": " + tile + "000000000");
-		GD.Print(tile + " turned off in Round One.");
+		GD.Print(tile + " with index #" + index + " turned OFF in Round One.");
 
 		if (!r1States.Contains(true)) {
-			GD.Print("All tiles turned off in Round One.");
+			GD.Print("ALL tiles turned OFF in Round One.");
 			return true;
 		}
 		return false;
@@ -303,16 +308,15 @@ public partial class Round1 : Node2D
 	//  ********************* ROUND ONE FINISHED *********************
 	// ----------------------------------------------------------------
 	private void roundOneFinished() {
-		GD.Print("*** ROUND ONE FINISHED. ***");
+		GD.Print("ROUND ONE FINISHED.");
 
-		// Turn all tiles off.
-		GD.Print("Turning off remaining tiles in Round One...");
+		// Turn all remaining tiles off.
+		GD.Print("Turning OFF remaining tiles in Round One...");
 		foreach(var tile in r1Tiles) {
 			serialCom.sendData(tile + "000000000");
 			allTilesOff(tile);
 		}
-		GD.Print(r1States.Count + " states set in Round One.");
-		GD.Print("Tile states: " + string.Join(", ", r1States));
+		GD.Print(r1States.Count + " states set in Round One: " + string.Join(", ", r1States));
 
 		round1Start  = false;
 		round1Over   = true;
@@ -351,6 +355,7 @@ public partial class Round1 : Node2D
 	private void ShowScoreText(bool small, bool vis) {
 		txtTriggered    = vis;
 		smallTxtTrigger = small;
+
 		if(txtTriggered && !smallTxtTrigger) {
 			_r1ScoreText.GlobalPosition = new Vector2((txtPos.X / 2) - 240, (txtPos.Y / 4) - 10);
 			_r1ScoreText.Show();
