@@ -90,7 +90,8 @@ void readSerial1()
     Serial.println(data1[0]);
     #endif
     Serial.print("A");
-    Serial.println(data1[0]);}
+    Serial.println(data1[0],DEC);
+}
 
 }
 
@@ -198,5 +199,12 @@ void readSerial7()
     #endif
     Serial.print("G");
     Serial.println(data7[0]);}
+
+}
+
+
+void sendToAll()
+{
+
 
 }

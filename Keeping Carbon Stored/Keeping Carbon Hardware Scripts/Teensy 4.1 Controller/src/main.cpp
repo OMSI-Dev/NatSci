@@ -51,7 +51,7 @@ void loop() {
       //send to row 1, button and RGB
       Serial1.write(data + 1, PCData - 1);  // send "1255000000"
       Serial1.write('\n');
-      Serial1.flush();
+      //Serial1.flush();
       #ifdef debug
       Serial.println("Sending to row 1");
       #endif
@@ -86,6 +86,22 @@ void loop() {
       //send to row 1, button and RGB
       Serial7.write(data + 1, PCData - 1);  // send "1255000000"
       Serial7.write('\n');
+      break;
+    case 73:
+      Serial1.write(data + 1, PCData - 1);  
+      Serial1.write('\n');
+      Serial2.write(data + 1, PCData - 1);  
+      Serial2.write('\n');
+      Serial3.write(data + 1, PCData - 1);  
+      Serial3.write('\n');
+      Serial4.write(data + 1, PCData - 1);  
+      Serial4.write('\n');
+      Serial5.write(data + 1, PCData - 1);  
+      Serial5.write('\n');
+      Serial6.write(data + 1, PCData - 1);  
+      Serial6.write('\n');
+      Serial7.write(data + 1, PCData - 1);  
+      Serial7.write('\n');      
       break;
   default:
     break;
