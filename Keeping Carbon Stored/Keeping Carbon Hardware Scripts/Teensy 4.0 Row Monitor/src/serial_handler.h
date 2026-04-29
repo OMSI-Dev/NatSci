@@ -6,8 +6,6 @@ uint8_t data[dataBuffer];
 
 void setSerial()
 {
-    //Initialize Serial1 for communication with Teensy 4.1
-    //Set for a lower baud rate & a bit correction
     Serial1.begin(115400,SERIAL_8E1);
     // Serial1.attachCts(CTS_Pin);
     // Serial1.attachRts(RTS_Pin);
@@ -55,26 +53,27 @@ void readSerial()
         Serial.println("Check if packet is valid.");
         bool validPacket = checkIfValid();
 
+        Serial.print("Packet returned: ");
+        Serial.println(validPacket);
+
         if(validPacket)
         {
             Serial.print("Button: ");
-            Serial.println(data[0]);
+            Serial.println(data[0]-'0');
 
             for(uint8_t i=0; i<=dataBuffer-2; i++)
             {
-                Serial.print(i);
+                Serial.print(i); 
                 Serial.print(":");
-                Serial.println(data[i]);
+                Serial.print(data[i]);
             }
+            Serial.println();
         }
         else
         {
             Serial.println("Bad Packet! - Clearing buffer.");
             clearBuffer();
         }
-    
-        //Serial1.clear();
-
        
     }
 

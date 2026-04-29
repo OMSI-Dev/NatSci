@@ -54,9 +54,8 @@ void loop() {
   readSerial();
   buttonUpdate();
   rgbValues();
-
-  if(idle)idleButton();
-
+  idleButton();
+  //updateLED(data[0]);
   switch (data[0])
   {
 
@@ -68,13 +67,16 @@ void loop() {
     #endif
     Btn1LEDS.show();
     Serial.println("Color update for button 1");
+
     clearRGB();
     Serial.println("Clear RGB Values");
+
     clearBuffer();
     Serial.println("Clear buffer values");
-    //Set allow button press state
-    Serial.println("Set button state to true.");
+
+
     buttonStates[0] = true;
+    Serial.println("Set button state to true.");
     break;
 
   case 50:
@@ -85,14 +87,15 @@ void loop() {
     #endif
     Btn2LEDS.show();
     Serial.println("Color update for button 2");
+
     clearRGB();
     Serial.println("Clear RGB Values");
+
     clearBuffer();
     Serial.println("Clear buffer values");
-    //Set allow button press state
-    Serial.println("Set button state to true.");
-    //Set allow button press state
+
     buttonStates[1] = true;
+    Serial.println("Set button state to true.");
     break;
 
   case 51:
@@ -103,12 +106,15 @@ void loop() {
     #endif
     Btn3LEDS.show();
     Serial.println("Color update for button 3");
+
     clearRGB();
     Serial.println("Clear RGB Values");
+
     clearBuffer();
     Serial.println("Clear buffer values");
-    Serial.println("Set button state to true.");
+
     buttonStates[2] = true;
+    Serial.println("Set button state to true.");
     break;
 
   case 52:
@@ -120,14 +126,15 @@ void loop() {
     #endif
     Btn4LEDS.show();
     Serial.println("Color update for button 4");
-     clearRGB();
+
+    clearRGB();
     Serial.println("Clear RGB Values");
+
     clearBuffer();
     Serial.println("Clear buffer values");
-    //Set allow button press state
-    Serial.println("Set button state to true.");
-    //Set allow button press state
+
     buttonStates[3] = true;
+    Serial.println("Set button state to true.");
     break;
 
   case 53:
@@ -139,11 +146,13 @@ void loop() {
     #endif
     Btn5LEDS.show();
     Serial.println("Color update for button 5");
+
     clearRGB();
     Serial.println("Clear RGB Values");
+
     clearBuffer();
     Serial.println("Clear buffer values");
-    //Set allow button press state
+
     Serial.println("Set button state to true.");
     //Set allow button press state
     buttonStates[4] = true;

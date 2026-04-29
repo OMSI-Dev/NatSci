@@ -7,7 +7,8 @@
 
 //ADA buttons needs to be defined as RGB
 //uncomment for the ADA Rows
-//#define RGB
+
+#define RGB
 #ifndef RGB
 #define NUM_LEDS 44
 #else
@@ -95,6 +96,12 @@ void clearLED(uint8_t btnNum)
     default:
         break;
     }
+
+
+}
+
+void updateLED(uint8_t btnData)
+{
 
 
 }

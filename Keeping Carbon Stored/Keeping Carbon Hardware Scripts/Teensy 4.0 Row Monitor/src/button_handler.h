@@ -14,6 +14,7 @@ Bounce2::Button button2 = Bounce2::Button();
 Bounce2::Button button3 = Bounce2::Button();
 Bounce2::Button button4 = Bounce2::Button();
 Bounce2::Button button5 = Bounce2::Button();
+#define DEBOUNCE 10
 
 MoToTimer button1Timer, button2Timer, button3Timer, button4Timer,button5Timer,debugTimer;
 
@@ -29,11 +30,11 @@ void setPins()
     button5.attach(BUTTON5_PIN,INPUT_PULLUP);
     Serial.println("Buttons 1-5 attached.");
 
-    button1.interval(2);
-    button2.interval(2);
-    button3.interval(2);
-    button4.interval(2);
-    button5.interval(2);
+    button1.interval(DEBOUNCE);
+    button2.interval(DEBOUNCE);
+    button3.interval(DEBOUNCE);
+    button4.interval(DEBOUNCE);
+    button5.interval(DEBOUNCE);
     Serial.println("Buttons 1-5 interval updated.");
 
     button1.setPressedState(LOW);
@@ -122,6 +123,9 @@ void buttonUpdate()
 void idleButton()
 {
 
+    if(idle)
+    {
+
     button1.update();
     button2.update();
     button3.update();
@@ -161,6 +165,7 @@ void idleButton()
         sendSerial(5);
         button5Timer.setTime(buttonLock);
         idle = 0;
+    }
     }
 
 }
