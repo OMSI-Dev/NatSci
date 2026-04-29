@@ -120,39 +120,42 @@ void loop() {
     case 69:
       // Serial data recieved for Row E.
       // Send to Row E, button number and RGB.
+       #ifdef debug
+      Serial.print("Sending to Row E: ");
+      Serial.write(data + 1, PCData - 1);
+      #endif
+
       Serial5.write(data + 1, PCData - 1);
       delay(3);
       clearBuffer();
- 
-      #ifdef debug
-      Serial.println("Sending to row 5");
-      #endif
-
       break;
+
     case 70:
       // Serial data recieved for Row F. --------ADA--------
       // Send to Row F, button number and RGB.
+       #ifdef debug
+      Serial.print("Sending to Row F: ");
+      Serial.write(data + 1, PCData - 1);
+      #endif
+
       Serial6.write(data + 1, PCData - 1);
       delay(3);
       clearBuffer();
-
-      #ifdef debug
-      Serial.println("Sending to row 6");
-      #endif
-
       break;
+
     case 71:
       // Serial data recieved for Row G. --------ADA--------
       // Send to Row G, button number and RGB.
+       #ifdef debug
+      Serial.print("Sending to Row G: ");
+      Serial.write(data + 1, PCData - 1);
+      #endif
+
       Serial7.write(data + 1, PCData - 1);
       delay(3);
       clearBuffer();
-
-      #ifdef debug
-      Serial.println("Sending to row 7");
-      #endif
-
       break;
+
     case 73:
       // Set all rows to IDLE state.
       Serial1.write(data + 1, PCData - 1);
@@ -163,8 +166,8 @@ void loop() {
       Serial6.write(data + 1, PCData - 1);
       Serial7.write(data + 1, PCData - 1);
       clearBuffer();
-
       break;
+      
     default:
       break;
   }
