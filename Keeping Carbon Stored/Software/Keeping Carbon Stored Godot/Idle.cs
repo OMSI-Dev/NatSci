@@ -15,7 +15,7 @@ public partial class Idle : Node2D
 	private bool gameStarted  = false;
 	private bool idleSent	  = false;
 	private bool startIdle    = false;
-	private float timeToStart = 20.0f;
+	private float timeToStart = 5.0f;
 
 	private VideoStreamPlayer idleVideo;
 
@@ -41,10 +41,20 @@ public partial class Idle : Node2D
 		if(!idleVideo.IsPlaying()) {
 			idleVideo.Show();
 			idleVideo.Play();
-			//timeToStart = 2.0f;
+			timeToStart = 5.0f;
+			GD.Print("The game can be started in " + timeToStart + " seconds...");
 		}
 
-		if(!gameStarted) {
+		// Let at least five seconds pass before being able to get out of Idle Mode.
+		if (timeToStart > 0 && !gameStarted) {
+			timeToStart -= (float)delta;
+		}
+		if(timeToStart <= 0 && !startIdle) {
+			GD.Print("Timer is up to be able to start the game.");
+			startIdle = true;
+		}
+
+		if(!gameStarted && startIdle) {
 			if(!idleSent) {
 				serialCom.sendData("II000000000");
 				GD.Print("Sent 'II00000000' through serial communication.");
@@ -60,17 +70,9 @@ public partial class Idle : Node2D
 					gameStarted = true;
 					idleVideo.Stop();
 					idleSent = false;
+					startIdle = false;
 				}
 			}
-			// Demon mode
-			//if (timeToStart > 0) {
-				//timeToStart -= (float)delta;
-				//GD.Print($"Time remaining: {Mathf.Max(0, timeToStart)}");
-			//}
-			//if(timeToStart <= 0) {
-				//GD.Print("Timer up to start the game.");
-				//gameStarted = true;
-			//}
 		}
 	}
 

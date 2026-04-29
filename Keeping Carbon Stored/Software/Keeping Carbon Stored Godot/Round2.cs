@@ -357,7 +357,7 @@ public partial class Round2 : Node2D
 			_r2ScoreText.Show();
 		} else if(!txtTriggered && !small){
 			// Round Two game is over. Turn all remaining tiles off.
-			GD.Print("Turning OFF remaining tiles in Round Two...");
+			//GD.Print("Turning OFF remaining tiles in Round Two...");
 			TilesOff();
 			_r2ScoreText.Hide();
 		} else if(txtTriggered && small) {
