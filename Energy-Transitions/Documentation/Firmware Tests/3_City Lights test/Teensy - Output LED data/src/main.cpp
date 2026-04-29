@@ -4,11 +4,10 @@
 // City Lights Test - Teensy LED Output
 // Outputs red color to 5 RGB LED strips on pins 3-7
 
-#define NUM_LEDS_PER_STRIP 5  
+#define NUM_LEDS_PER_STRIP 70
 #define NUM_CITIES 7
-#define BRIGHTNESS 128         // 0-255
-#define LED_TYPE WS2812B       // Change if using different LED type (WS2811, APA102, etc.)
-#define COLOR_ORDER GRB        // Change if needed (RGB, GRB, BRG, etc.)
+#define LED_TYPE WS2812B       
+#define COLOR_ORDER GRB        
 
 // Define LED arrays for each strip
 CRGB leds1[NUM_LEDS_PER_STRIP];
@@ -37,26 +36,35 @@ void setup()
   FastLED.addLeds<LED_TYPE, 9, COLOR_ORDER>(leds7, NUM_LEDS_PER_STRIP);
 
   
-  // Set power limit: 5V at 2A (2000mA)
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 2000);
+  // Set power limit: 3.3V at 2A (2000mA)
+  FastLED.setMaxPowerInVoltsAndMilliamps(3.3, 2000);
   
-  // Set global brightness
-  FastLED.setBrightness(BRIGHTNESS);
-  
-  // Set all LEDs to red
-  fill_solid(leds1, NUM_LEDS_PER_STRIP, CRGB::Red);
-  fill_solid(leds2, NUM_LEDS_PER_STRIP, CRGB::Red);
-  fill_solid(leds3, NUM_LEDS_PER_STRIP, CRGB::Red);
-  fill_solid(leds4, NUM_LEDS_PER_STRIP, CRGB::Red);
-  fill_solid(leds5, NUM_LEDS_PER_STRIP, CRGB::Red);
-  fill_solid(leds6, NUM_LEDS_PER_STRIP, CRGB::Red);
-  fill_solid(leds7, NUM_LEDS_PER_STRIP, CRGB::Red);
 
-  // Update the LEDs
-  FastLED.show();
+  
+
+
 }
 
 void loop() 
 {
-  // LEDs remain red - nothing in loop
+    // Set all LEDs to red
+
+    fill_solid(leds1, NUM_LEDS_PER_STRIP, CRGB::Red);
+    FastLED.show();
+    delay(1000);
+    fill_solid(leds1, NUM_LEDS_PER_STRIP, CRGB::Blue);
+    FastLED.show();
+    delay(1000);
+    fill_solid(leds1, NUM_LEDS_PER_STRIP, CRGB::Green);
+    FastLED.show();
+    delay(1000); 
+  // fill_solid(leds2, NUM_LEDS_PER_STRIP, CRGB::Red);
+  // fill_solid(leds3, NUM_LEDS_PER_STRIP, CRGB::Red);
+  // fill_solid(leds4, NUM_LEDS_PER_STRIP, CRGB::Red);
+  // fill_solid(leds5, NUM_LEDS_PER_STRIP, CRGB::Red);
+  // fill_solid(leds6, NUM_LEDS_PER_STRIP, CRGB::Red);
+  // fill_solid(leds7, NUM_LEDS_PER_STRIP, CRGB::Red);
+  
+  // Update the LEDs
+  
 }
