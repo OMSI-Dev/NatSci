@@ -221,7 +221,9 @@ public partial class Round2 : Node2D
 		int i = 0;
 		GD.Print("Sending serial com to restart Round Two's tiles:");
 		foreach(var tile in r2Tiles) {
+			// If tile is already on, don't resend.
 			if(r2States[i]) { return; }
+
 			toSend = tile + "255000000";
 			if(serialCom == null) {
 				GD.Print("Serial communication NOT CONNECTED in Round Two's restartTiles function.");
@@ -332,7 +334,9 @@ public partial class Round2 : Node2D
 		return false;
 	}
 
-	// Check if all tiles except the ADA have been pressed off.
+	// --------------------------------------------------------------
+	//  ********************* CHECK ADA TILES *********************
+	// --------------------------------------------------------------
 	private bool checkADA() {
 		for(int i = 0; i < (r2States.Count - 5); i++) {
 			if(r2States[i]) { return false; }
