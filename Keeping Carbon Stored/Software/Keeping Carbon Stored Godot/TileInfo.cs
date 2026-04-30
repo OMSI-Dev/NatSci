@@ -21,14 +21,14 @@ public partial class TileInfo : Node
 	List<bool> round1States  = new List<bool>();
 	List<string> round1Tiles = new List<string> {"A2", "A4", "B1", "B3", "B5",
 												"C2", "C4", "D1", "D3", "D5",
-												"E2", "E4", "F1", "F3", "F5",
-												"G2", "G4"};
+												"E2", "E4", "F2", "F4", "G1",
+												"G3", "G5"};
 
 	List<bool> round2States  = new List<bool>();
 	List<string> round2Tiles = new List<string> {"A1", "A3", "A5", "B2", "B4",
 												"C1", "C3", "C5", "D2", "D4",
-												"E1", "E3", "E5", "F2", "F4",
-												"G1", "G3", "G5"};
+												"E1", "E3", "E5", "F1", "F3",
+												"F5", "G2", "G4"};
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
