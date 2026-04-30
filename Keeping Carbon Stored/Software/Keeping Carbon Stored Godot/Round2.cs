@@ -137,8 +137,7 @@ public partial class Round2 : Node2D
 							if(!r2States[indx]) {
 								GD.Print(selected + " already OFF.");
 							} else {
-								allTilesOff(selected);
-								bool done = checkADA();
+								bool done = allTilesOff(selected);
 								score++;
 								if(done) {
 									GD.Print("All non-ADA tiles have been pressed in Round Two. Turning them on again...");
@@ -327,11 +326,14 @@ public partial class Round2 : Node2D
 		//GD.Print("Serial com data sent to " + tile + ": " + tile + "000000000");
 		GD.Print(tile + " with index #" + index + " turned OFF in Round Two.");
 
+		/*
 		if(!r2States.Contains(true)) {
 			GD.Print("ALL tiles turned OFF in Round Two.");
 			return true;
 		}
 		return false;
+		*/
+		return checkADA();
 	}
 
 	// --------------------------------------------------------------
