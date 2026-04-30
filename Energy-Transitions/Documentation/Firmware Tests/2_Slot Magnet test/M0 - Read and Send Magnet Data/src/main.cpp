@@ -1,47 +1,56 @@
 /*
- * TEST 2 - M0 BOARD - SS39ET POLARITY DETECTION
+ * HALL EFFECT SENSOR POLARITY DETECTION - ItsyBitsy M0 Express
+ * 
+ * Reads three SS39ET Hall effect sensors to detect magnetic game piece patterns.
+ * Features noise-filtered ADC readings, hysteresis-based classification, and
+ * debounced registration to ensure stable, reliable pattern detection.
  *
- * Reads three Hall effect sensors, classifies each as SOUTH / NORTH / UNCERTAIN,
- * confirms polarity after CONFIRM_SAMPLES consecutive agreeing reads per sensor,
- * checks correctness against this board's I2C address, lights the LED ring, and
- * reports status to the Teensy via I2C on request.
+ * DETECTION FLOW:
+ *   IDLE → DEBOUNCING → REGISTERING → CORRECT/INCORRECT → IDLE
  *
- * Thresholds (12-bit ADC, 3.3 V ref):
- *   ADJUSTED FOR MILKPLEX BARRIER (2026-04-20):
- *   SOUTH      raw < 1700  (~1370 mV) - increased from 1450 for weaker field
- *   NORTH      raw > 2400  (~1935 mV) - decreased from 2800 for weaker field
- *   UNCERTAIN  1700–2400   (no magnet or in transition)
+ * SENSOR CONFIGURATION:
+ *   Physical PCB layout (left to right): S2 — S1 — S3
+ *   Code mapping: p0=S1 (middle), p1=S2 (left), p2=S3 (right)
  *
- *   Original calibration (2026-04-17, no barrier):
- *   SOUTH < 1450 (~1168 mV), NORTH > 2800 (~2256 mV)
+ * ADC THRESHOLDS (12-bit, 3.3V ref, adjusted for milkplex barrier):
+ *   SOUTH:     < 1650 mV (enter) / < 1750 mV (stay)
+ *   NORTH:     > 2450 mV (enter) / > 2350 mV (stay)
+ *   UNCERTAIN: Between thresholds
+ *   Hysteresis prevents boundary oscillation during transitions.
  *
- * PCB sensor layout (left to right): S2 — S1 — S3
- * All patterns below are given in physical left-to-right order.
- * The sensor order remapping is:  physical[0]=S2=p1, physical[1]=S1=p0, physical[2]=S3=p2
+ * PIECE PATTERNS (by I2C address):
+ *   Addr   Header  Piece   Physical L→R   p0(S1)  p1(S2)  p2(S3)
+ *   0x08   None    Buoy    S  S  S          S       S       S
+ *   0x09   A       Dam     N  N  N          N       N       N
+ *   0x0A   B       Geo     N  S  X          S       N       X
+ *   0x0B   C       Geo     X  N  S          N       X       S
+ *   0x0C   D       Solar   N  X  X          X       N       X
+ *   0x0D   AB      Solar   X  X  N          X       X       N
+ *   0x0E   AC      Wind    N  N  X          N       N       X
+ *   0x0F   AD      Wind    X  N  N          N       X       N
+ *   (Geo/Solar/Wind patterns accept either orientation via rotation logic)
  *
- * Addr   Header  Piece   Physical L→R   p0(S1)  p1(S2)  p2(S3)
- *  0x08  None    Buoy    S  S  S          S       S       S
- *  0x09  A       Dam     N  N  N          N       N       N
- *  0x0A  B       Geo     N  S  X          S       N       X
- *  0x0B  C       Geo     X  N  S          N       X       S
- *  0x0C  D       Solar   N  X  X          X       N       X
- *  0x0D  AB      Solar   X  X  N          X       X       N
- *  0x0E  AC      Wind    N  N  X          N       N       X
- *  0x0F  AD      Wind    X  N  N          N       X       N
+ * LED FEEDBACK:
+ *   IDLE / DEBOUNCING → Off
+ *   REGISTERING       → Dim white
+ *   CORRECT           → Dim green
+ *   INCORRECT         → Dim red
  *
- * LEDs:
- *   Any magnetism detected (REGISTERING) → dim white
- *   Confirmed correct                    → dim green
- *   Confirmed incorrect                  → dim red
- *   No magnet (IDLE)                     → off
+ * I2C INTERFACE:
+ *   TX packet (6 bytes on master request):
+ *     [0] State:    0=IDLE, 1=DEBOUNCING, 2=REGISTERING, 3=CORRECT, 4=INCORRECT
+ *     [1] S1 pol:   0=UNCERTAIN, 1=SOUTH, 2=NORTH
+ *     [2] S2 pol:   0=UNCERTAIN, 1=SOUTH, 2=NORTH
+ *     [3] S3 pol:   0=UNCERTAIN, 1=SOUTH, 2=NORTH
+ *     [4] Address:  Low byte of I2C address
+ *     [5] Reserved: 0x00
  *
- * I2C TX packet (6 bytes, returned to Teensy on requestFrom):
- *   [0] state   0=IDLE  1=REGISTERING  2=CORRECT  3=INCORRECT
- *   [1] S1 pol  0=UNCERTAIN  1=SOUTH  2=NORTH
- *   [2] S2 pol
- *   [3] S3 pol
- *   [4] I2C address low byte
- *   [5] 0x00 reserved
+ * Version: 2.0 (2026-04-21)
+ * - Added ADC averaging (5 samples per read)
+ * - Implemented hysteresis for stable classification
+ * - Added debounce delay (300ms) before registration
+ * - Improved candidate switching with stability requirements
+ * - Enhanced code documentation and structure
  */
 
 #include <Arduino.h>
@@ -58,15 +67,21 @@
 #define DOTSTAR_DATA  41
 #define DOTSTAR_CLK   40
 
-// ── ADC thresholds (12-bit) ───────────────────────────────────────────────────
-// Adjusted for milkplex barrier - more lenient detection
-// Increase THRESHOLD_SOUTH to catch weaker south pole readings
-// Decrease THRESHOLD_NORTH to catch weaker north pole readings
-#define THRESHOLD_SOUTH  1700  // Was 1450 - raised for milkplex barrier
-#define THRESHOLD_NORTH  2400  // Was 2800 - lowered for milkplex barrier
+// ── ADC Configuration ─────────────────────────────────────────────────────────
+#define ADC_SAMPLES      5     // Number of ADC readings to average per sensor
 
-// ── Registration: samples each sensor must hold the same polarity ─────────────
-#define CONFIRM_SAMPLES  10
+// ── ADC Thresholds (12-bit, adjusted for milkplex barrier) ────────────────────
+// Hysteresis prevents oscillation near boundaries
+#define THRESHOLD_SOUTH_LOW   1650  // Below this = definitely SOUTH
+#define THRESHOLD_SOUTH_HIGH  1750  // Above this = leaving SOUTH
+#define THRESHOLD_NORTH_LOW   2350  // Below this = leaving NORTH  
+#define THRESHOLD_NORTH_HIGH  2450  // Above this = definitely NORTH
+
+// ── Registration Configuration ────────────────────────────────────────────────
+#define DEBOUNCE_DELAY_MS     500   // Delay before starting registration (ms)
+#define CONFIRM_SAMPLES       10    // Consecutive samples needed to lock polarity
+#define CANDIDATE_STABILITY   3     // Consecutive reads needed to switch candidates
+#define FORCE_LOCK_TIMEOUT_MS 3000  // Timeout to force-lock uncertain sensors (ms)
 
 // ── LED ring ──────────────────────────────────────────────────────────────────
 #define LED_PIN   2
@@ -74,15 +89,28 @@
 CRGB leds[NUM_LEDS];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-enum Polarity    : uint8_t { POL_UNCERTAIN = 0, POL_SOUTH = 1, POL_NORTH = 2 };
-enum DetectState : uint8_t { STATE_IDLE = 0, STATE_REGISTERING = 1,
-                             STATE_CORRECT = 2, STATE_INCORRECT = 3 };
+enum Polarity : uint8_t {
+  POL_UNCERTAIN = 0,
+  POL_SOUTH     = 1,
+  POL_NORTH     = 2
+};
+
+enum DetectState : uint8_t {
+  STATE_IDLE       = 0,
+  STATE_DEBOUNCING = 1,  // New state: waiting before registration
+  STATE_REGISTERING = 2,
+  STATE_CORRECT    = 3,
+  STATE_INCORRECT  = 4
+};
 
 struct SensorTrack {
-  Polarity confirmed;
-  Polarity candidate;
-  uint8_t  count;
-  bool     locked;
+  Polarity confirmed;        // Locked-in polarity
+  Polarity candidate;        // Current candidate polarity
+  Polarity lastReading;      // Previous reading (for hysteresis)
+  Polarity prevCandidate;    // Previous candidate (for stability tracking)
+  uint8_t  confirmCount;     // Consecutive matches for confirmation
+  uint8_t  candidateCount;   // Consecutive reads for candidate stability
+  bool     locked;           // Whether sensor is locked
 };
 
 // ── Globals ───────────────────────────────────────────────────────────────────
@@ -91,16 +119,62 @@ DetectState detectState = STATE_IDLE;
 SensorTrack track[3];
 volatile uint8_t txBuf[6] = { 0, 0, 0, 0, 0x08, 0 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-Polarity classify(uint16_t raw) {
-  if (raw < THRESHOLD_SOUTH) return POL_SOUTH;
-  if (raw > THRESHOLD_NORTH) return POL_NORTH;
-  return POL_UNCERTAIN;
+// ── ADC and Classification Helpers ───────────────────────────────────────────
+
+/**
+ * Read and average multiple ADC samples from a sensor pin.
+ * Reduces noise and improves reading stability.
+ */
+uint16_t readSensorAveraged(uint8_t pin) {
+  uint32_t sum = 0;
+  for (uint8_t i = 0; i < ADC_SAMPLES; i++) {
+    sum += analogRead(pin);
+    delayMicroseconds(100);  // Small delay between samples
+  }
+  return (uint16_t)(sum / ADC_SAMPLES);
 }
 
+/**
+ * Classify sensor reading with hysteresis to prevent boundary oscillation.
+ * Uses lastReading to apply appropriate thresholds based on previous state.
+ */
+Polarity classifyWithHysteresis(uint16_t raw, Polarity lastReading) {
+  // Apply hysteresis based on previous state
+  if (lastReading == POL_SOUTH) {
+    // Currently SOUTH: need to exceed high threshold to leave
+    if (raw < THRESHOLD_SOUTH_HIGH) return POL_SOUTH;
+    if (raw > THRESHOLD_NORTH_LOW) return POL_NORTH;
+    return POL_UNCERTAIN;
+  }
+  else if (lastReading == POL_NORTH) {
+    // Currently NORTH: need to drop below low threshold to leave
+    if (raw > THRESHOLD_NORTH_LOW) return POL_NORTH;
+    if (raw < THRESHOLD_SOUTH_HIGH) return POL_SOUTH;
+    return POL_UNCERTAIN;
+  }
+  else {
+    // UNCERTAIN: use stricter thresholds to enter S/N
+    if (raw < THRESHOLD_SOUTH_LOW) return POL_SOUTH;
+    if (raw > THRESHOLD_NORTH_HIGH) return POL_NORTH;
+    return POL_UNCERTAIN;
+  }
+}
+
+/**
+ * Reset all sensor tracking state to initial values.
+ */
 void resetTracks() {
-  for (uint8_t i = 0; i < 3; i++)
-    track[i] = { POL_UNCERTAIN, POL_UNCERTAIN, 0, false };
+  for (uint8_t i = 0; i < 3; i++) {
+    track[i] = {
+      POL_UNCERTAIN,  // confirmed
+      POL_UNCERTAIN,  // candidate
+      POL_UNCERTAIN,  // lastReading
+      POL_UNCERTAIN,  // prevCandidate
+      0,              // confirmCount
+      0,              // candidateCount
+      false           // locked
+    };
+  }
 }
 
 void setLEDs(CRGB color) {
@@ -108,6 +182,10 @@ void setLEDs(CRGB color) {
   FastLED.show();
 }
 
+/**
+ * Update I2C transmit buffer with current state and sensor polarities.
+ * Thread-safe with interrupt protection.
+ */
 void writeTxBuf(DetectState st, Polarity p0, Polarity p1, Polarity p2) {
   noInterrupts();
   txBuf[0] = (uint8_t)st;
@@ -119,11 +197,17 @@ void writeTxBuf(DetectState st, Polarity p0, Polarity p1, Polarity p2) {
   interrupts();
 }
 
+/**
+ * I2C request handler - sends current state to master device.
+ */
 void onRequest() {
   Wire.write((uint8_t*)txBuf, 6);
 }
 
-// Turn off DotStar LED (APA102 protocol)
+/**
+ * Turn off on-board DotStar LED using APA102 protocol.
+ * Called during setup to prevent interference with external LED ring.
+ */
 void turnOffDotStar() {
   pinMode(DOTSTAR_DATA, OUTPUT);
   pinMode(DOTSTAR_CLK, OUTPUT);
@@ -163,11 +247,15 @@ void turnOffDotStar() {
   pinMode(DOTSTAR_CLK, INPUT);
 }
 
+/**
+ * Verify if detected polarity pattern matches expected pattern for this board.
+ * Handles both forward and 180° rotated orientations for asymmetric patterns.
+ * 
+ * @return true if pattern is correct for this board's I2C address
+ */
 bool isCorrect() {
-  // p0=S1, p1=S2, p2=S3 (code/sensor IDs)
-  // Physical left-to-right on PCB: S2, S1, S3
-  // User spec gives patterns in physical L→R order
-  // 180° rotation reverses the physical L→R sequence
+  // Sensor mapping: p0=S1 (middle), p1=S2 (left), p2=S3 (right)
+  // Physical PCB layout (L→R): S2, S1, S3
   
   Polarity p0 = track[0].confirmed;  // S1 (middle)
   Polarity p1 = track[1].confirmed;  // S2 (left)
@@ -213,31 +301,37 @@ bool isCorrect() {
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 void setup() {
+  // Initialize serial communication
   Serial.begin(115200);
-  delay(1000);
+  delay(2500);  // Wait for serial monitor to connect
   
-  // Turn off on-board DotStar LED using APA102 protocol
+  // Disable on-board LEDs to prevent interference
   turnOffDotStar();
-  
-  // Turn off on-board LED
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
   
+  // Configure ADC for 12-bit resolution (0-4095)
   analogReadResolution(12);
 
+  // Initialize external LED ring
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 750);  // Increased from 100mA to 500mA
-  FastLED.setBrightness(75);  // Increased from 30 to 50
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 750);
+  FastLED.setBrightness(75);
   setLEDs(CRGB::Black);
 
+  // Initialize sensor tracking and I2C buffer
   resetTracks();
   writeTxBuf(STATE_IDLE, POL_UNCERTAIN, POL_UNCERTAIN, POL_UNCERTAIN);
 
+  // Read I2C address from hardware pins
+  Serial.println("\n=== READING I2C ADDRESS FROM HARDWARE PINS ===");
   setPins();
   i2cAddress = setAddr();
-  txBuf[4]   = (uint8_t)(i2cAddress & 0xFF);
+  txBuf[4] = (uint8_t)(i2cAddress & 0xFF);
+  Serial.println("==============================================");
   
-  Serial.println("\n=== M0 BOARD INITIALIZED ===");
+  // Print startup information
+  Serial.println("\n=== HALL EFFECT SENSOR BOARD INITIALIZED ===");
   Serial.print("I2C Address: 0x");
   Serial.println(i2cAddress, HEX);
   Serial.print("Expected Pattern: ");
@@ -245,16 +339,22 @@ void setup() {
   switch (i2cAddress) {
     case 0x08: Serial.println("Buoy - S S S"); break;
     case 0x09: Serial.println("Dam - N N N"); break;
-    case 0x0A: Serial.println("Geo - N S X"); break;
-    case 0x0B: Serial.println("Geo - X N S"); break;
-    case 0x0C: Serial.println("Solar - N X X"); break;
-    case 0x0D: Serial.println("Solar - X X N"); break;
-    case 0x0E: Serial.println("Wind - N N X"); break;
-    case 0x0F: Serial.println("Wind - X N N (sensor order: N X N)"); break;
+    case 0x0A: Serial.println("Geo B - N S X"); break;
+    case 0x0B: Serial.println("Geo C - X N S"); break;
+    case 0x0C: Serial.println("Solar D - N X X"); break;
+    case 0x0D: Serial.println("Solar AB - X X N"); break;
+    case 0x0E: Serial.println("Wind AC - N N X"); break;
+    case 0x0F: Serial.println("Wind AD - X N N"); break;
     default: Serial.println("UNKNOWN"); break;
   }
-  Serial.println("============================\n");
   
+  Serial.print("Configuration: ");
+  Serial.print(ADC_SAMPLES); Serial.print(" ADC samples, ");
+  Serial.print(CONFIRM_SAMPLES); Serial.print(" confirm samples, ");
+  Serial.print(DEBOUNCE_DELAY_MS); Serial.println("ms debounce");
+  Serial.println("============================================\n");
+  
+  // Start I2C peripheral
   Wire.begin(i2cAddress);
   Wire.onRequest(onRequest);
 }
@@ -264,11 +364,13 @@ void loop() {
   static const uint8_t PINS[3] = { SENSOR_1_PIN, SENSOR_2_PIN, SENSOR_3_PIN };
   static uint32_t lastDebug = 0;
 
+  // Read all sensors with averaging and hysteresis
   Polarity cur[3];
   uint16_t raw[3];
   for (uint8_t i = 0; i < 3; i++) {
-    raw[i] = analogRead(PINS[i]);
-    cur[i] = classify(raw[i]);
+    raw[i] = readSensorAveraged(PINS[i]);
+    cur[i] = classifyWithHysteresis(raw[i], track[i].lastReading);
+    track[i].lastReading = cur[i];  // Update for next iteration
   }
 
   bool allUncertain = (cur[0] == POL_UNCERTAIN &&
@@ -277,18 +379,47 @@ void loop() {
 
   switch (detectState) {
 
-    // ── IDLE ──────────────────────────────────────────────────────────────────
+    // ── IDLE: Waiting for magnet detection ───────────────────────────────────
     case STATE_IDLE:
       if (!allUncertain) {
         resetTracks();
-        detectState = STATE_REGISTERING;
-        Serial.println("\n>>> MAGNETISM DETECTED - STARTING REGISTRATION <<<");
-        setLEDs(CRGB(50, 50, 50));  // dim white — magnetism detected, acquiring
-        writeTxBuf(STATE_REGISTERING, cur[0], cur[1], cur[2]);
+        detectState = STATE_DEBOUNCING;
+        Serial.println("\n>>> MAGNETISM DETECTED - DEBOUNCING <<<");
+        // Stay dark during debounce - don't light up for transient signals
+        writeTxBuf(STATE_DEBOUNCING, cur[0], cur[1], cur[2]);
       }
       break;
 
-    // ── REGISTERING ───────────────────────────────────────────────────────────
+    // ── DEBOUNCING: Short delay to filter transient signals ──────────────────
+    case STATE_DEBOUNCING: {
+      static uint32_t debounceStartTime = 0;
+      static bool debounceTimerStarted = false;
+      
+      if (!debounceTimerStarted) {
+        debounceStartTime = millis();
+        debounceTimerStarted = true;
+      }
+      
+      if (allUncertain) {
+        // Magnet removed during debounce - false trigger
+        Serial.println(">>> FALSE TRIGGER - BACK TO IDLE <<<");
+        detectState = STATE_IDLE;
+        debounceTimerStarted = false;
+        writeTxBuf(STATE_IDLE, POL_UNCERTAIN, POL_UNCERTAIN, POL_UNCERTAIN);
+      }
+      else if (millis() - debounceStartTime >= DEBOUNCE_DELAY_MS) {
+        // Debounce complete - start registration
+        Serial.println(">>> DEBOUNCE COMPLETE - STARTING REGISTRATION <<<");
+        resetTracks();
+        detectState = STATE_REGISTERING;
+        debounceTimerStarted = false;
+        setLEDs(CRGB(50, 50, 50));  // Dim white - actively acquiring
+        writeTxBuf(STATE_REGISTERING, cur[0], cur[1], cur[2]);
+      }
+      break;
+    }
+
+    // ── REGISTERING: Confirming stable polarity pattern ───────────────────────
     case STATE_REGISTERING: {
       static uint32_t registerStartTime = 0;
       static bool timerStarted = false;
@@ -312,36 +443,70 @@ void loop() {
       for (uint8_t i = 0; i < 3; i++) {
         if (track[i].locked) continue;
 
-        if (cur[i] == track[i].candidate) {
-          // Current reading matches candidate - increment count
-          track[i].count++;
-          if (track[i].count >= CONFIRM_SAMPLES) {
-            track[i].confirmed = track[i].candidate;
-            track[i].locked    = true;
+        // Check if current reading matches previous candidate
+        if (cur[i] == track[i].prevCandidate) {
+          // Same as before - increment stability
+          track[i].candidateCount++;
+        } else {
+          // Different reading - reset stability tracking
+          track[i].candidateCount = 1;
+          track[i].prevCandidate = cur[i];
+        }
+
+        // After CANDIDATE_STABILITY consecutive identical reads, establish as candidate
+        if (track[i].candidateCount >= CANDIDATE_STABILITY) {
+          if (track[i].candidate != cur[i]) {
+            // New candidate established - reset confirmation
+            track[i].candidate = cur[i];
+            track[i].confirmCount = 0;
+          }
+        }
+
+        // Check if current reading matches the established candidate
+        if (cur[i] == track[i].candidate && track[i].candidateCount >= CANDIDATE_STABILITY) {
+          // Reading matches established candidate - increment confirmation
+          track[i].confirmCount++;
+          
+          if (track[i].confirmCount >= CONFIRM_SAMPLES) {
+            // Sufficient consecutive matches
+            // Lock S/N immediately, but X must wait for force-lock timeout
+            if (track[i].candidate == POL_SOUTH || track[i].candidate == POL_NORTH) {
+              track[i].confirmed = track[i].candidate;
+              track[i].locked = true;
+            } else {
+              // UNCERTAIN - keep counting, will be force-locked by timeout
+              allLocked = false;
+            }
           } else {
             allLocked = false;
           }
-        } else if (cur[i] == POL_UNCERTAIN && track[i].candidate != POL_UNCERTAIN && track[i].count >= 5) {
-          // Reading UNCERTAIN but have a strong S/N candidate (5+ samples)
-          // Slowly decrement count instead of resetting (protects Buoy from false X)
-          if (track[i].count > 0) track[i].count--;
+        }
+        else if (cur[i] == POL_UNCERTAIN && 
+                 track[i].candidate != POL_UNCERTAIN && 
+                 track[i].confirmCount >= 5) {
+          // Strong S/N candidate but momentary UNCERTAIN reading
+          // Slowly decrement instead of immediate reset
+          if (track[i].confirmCount > 0) track[i].confirmCount--;
           allLocked = false;
-        } else {
-          // New candidate reading or weak candidate - allow switch
-          track[i].candidate = cur[i];
-          track[i].count     = 1;
-          allLocked          = false;
+        }
+        else {
+          // Reading doesn't match candidate
+          if (track[i].confirmCount > 0) track[i].confirmCount--;
+          allLocked = false;
         }
       }
       
-      // Force-lock timeout: if we've been registering for 3+ seconds and a sensor
-      // is currently reading UNCERTAIN, lock it as UNCERTAIN (handles Wind pattern)
-      if (millis() - registerStartTime > 3000) {
+      // Force-lock timeout: if registering too long, lock stable UNCERTAIN sensors
+      // Only locks if sensor has been consistently UNCERTAIN (not flickering)
+      if (millis() - registerStartTime > FORCE_LOCK_TIMEOUT_MS) {
         for (uint8_t i = 0; i < 3; i++) {
-          if (!track[i].locked && cur[i] == POL_UNCERTAIN) {
+          if (!track[i].locked && 
+              track[i].candidate == POL_UNCERTAIN && 
+              track[i].confirmCount >= 5) {
+            // Sensor has been stably UNCERTAIN - lock it
             Serial.print("FORCE-LOCKING sensor ");
             Serial.print(i + 1);
-            Serial.println(" as UNCERTAIN (timeout)");
+            Serial.println(" as UNCERTAIN (stable timeout)");
             track[i].confirmed = POL_UNCERTAIN;
             track[i].locked = true;
           }
@@ -350,11 +515,10 @@ void loop() {
 
       writeTxBuf(STATE_REGISTERING, cur[0], cur[1], cur[2]);
 
-      // Debug output every 500ms
+      // Debug output every 500ms during registration
       if (millis() - lastDebug > 500) {
         static const char* POL_LABEL[] = { "  X  ", "  S  ", "  N  " };
-        static const char* LOCK_LABEL[] = { ".....", "LOCK!" };
-
+        
         Serial.println("         S2      S1      S3    (physical L→R)");
         Serial.print(  "RAW:   ");
         Serial.print(raw[1]); Serial.print("\t");
@@ -368,12 +532,16 @@ void loop() {
         Serial.print(POL_LABEL[track[1].candidate]); Serial.print("   ");
         Serial.print(POL_LABEL[track[0].candidate]); Serial.print("   ");
         Serial.println(POL_LABEL[track[2].candidate]);
-        Serial.print(  "CNT:  ");
-        Serial.print(track[1].count); Serial.print("/"); Serial.print(LOCK_LABEL[track[1].locked]);
+        Serial.print(  "PROG: ");
+        Serial.print(track[1].confirmCount); Serial.print("/"); Serial.print(CONFIRM_SAMPLES);
+        if (track[1].locked) Serial.print(" LOCKED");
         Serial.print("  ");
-        Serial.print(track[0].count); Serial.print("/"); Serial.print(LOCK_LABEL[track[0].locked]);
+        Serial.print(track[0].confirmCount); Serial.print("/"); Serial.print(CONFIRM_SAMPLES);
+        if (track[0].locked) Serial.print(" LOCKED");
         Serial.print("  ");
-        Serial.print(track[2].count); Serial.print("/"); Serial.println(LOCK_LABEL[track[2].locked]);
+        Serial.print(track[2].confirmCount); Serial.print("/"); Serial.print(CONFIRM_SAMPLES);
+        if (track[2].locked) Serial.println(" LOCKED");
+        else Serial.println();
         Serial.println();
 
         lastDebug = millis();
@@ -418,7 +586,7 @@ void loop() {
       break;
     }
 
-    // ── CORRECT / INCORRECT — wait for object removal ─────────────────────────
+    // ── CORRECT / INCORRECT: Waiting for magnet removal ──────────────────────
     case STATE_CORRECT:
     case STATE_INCORRECT:
       if (allUncertain) {

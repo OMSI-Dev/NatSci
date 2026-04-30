@@ -88,6 +88,11 @@ Sensor Indicator LEDs
 2. (D2) Pin 10 on M0 Express
 3. (D3) Pin 9 on M0 Express
 
-Ring LEDs for gameplay 
+Pill LEDs for gameplay 
 1. LED 1-20 to DOUT
 1. DOUT to Pin 2 of M0 Express
+
+Language Button
+1. Switch to Pin 15 on Teensy 4.1
+2. PWM to Pin 22 on Teensy 4.1 
+

@@ -1,0 +1,42 @@
+===(Initial Setup on Pi device)
+1) Create a project folder
+
+mkdir ~/PROJECT_NAME
+cd ~/PROJECT_NAME
+
+2) Create a virtual environment
+This avoids the "externally managed environment" issue on Pi OS:
+
+python3 -m venv venv
+source venv/bin/activate
+
+Terminal prompt will now show (venv) to indicate the venv is active
+
+3) Install required Python packages
+
+pip install pyserial python-osc
+
+4) Create the main script file 
+
+nano serial_to_osc.py
+
+5) Paste the scaffold found in this folder in the nano editor
+
+Edit > Paste
+
+6) Run the script
+
+python3 serial_to_osc.py
+
+===(Re-access project) (vl53_sonicpi)
+1) 
+
+cd ~/PROJECT_NAME
+
+2)
+
+source venv/bin/activate
+
+3)
+
+python3 serial_to_osc.py

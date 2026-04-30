@@ -11,12 +11,13 @@ using System;
 
 public partial class GameController : Node2D
 {
-	public int totalScore;
+	public int  totalScore;
 	public bool gameStarted;
 	public bool round1Complete;
 	public bool round2Complete;
 	public bool resultsComplete;
 
+	private bool idleStarted		  = false;
 	private bool round1Started        = false;
 	private bool round1ScoreCollected = false;
 	private bool round2Started        = false;
@@ -39,13 +40,8 @@ public partial class GameController : Node2D
 
 	public override void _Ready()
 	{
-		// Set to Fullscreen Mode
+		// Set to Fullscreen Mode & hide mouse
 		DisplayServer.WindowSetMode(DisplayServer.WindowMode.Fullscreen);
-		// Move to the second monitor (index 1)
-		//DisplayServer.WindowSetCurrentScreen(1);
-		Vector2I screenSize = DisplayServer.ScreenGetSize();
-		//GD.Print("Screen Resolution: " + screenSize);
-		// Hide mouse.
 		Input.MouseMode = Input.MouseModeEnum.Hidden;
 
 		totalScore      = 0;
@@ -100,32 +96,33 @@ public partial class GameController : Node2D
 				GD.Print("Idle Node is null in Game Controller's _Process function.");
 			}
 
-			// Check for a serial message that a button has been pushed
-			if(!gameStarted) {
+			if(!idleStarted) {
+				printHeader("IDLE");
+				GD.Print("Waiting for game to start...");
 				idleNode.Show();
-				gameStarted = idleScript.isGameStarted();
-				if(!gameStarted) {
-					//GD.Print("Waiting for someone to start the game...");
-				} else if (gameStarted) {
-					GD.Print("Game started! End of Idle script, moving on to Round 1...");
-				}
+				idleStarted = true;
 			}
+
+			// Check for a serial message that a button has been pushed
+			if(!gameStarted) { gameStarted = idleScript.isGameStarted(); }
+			if (gameStarted) { GD.Print("Game started! End of Idle script, moving on to Round One..."); }
 		}
 
 		// --------------------------------------------------------
 		//  ********************** ROUND ONE *********************
 		// --------------------------------------------------------
 		if(gameStarted && !round1Complete && !round2Complete && !resultsComplete) {
-			if(round1Node == null) { GD.Print("Round 1 Node is null in Game Controller's _Process function."); }
+			if(round1Node == null) { GD.Print("Round One Node is null in Game Controller's _Process function."); }
 
 			if(!round1Complete) {
 				idleNode.Hide();
 				round1Node.Show();
 
 				if(!round1Started) {
+					printHeader("ROUND ONE");
 					round1Script.startRoundOne(true);
 					round1Started = round1Script.getRound1Start();
-					GD.Print("Round One set to start in Game Controller's _Process function.");
+					GD.Print("Round One started in Game Controller's _Process function.");
 				}
 
 				round1Complete = round1Script.isRound1Over();
@@ -134,7 +131,7 @@ public partial class GameController : Node2D
 				if(round1Complete && !round1ScoreCollected) {
 					round1ScoreCollected = true;
    					totalScore = round1Script.round1Score();
-					GD.Print("Round one completed. Score: " + totalScore);
+					GD.Print("Round One completed. Score: " + totalScore);
 				}
 			}
 		}
@@ -143,16 +140,17 @@ public partial class GameController : Node2D
 		//  ********************* ROUND TWO *********************
 		// -------------------------------------------------------
 		if(gameStarted && round1Complete && !round2Complete && !resultsComplete) {
-			if(round2Node == null) { GD.Print("Round 2 Node is null in Game Controller's _Process function."); }
+			if(round2Node == null) { GD.Print("Round Two Node is null in Game Controller's _Process function."); }
 
 			if(!round2Complete) {
 				round1Node.Hide();
 				round2Node.Show();
 
 				if(!round2Started) {
+					printHeader("ROUND TWO");
 					round2Script.startRoundTwo(true);
 					round2Started = round2Script.getRound2Start();
-					GD.Print("Round Two set to start in Game Controller's _Process function.");
+					GD.Print("Round Two started in Game Controller's _Process function.");
 				}
 
 				round2Complete = round2Script.isRound2Over();
@@ -161,7 +159,7 @@ public partial class GameController : Node2D
 				if(round2Complete && !round2ScoreCollected) {
 					round2ScoreCollected = true;
    					totalScore += round2Script.round2Score();
-					GD.Print("Round two completed. Score from round two: " + round2Script.round2Score());
+					GD.Print("Round Two completed. Score from Round Two: " + round2Script.round2Score());
 					GD.Print("Total score: " + totalScore);
 				}
 			}
@@ -177,10 +175,11 @@ public partial class GameController : Node2D
 			resultsNode.Show();
 
    		 	if(!resultsStarted) {
+				printHeader("RESULTS");
 				resultsStarted = true;
 				resultsScript.resetResults();        // reset before setting score
 				resultsScript.setTotalScore(totalScore);
-				GD.Print("Results started. Total score: " + totalScore);
+				GD.Print("Results started in GameController's _Process function. Total score: " + totalScore);
 			}
 
 			resultsComplete = resultsScript.getResultsFinished();
@@ -195,30 +194,40 @@ public partial class GameController : Node2D
 	}
 
 	public void restartGame() {
+		printHeader("GAME RESTART");
 		gameStarted = false;
 		totalScore  = 0;
-		GD.Print("Game starting over in restartGame function in GameController...");
+		GD.Print("Game restarting in GameController's restartGame(). Game started: " + gameStarted + ". Total score: " + totalScore + ".");
+
+		idleStarted = false;
+		GD.Print("Reset! Idle started: " + idleStarted);
 
 		round1Complete       = false;
 		round1ScoreCollected = false;
 		round1Started        = false;
 		round1Script.resetRound1Score();
-		GD.Print("Reset! Round 1 score: " + round1Script.round1Score());
+		GD.Print("Reset! Round One score: " + round1Script.round1Score());
 
 		round2Complete       = false;
 		round2ScoreCollected = false;
 		round2Started        = false;
 		round2Script.resetRound2Score();
-		GD.Print("Reset! Round 2 score: " + round2Script.round2Score());
+		GD.Print("Reset! Round One score: " + round2Script.round2Score());
 
 		resultsComplete = false;
 		resultsStarted  = false;
-		resultsScript.setTotalScore(0);
+		resultsScript.resetResults();
 		GD.Print("Reset! Results script total score: " + resultsScript.getTotalScore());
 
 		idleNode.Hide();
 		round1Node.Hide();
 		round2Node.Hide();
 		resultsNode.Hide();
+	}
+
+	private void printHeader(string txtToPrint) {
+		GD.Print("--------------------------------------");
+		GD.Print("***** " + txtToPrint + " *****");
+		GD.Print("--------------------------------------");
 	}
 }
