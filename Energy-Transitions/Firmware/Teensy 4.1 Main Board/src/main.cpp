@@ -5,10 +5,9 @@
  * via I2C. Provides audio feedback using WAV Trigger.
  * 
  * GAME STATE FLOW:
- *   RESET_IDLE (red pulse, wait for empty) → 
  *   READY_IDLE (white pulse, wait for piece registration) → 
  *   ACTIVE (piece registered, pull switch to check) → 
- *   PRE_RESULTS → RESULTS → RESET_IDLE
+ *   PRE_RESULTS → RESULTS → READY_IDLE
  * 
  * I2C COMMUNICATION:
  *   - Teensy is I2C master
@@ -56,12 +55,9 @@
 #define NUM_M0_BOARDS 10      // Number of M0 sensor boards expected
 #define ENERGY_SWITCH_DEBOUNCE_MS 200  // Debounce time for energy switch
 #define INACTIVITY_TIMEOUT_MS 120000  // 2 minutes of inactivity before auto-reset
-#define RESET_IDLE_TIMEOUT_MS 5000   // 5 seconds before attempting bypass
-#define RESET_IDLE_MIN_CLEAR_BOARDS 5 // Minimum boards that must be clear to bypass
 
 // ── Game state enum ────────────────────────────────────────────────────────────
 enum GameState : uint8_t {
-  GAME_RESET_IDLE  = 0,
   GAME_READY_IDLE  = 1,
   GAME_ACTIVE      = 2,
   GAME_PRE_RESULTS = 3,
@@ -82,7 +78,7 @@ struct M0Status {
 };
 
 // ── Global variables ───────────────────────────────────────────────────────────
-GameState currentGameState = GAME_RESET_IDLE;
+GameState currentGameState = GAME_READY_IDLE;
 M0Status m0Boards[NUM_M0_BOARDS];
 uint8_t m0Addresses[NUM_M0_BOARDS] = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11};
 
@@ -115,15 +111,9 @@ uint8_t previousRegisteredCount = 0;
 // Inactivity timer for auto-reset
 uint32_t lastActivityTime = 0;
 
-// RESET_IDLE bypass control
-uint32_t resetIdleStartTime = 0;
-bool bypassResetIdleCheck = false;
-
 void changeGameState(GameState newState);
 void sendGameStateToM0s();
 void pollM0Boards(bool verbose = false);
-bool checkAllM0sUnregistered();
-int countClearM0Boards();
 void processResults();
 void handleSerialDevTools();
 bool checkEnergySwitchPulled();
@@ -162,7 +152,6 @@ void setup() {
   wavTrig.samplerateOffset(0);
   wavTrig.masterGain(0);
   wavTrig.setAmpPwr(true);
-  wavTrig.setReporting(true);
   Serial.println("✓ WAV Trigger initialized");
   
   // Initialize City LEDs
@@ -190,12 +179,11 @@ void setup() {
     m0Boards[i].address = m0Addresses[i];
   }
   
-  // Start in RESET_IDLE state
-  changeGameState(GAME_RESET_IDLE);
+  // Start in READY_IDLE state
+  changeGameState(GAME_READY_IDLE);
   lastActivityTime = millis();
   
 
-  Serial.println("'1' = Force RESET_IDLE");
   Serial.println("'2' = Force READY_IDLE");
   Serial.println("'3' = Force ACTIVE");
   Serial.println("'4' = Force PRE_RESULTS");
@@ -203,7 +191,7 @@ void setup() {
   Serial.println("'p' = Poll M0 boards");
   Serial.println("'e' = Simulate energy switch pull");
   Serial.println("'s' = Print current state status");
-  Serial.println("'r' = Reset to RESET_IDLE");
+  Serial.println("'r' = Reset to READY_IDLE");
 
 }
 
@@ -228,47 +216,6 @@ void loop() {
   
   // State machine
   switch (currentGameState) {
-    
-    // RESET_IDLE: Wait for all M0s to report unregistered 
-    case GAME_RESET_IDLE:
-      // Poll M0 boards periodically
-      if (millis() - lastPollTime >= POLL_INTERVAL) {
-        // Poll quietly (detailed status available via 's' dev command)
-        pollM0Boards();
-        lastPollTime = millis();
-        
-        // Check if all pieces have been removed (all boards in IDLE state)
-        if (checkAllM0sUnregistered()) {
-          Serial.println(">>> All pieces removed - ready for new game!");
-          changeGameState(GAME_READY_IDLE);
-        }
-        // Bypass: After timeout, check if "enough" boards are clear
-        else if (!bypassResetIdleCheck && (millis() - resetIdleStartTime >= RESET_IDLE_TIMEOUT_MS)) {
-          int clearBoards = countClearM0Boards();
-          Serial.print("\n⚠ RESET_IDLE TIMEOUT (");
-          Serial.print(RESET_IDLE_TIMEOUT_MS / 1000);
-          Serial.print("s) - ");
-          Serial.print(clearBoards);
-          Serial.print("/");
-          Serial.print(NUM_M0_BOARDS);
-          Serial.println(" boards clear");
-          
-          if (clearBoards >= RESET_IDLE_MIN_CLEAR_BOARDS) {
-            Serial.println(">>> BYPASSING stuck M0s - proceeding to READY_IDLE anyway!");
-            Serial.println("    (Some M0s may still show as registered - this is a workaround)");
-            bypassResetIdleCheck = false;
-            changeGameState(GAME_READY_IDLE);
-          } else {
-            Serial.println("⚠ Not enough boards clear to bypass safely.");
-            Serial.print("    Need at least ");
-            Serial.print(RESET_IDLE_MIN_CLEAR_BOARDS);
-            Serial.println(" clear boards.");
-            Serial.println("    Waiting 10 more seconds...");
-            resetIdleStartTime = millis() - (RESET_IDLE_TIMEOUT_MS - 10000);
-          }
-        }
-      }
-      break;
     
     // READY_IDLE: Wait for piece registration 
     case GAME_READY_IDLE:
@@ -340,7 +287,7 @@ void loop() {
       // Check for inactivity timeout (2 minutes)
       if (millis() - lastActivityTime >= INACTIVITY_TIMEOUT_MS) {
         Serial.println("\n>>> INACTIVITY TIMEOUT - Auto-resetting game!");
-        changeGameState(GAME_RESET_IDLE);
+        changeGameState(GAME_READY_IDLE);
       }
       
       // Energy switch only works in ACTIVE state
@@ -384,8 +331,8 @@ void loop() {
         }
         
         if (elapsed >= RESULTS_DISPLAY_DURATION_MS) {
-          Serial.println("\n>>> Results display time complete - resetting game!");
-          changeGameState(GAME_RESET_IDLE);
+          Serial.println("\n>>> Results display time complete - ready for next game!");
+          changeGameState(GAME_READY_IDLE);
         }
       }
       break;
@@ -420,16 +367,6 @@ void changeGameState(GameState newState) {
   
   // State-specific initialization
   switch (currentGameState) {
-    case GAME_RESET_IDLE:
-      Keyboard.press('r');
-      delay(50);
-      Keyboard.release('r');
-      Serial.println("[INIT] Remove all pieces (M0s show pulsing RED)...");
-      wavTrig.trackPlayPoly(RESET);
-      resetIdleStartTime = millis();
-      bypassResetIdleCheck = false;
-      break;
-      
     case GAME_READY_IDLE:
       Keyboard.press('i');
       delay(50);
@@ -573,49 +510,6 @@ void pollM0Boards(bool verbose = false) {
   }
 }
 
-//M0 boards status - registered/unregistered, correct/incorrect, response received
-bool checkAllM0sUnregistered() {
-  bool allClear = true;
-  
-  for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
-    if (!m0Boards[i].responseReceived) {
-      // Haven't received response from this board yet
-      Serial.print("  !!! M0 #");
-      Serial.print(i + 1);
-      Serial.print(" at 0x");
-      Serial.print(m0Addresses[i], HEX);
-      Serial.println(" - No response");
-      allClear = false;
-      continue;
-    }
-    // Check that board is in IDLE or DEBOUNCING state (0 or 1)
-    // detectState: 0=IDLE, 1=DEBOUNCING, 2=REGISTERING, 3=CORRECT, 4=INCORRECT
-    if (m0Boards[i].detectState >= 2) {
-      Serial.print("  !!! M0 #");
-      Serial.print(i + 1);
-      Serial.print(" at 0x");
-      Serial.print(m0Addresses[i], HEX);
-      Serial.print(" - Still has piece (state=");
-      Serial.print(m0Boards[i].detectState);
-      Serial.println(")");
-      allClear = false;
-    }
-  }
-  
-  return allClear; 
-}
-
-// Count how many M0 boards are clear (responding and in IDLE/DEBOUNCING state)
-int countClearM0Boards() {
-  int clearCount = 0;
-  for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
-    if (m0Boards[i].responseReceived && m0Boards[i].detectState < 2) {
-      clearCount++;
-    }
-  }
-  return clearCount;
-}
-
 //Process results and determine WIN/YELLOW/FAIL
 void processResults() {
   Serial.println("\n═══════════════════════════════════════════════════════════");
@@ -687,11 +581,6 @@ void handleSerialDevTools() {
     char cmd = Serial.read();
     
     switch (cmd) {
-      case '1':
-        Serial.println("\n[DEV] Forcing RESET_IDLE state");
-        changeGameState(GAME_RESET_IDLE);
-        break;
-        
       case '2':
         Serial.println("\n[DEV] Forcing READY_IDLE state");
         changeGameState(GAME_READY_IDLE);
@@ -737,8 +626,8 @@ void handleSerialDevTools() {
         
       case 'r':
       case 'R':
-        Serial.println("\n[DEV] Manual reset to RESET_IDLE");
-        changeGameState(GAME_RESET_IDLE);
+        Serial.println("\n[DEV] Manual reset to READY_IDLE");
+        changeGameState(GAME_READY_IDLE);
         break;
         
       case '\n':
@@ -782,7 +671,6 @@ bool checkEnergySwitchPulled() {
 
 const char* getGameStateName(GameState state) {
   switch (state) {
-    case GAME_RESET_IDLE:  return "RESET_IDLE";
     case GAME_READY_IDLE:  return "READY_IDLE";
     case GAME_ACTIVE:      return "ACTIVE";
     case GAME_PRE_RESULTS: return "PRE_RESULTS";
@@ -876,11 +764,6 @@ void printCurrentStateStatus() {
 //Update City LEDs
 void updateCityLEDs() {
   switch (currentGameState) {
-    case GAME_RESET_IDLE:
-      // All cities pulsate red (same as M0 rings)
-      setAllCitiesPulsating(CRGB::Red, 30, 200, 800);
-      break;
-      
     case GAME_READY_IDLE:
     case GAME_ACTIVE:
       // No lights during gameplay
