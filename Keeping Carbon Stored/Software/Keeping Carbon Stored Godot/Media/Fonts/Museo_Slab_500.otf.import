@@ -3,12 +3,12 @@
 importer="font_data_dynamic"
 type="FontFile"
 uid="uid://by26mvrh6homv"
-path="res://.godot/imported/Museo_Slab_500.otf-da6c48103efecabcf00194cec6932ed2.fontdata"
+path="res://.godot/imported/Museo_Slab_500.otf-7d6470eaab6a86e4ef2d7c7bb418420f.fontdata"
 
 [deps]
 
-source_file="res://Media/Museo_Slab_500.otf"
-dest_files=["res://.godot/imported/Museo_Slab_500.otf-da6c48103efecabcf00194cec6932ed2.fontdata"]
+source_file="res://Media/Fonts/Museo_Slab_500.otf"
+dest_files=["res://.godot/imported/Museo_Slab_500.otf-7d6470eaab6a86e4ef2d7c7bb418420f.fontdata"]
 
 [params]
 
