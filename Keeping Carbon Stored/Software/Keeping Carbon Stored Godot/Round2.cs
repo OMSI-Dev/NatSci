@@ -137,7 +137,8 @@ public partial class Round2 : Node2D
 							if(!r2States[indx]) {
 								GD.Print(selected + " already OFF.");
 							} else {
-								bool done = allTilesOff(selected);
+								allTilesOff(selected);
+								bool done = checkADA();
 								score++;
 								if(done) {
 									GD.Print("All non-ADA tiles have been pressed in Round Two. Turning them on again...");
