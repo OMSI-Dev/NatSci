@@ -212,13 +212,16 @@ public partial class Round2 : Node2D
 		}
 	}
 
-	// Restart tiles
+	// -----------------------------------------------------------
+	//  ********************* RESTART TILES *********************
+	// -----------------------------------------------------------
 	private void restartTiles() {
 		// Send the data to the round 1 tiles to turn on. All tiles turn on at once.
 		string toSend;
 		int i = 0;
 		GD.Print("Sending serial com to restart Round Two's tiles:");
 		foreach(var tile in r2Tiles) {
+			if(r2States[i]) { return; }
 			toSend = tile + "255000000";
 			if(serialCom == null) {
 				GD.Print("Serial communication NOT CONNECTED in Round Two's restartTiles function.");
