@@ -8,7 +8,7 @@
 [ext_resource type="Script" uid="uid://bi2ecw060sefu" path="res://Round2.cs" id="5_mf81u"]
 [ext_resource type="Script" uid="uid://bnwtodx8qn7i6" path="res://Results.cs" id="6_02kkc"]
 [ext_resource type="VideoStream" uid="uid://bpgmmolmephjo" path="res://Media/r1Gameplay1080.ogv" id="6_aomqu"]
-[ext_resource type="FontFile" uid="uid://dll7pxvfgyh6o" path="res://Media/Museo_Slab_700.otf" id="7_aomqu"]
+[ext_resource type="FontFile" uid="uid://dll7pxvfgyh6o" path="res://Media/Fonts/Museo_Slab_700.otf" id="7_aomqu"]
 [ext_resource type="VideoStream" uid="uid://d2yb3sjngnleo" path="res://Media/round2Intro1080.ogv" id="9_krmtw"]
 [ext_resource type="VideoStream" uid="uid://msk71lavvr8d" path="res://Media/r2Gameplay1080.ogv" id="10_jgkyn"]
 [ext_resource type="VideoStream" uid="uid://orrebqemdclx" path="res://Media/results1080.ogv" id="12_aomqu"]

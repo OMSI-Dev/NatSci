@@ -141,7 +141,8 @@ public partial class Round2 : Node2D
 								score++;
 								if(done) {
 									GD.Print("All non-ADA tiles have been pressed in Round Two. Turning them on again...");
-									startRound2Tiles();
+									restartTiles();
+									done = false;
 								}
 							}
 						} else {
@@ -207,6 +208,26 @@ public partial class Round2 : Node2D
 			_r2ScoreText.Text       = "0";
 			_r2SmallScoreText.Text  = "0";
 			_r2SmallScoreText2.Text = "0";
+		}
+	}
+
+	// Restart tiles
+	private void restartTiles() {
+		// Send the data to the round 1 tiles to turn on. All tiles turn on at once.
+		string toSend;
+		int i = 0;
+		GD.Print("Sending serial com to restart Round Two's tiles:");
+		foreach(var tile in r2Tiles) {
+			toSend = tile + "255000000";
+			if(serialCom == null) {
+				GD.Print("Serial communication NOT CONNECTED in Round Two's restartTiles function.");
+			}
+			serialCom.sendData(toSend);
+			GD.Print(toSend);
+
+			// Set current state of the tile we just sent data to is true / on.
+			r2States[i] = true;
+			i++;
 		}
 	}
 
@@ -300,14 +321,11 @@ public partial class Round2 : Node2D
 		//GD.Print("Serial com data sent to " + tile + ": " + tile + "000000000");
 		GD.Print(tile + " with index #" + index + " turned OFF in Round Two.");
 
-		/*
 		if(!r2States.Contains(true)) {
 			GD.Print("ALL tiles turned OFF in Round Two.");
 			return true;
 		}
 		return false;
-		*/
-		return checkADA();
 	}
 
 	// Check if all tiles except the ADA have been pressed off.
