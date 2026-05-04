@@ -1,4 +1,4 @@
-\*theoretical pinout made by autumn 3.18.26
+autumn's breadboard 3.18.26
 
 
 

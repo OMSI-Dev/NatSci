@@ -1,0 +1,15 @@
+Main Circuit Board
+	- Hosts 3x on-board RFID modules
+	- Receives input for 3x external RFID antennae 
+	- Outputs LED data from Teensy 4.0 to 3x external LED PCBs for game pieces
+	- Receives input for a language button to output to connected computer via Teensy -> USB 
+	- Receives 12V and 5V input 
+
+LED PCBs for game pieces
+	- Receives LED data from main board
+	- Outputs based on user interaction in gameplay 
+
+Computer
+	- Connected to Teensy 4.0 on main board via USB 
+	- Receives inputs from Teensy based on game states
+	- Displays visual information based on game states 

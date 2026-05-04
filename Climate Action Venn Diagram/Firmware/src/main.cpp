@@ -30,7 +30,7 @@ void setup()
     
     // Setup pin modes
     setPins();
-    Serial.println("✓ Pins configured");
+    Serial.println("!!! Pins configured");
     
     // Initialize RFID readers
     startRfidSerial();
