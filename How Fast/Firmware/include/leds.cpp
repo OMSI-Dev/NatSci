@@ -7,13 +7,17 @@
 #include <Arduino.h>
 #include <FastLED.h>
 
-// *********************** UPPER LED RINGS ***********************
-// Declare the data pin, the number of LEDs in each ring,
-// and the total number of LEDs across all the upper LED rings.
-// Will probably just be one #define that works for sectioning all,
-// because they should all be the same amount. ie #define UPPER_RING_SECTION or RING_SECTION
-// as the lower ones should use the same amount per section as well.
-// Then to access a specific section, it would be ie RING_SECTION*2.
+struct { int totalLeds; int ledPin; CRGB *ledSection; } LEDStruct;
+
+/*
+ * *********************** UPPER LED RINGS ***********************
+ * Declare the data pin, the number of LEDs in each ring,
+ * and the total number of LEDs across all the upper LED rings.
+ * Will probably just be one #define that works for sectioning all,
+ * because they should all be the same amount. ie #define UPPER_RING_SECTION or RING_SECTION
+ * as the lower ones should use the same amount per section as well.
+ * Then to access a specific section, it would be ie RING_SECTION*2.
+ */
 #define LED_UPPER_RING_PIN 0
 #define UPPER_RING0 10
 #define UPPER_RING1 10
@@ -41,13 +45,15 @@ CRGB *topRing7 = &ledUpperRings[UPPER_RING0 + UPPER_RING1 + UPPER_RING2 + UPPER_
 CRGB *topRing8 = &ledUpperRings[UPPER_RING0 + UPPER_RING1 + UPPER_RING2 + UPPER_RING3 + UPPER_RING4 + UPPER_RING5 + UPPER_RING6 + UPPER_RING7];
 CRGB *topRing9 = &ledUpperRings[UPPER_RING0 + UPPER_RING1 + UPPER_RING2 + UPPER_RING3 + UPPER_RING4 + UPPER_RING5 + UPPER_RING6 + UPPER_RING7 + UPPER_RING8];
 
-// *********************** LOWER LED RINGS ***********************
-// Declare the data pin, the number of LEDs in each ring,
-// and the total number of LEDs across all the upper LED rings.
-// Will probably just be one #define that works for sectioning all,
-// because they should all be the same amount. ie #define UPPER_RING_SECTION or RING_SECTION
-// as the lower ones should use the same amount per section as well.
-// Then to access a specific section, it would be ie RING_SECTION*2.
+/*
+ * *********************** LOWER LED RINGS ***********************
+ * Declare the data pin, the number of LEDs in each ring,
+ * and the total number of LEDs across all the upper LED rings.
+ * Will probably just be one #define that works for sectioning all,
+ * because they should all be the same amount. ie #define UPPER_RING_SECTION or RING_SECTION
+ * as the lower ones should use the same amount per section as well.
+ * Then to access a specific section, it would be ie RING_SECTION*2.
+ */
 #define LED_LOW_RING_PIN 0
 #define LOW_RING0 10
 #define LOW_RING1 10
@@ -75,9 +81,11 @@ CRGB *lowRing7 = &ledLowerRings[LOW_RING0 + LOW_RING1 + LOW_RING2 + LOW_RING3 + 
 CRGB *lowRing8 = &ledLowerRings[LOW_RING0 + LOW_RING1 + LOW_RING2 + LOW_RING3 + LOW_RING4 + LOW_RING5 + LOW_RING6 + LOW_RING7];
 CRGB *lowRing9 = &ledLowerRings[LOW_RING0 + LOW_RING1 + LOW_RING2 + LOW_RING3 + LOW_RING4 + LOW_RING5 + LOW_RING6 + LOW_RING7 + LOW_RING8];
 
+/*
 // *********************** LED STRIP (GRAPH) ***********************
 // Declare the LED strip data pin and amount of LEDs in each section along with the total.
 // This stip is the big red graph strip.
+*/
 #define LED_STRIP_PIN 7
 #define NUM_STRIP_SECTION0 10
 #define NUM_STRIP_SECTION1 10
@@ -140,46 +148,16 @@ void defaultRingColor()
 
 void lightLEDSection(uint8_t section)
 {
-    if (section == 0)
-    {
-        fill_solid(section0Array, NUM_STRIP_SECTION0, CRGB::Red);
-    }
-    else if (section == 1)
-    {
-        fill_solid(section1Array, NUM_STRIP_SECTION1, CRGB::Red);
-    }
-    else if (section == 2)
-    {
-        fill_solid(section2Array, NUM_STRIP_SECTION2, CRGB::Red);
-    }
-    else if (section == 3)
-    {
-        fill_solid(section3Array, NUM_STRIP_SECTION3, CRGB::Red);
-    }
-    else if (section == 4)
-    {
-        fill_solid(section4Array, NUM_STRIP_SECTION4, CRGB::Red);
-    }
-    else if (section == 5)
-    {
-        fill_solid(section5Array, NUM_STRIP_SECTION5, CRGB::Red);
-    }
-    else if (section == 6)
-    {
-        fill_solid(section6Array, NUM_STRIP_SECTION6, CRGB::Red);
-    }
-    else if (section == 7)
-    {
-        fill_solid(section7Array, NUM_STRIP_SECTION7, CRGB::Red);
-    }
-    else if (section == 8)
-    {
-        fill_solid(section8Array, NUM_STRIP_SECTION8, CRGB::Red);
-    }
-    else if (section == 9)
-    {
-        fill_solid(section9Array, NUM_STRIP_SECTION9, CRGB::Red);
-    }
+    if (section == 0) { fill_solid(section0Array, NUM_STRIP_SECTION0, CRGB::Red); }
+    else if (section == 1) { fill_solid(section1Array, NUM_STRIP_SECTION1, CRGB::Red); }
+    else if (section == 2) { fill_solid(section2Array, NUM_STRIP_SECTION2, CRGB::Red); }
+    else if (section == 3) { fill_solid(section3Array, NUM_STRIP_SECTION3, CRGB::Red); }
+    else if (section == 4) { fill_solid(section4Array, NUM_STRIP_SECTION4, CRGB::Red); }
+    else if (section == 5) { fill_solid(section5Array, NUM_STRIP_SECTION5, CRGB::Red); }
+    else if (section == 6) { fill_solid(section6Array, NUM_STRIP_SECTION6, CRGB::Red); }
+    else if (section == 7) { fill_solid(section7Array, NUM_STRIP_SECTION7, CRGB::Red); }
+    else if (section == 8) { fill_solid(section8Array, NUM_STRIP_SECTION8, CRGB::Red); }
+    else if (section == 9) { fill_solid(section9Array, NUM_STRIP_SECTION9, CRGB::Red); }
     FastLED.show();
 }
 
@@ -193,10 +171,7 @@ void resetGraphLights()
 // Countdown variable dictates how many times it will chase.
 int gameFinishedLightsRainbow(int countdown)
 {
-    if (countdown == 0)
-    {
-        return 0;
-    }
+    if (countdown == 0) { return 0; }
 
     for (uint8_t i = 0; i < TOTAL_LED_STRIP; i++)
     {
@@ -211,6 +186,7 @@ int gameFinishedLightsRainbow(int countdown)
         ledStrip[i] = CRGB::Black;
         delay(20);
     }
+
     return gameFinishedLightsRainbow(countdown - 1);
 }
 
@@ -218,10 +194,7 @@ int gameFinishedLightsRainbow(int countdown)
 // Countdown variable dictates how many times it will "breathe."
 int gameFinishedLightsBreathing(int countdown)
 {
-    if (countdown == 0)
-    {
-        return 0;
-    }
+    if (countdown == 0) { return 0; }
 
     // Make all half bright first.
     for (uint8_t i = 0; i < TOTAL_LED_STRIP; i++)
