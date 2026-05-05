@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """
-Multi-Sensor Serial to OSC Bridge
-Reads sensor data in format: "1:54, 2:32, 3:11" and sends to Pure Data
-Supports 1-10 sensors dynamically
+Serial to OSC Bridge
+Reads sensor data from serial and sends to Pure Data on port 4559
 """
 
 import serial
-import re
 import sys
 from pythonosc import udp_client
 
@@ -15,24 +13,10 @@ BAUD_RATE = 9600
 OSC_IP = "127.0.0.1"
 OSC_PORT = 4559
 
-def parse_sensor_data(line):
-    """Parse format: '1:0.543, 2:0.321, 3:1.123' into [(1, 0.543), (2, 0.321), (3, 1.123)]"""
-    sensors = []
-    # Split by comma and parse each sensorNum:distance pair
-    for entry in line.split(','):
-        entry = entry.strip()
-        match = re.match(r'(\d+):([\d.]+)', entry)
-        if match:
-            sensor_num = int(match.group(1))
-            distance = float(match.group(2))
-            sensors.append((sensor_num, distance))
-    return sensors
-
 def main():
     ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
     client = udp_client.SimpleUDPClient(OSC_IP, OSC_PORT)
     print(f"Serial: {SERIAL_PORT} | OSC: {OSC_IP}:{OSC_PORT}")
-    print("Format: sensorNum:distanceMeters (e.g., '1:0.543, 2:0.321')\n")
     
     try:
         while True:
@@ -40,14 +24,26 @@ def main():
                 line = ser.readline().decode('utf-8', errors='ignore').strip()
                 if line:
                     print(f"RX: {line}")
-                    
-                    # Parse sensor data
-                    sensors = parse_sensor_data(line)
-                    
-                    # Send OSC for each sensor
-                    for sensor_num, distance in sensors:
-                        client.send_message("/sensor", [sensor_num, distance])
-                        print(f"  -> OSC: /sensor {sensor_num} {distance:.3f}m")
+                    try:
+                        # Parse multiple sensors: "1:0.121, 2:0.543, 3:0.789"
+                        if ':' in line:
+                            # Split by comma for multiple sensors
+                            entries = line.split(',')
+                            for entry in entries:
+                                entry = entry.strip()
+                                if ':' in entry:
+                                    parts = entry.split(':')
+                                    sensor_id = int(parts[0])
+                                    value = float(parts[1])
+                                    client.send_message("/sensor", [sensor_id, value])
+                                    print(f"  -> OSC: /sensor {sensor_id} {value}")
+                        else:
+                            # Plain number
+                            value = float(line)
+                            client.send_message("/sensor", value)
+                            print(f"  -> OSC: /sensor {value}")
+                    except (ValueError, IndexError):
+                        print(f"  (could not parse, skipping)")
                         
     except KeyboardInterrupt:
         print("\nStopped")
