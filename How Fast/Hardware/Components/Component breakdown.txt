@@ -1,0 +1,8 @@
+**Main PCB** 
+	- Breaks out 10x SEN0647 ToF sensors
+	- Each ToF sensor connects to Teensy 4.1
+
+**SEN0647 ToF sensors**
+	- 10x connected to Teensy 4.1 via Main PCB
+	- Each ToF sensor has its designated serial line (?)
+

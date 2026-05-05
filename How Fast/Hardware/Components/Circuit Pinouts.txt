@@ -1,0 +1,65 @@
+
+*Critical note for PCBs versioned at 2/2026: Ethernet ports for TOF 1-4, 5-8, and 9-10 have TX to TX, RX to RX. Phoenix connectors to sensor components must have physical wires TX/RX swapped to work with PCB boards. Pinouts below follow this assumption. 
+
+
+
+**SEN0647 #1**
+1. (Red) VCC -> 
+2. (Black) GND
+3. (Blue) RX/SDA to Teensy 4.1's TX Pin 1
+4. (Green) TX/SCL to Teensy 4.1's RX Pin 2
+
+**SEN0647 #2**
+1. (Red) VCC -> 
+2. (Black) GND
+3. (Blue) RX/SDA to Teensy 4.1's TX Pin 8
+4. (Green) TX/SCL to Teensy 4.1's RX Pin 7
+
+**SEN0647 #3**
+1. (Red) VCC -> 
+2. (Black) GND
+3. (Blue) RX/SDA to Teensy 4.1's TX Pin 14
+4. (Green) TX/SCL to Teensy 4.1's RX Pin 15
+
+**SEN0647 #4**
+1. (Red) VCC -> 
+2. (Black) GND
+3. (Blue) RX/SDA to Teensy 4.1's TX Pin 17
+4. (Green) TX/SCL to Teensy 4.1's RX Pin 16
+
+**SEN0647 #5**
+1. (Red) VCC -> 
+2. (Black) GND
+3. (Blue) RX/SDA to Teensy 4.1's TX Pin 20
+4. (Green) TX/SCL to Teensy 4.1's RX Pin 21
+
+**SEN0647 #6**
+1. (Red) VCC -> 
+2. (Black) GND
+3. (Blue) RX/SDA to Teensy 4.1's TX Pin 24
+4. (Green) TX/SCL to Teensy 4.1's RX Pin 25
+
+**SEN0647 #7**
+1. (Red) VCC -> 
+2. (Black) GND
+3. (Blue) RX/SDA to Teensy 4.1's TX Pin 29
+4. (Green) TX/SCL to Teensy 4.1's RX Pin 28
+
+**SEN0647 #8**
+1. (Red) VCC -> 
+2. (Black) GND
+3. (Blue) RX/SDA to Teensy 4.1's TX Pin 35
+4. (Green) TX/SCL to Teensy 4.1's RX Pin 34
+
+**SEN0647 #9**
+1. (Red) VCC -> 
+2. (Black) GND
+3. (Blue) RX/SDA to Teensy 4.1's TX Pin 3
+4. (Green) TX/SCL to Teensy 4.1's RX Pin 2
+
+**SEN0647 #10**
+1. (Red) VCC -> 
+2. (Black) GND
+3. (Blue) RX/SDA to Teensy 4.1's TX Pin 5
+4. (Green) TX/SCL to Teensy 4.1's RX Pin 4 
+
