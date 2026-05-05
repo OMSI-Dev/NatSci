@@ -2,12 +2,15 @@
  * Calico Randall
  * How Fast header file for controlling TOFs
  * TOFs used are the DF Robot SEN0647
+ * RX is BLUE wire
+ * TX is GREEN wire
+ * https://wiki.dfrobot.com/sen0647/docs/23372#Result
  * February 2026
  */
 
 #include <Arduino.h>
 
-#define TOTAL_TOFS 10
+#define TOTAL_TOFS 1
 
 // Software Serial pin definition.
 #define RX9PIN 2
@@ -47,7 +50,7 @@ void setupTOFSerial() {
   // Defaults to SERIAL_8N1 if not defined explicitly.
   // Baud rate 921600 for fast transmission.
   // All TOFs should have the same baud rate.
-  Serial.begin(9600);
+  //Serial.begin(9600);
   Serial1.begin(921600); // RX1,TX1
   Serial2.begin(921600); // RX2, TX2
   
@@ -65,7 +68,7 @@ size_t readN(uint8_t *buf, size_t len, Stream &serialPort) {
       buffer[offset] = serialPort.read();
       offset++;
       left--;
-    } else { Serial.println("Problem with serialPort."); }
+    }
 
     // Timeout
     if (millis() - curr > Timeout) { break; }
@@ -130,8 +133,8 @@ bool recdData(tof_parameter *buf, uint8_t id, Stream &serialPort) {
 
 void readTOFData() {
   // recdData(&tof0, 0, Serial2);
-  recdData(&tofs[0], 0, Serial2);
-  recdData(&tofs[1], 1, Serial1);
+  recdData(&tofs[0], 0, Serial1);
+  //recdData(&tofs[1], 1, Serial1);
 
   // for (uint8_t i = 0; i < TOTAL_TOFS; i++)
   //{
@@ -142,8 +145,6 @@ void readTOFData() {
 void printTOFDistance() {
   Serial.print("ToF 0 distance:");
   Serial.println(tofs[0].dis);
-  Serial.print("ToF 1 distance:");
-  Serial.println(tofs[1].dis);
 
   // Print all TOF distances
   /*for (uint8_t i = 0; i < TOTAL_TOFS; i++)
@@ -161,7 +162,7 @@ float getSpecificTOFDis(uint8_t tofNum) {
     Serial.println("Requested distance for a TOF that does not exist.");
     return 0.0;
   }
-  
+
   return tofs[tofNum].dis;
 }
 

@@ -7,8 +7,6 @@
 #include <Arduino.h>
 #include <FastLED.h>
 
-struct { int totalLeds; int ledPin; CRGB *ledSection; } LEDStruct;
-
 /*
  * *********************** UPPER LED RINGS ***********************
  * Declare the data pin, the number of LEDs in each ring,
@@ -31,9 +29,7 @@ struct { int totalLeds; int ledPin; CRGB *ledSection; } LEDStruct;
 #define UPPER_RING9 10
 #define TOTAL_UPPER_LED (UPPER_RING0 + UPPER_RING1 + UPPER_RING2 + UPPER_RING3 + UPPER_RING4 + UPPER_RING5 + UPPER_RING6 + UPPER_RING7 + UPPER_RING8 + UPPER_RING9)
 
-// Define the array of LEDs for the upper LED rings.
 CRGBArray<TOTAL_UPPER_LED> ledUpperRings;
-
 CRGB *topRing0 = &ledUpperRings[0];
 CRGB *topRing1 = &ledUpperRings[UPPER_RING0];
 CRGB *topRing2 = &ledUpperRings[UPPER_RING0 + UPPER_RING1];
@@ -67,9 +63,7 @@ CRGB *topRing9 = &ledUpperRings[UPPER_RING0 + UPPER_RING1 + UPPER_RING2 + UPPER_
 #define LOW_RING9 10
 #define TOTAL_LOWER_LED (LOW_RING0 + LOW_RING1 + LOW_RING2 + LOW_RING3 + LOW_RING4 + LOW_RING5 + LOW_RING6 + LOW_RING7 + LOW_RING8 + LOW_RING9)
 
-// Define the array of LEDs for the red graph strip.
 CRGBArray<TOTAL_LOWER_LED> ledLowerRings;
-
 CRGB *lowRing0 = &ledLowerRings[0];
 CRGB *lowRing1 = &ledLowerRings[LOW_RING0];
 CRGB *lowRing2 = &ledLowerRings[LOW_RING0 + LOW_RING1];
@@ -99,9 +93,7 @@ CRGB *lowRing9 = &ledLowerRings[LOW_RING0 + LOW_RING1 + LOW_RING2 + LOW_RING3 + 
 #define NUM_STRIP_SECTION9 10
 #define TOTAL_LED_STRIP (NUM_STRIP_SECTION0 + NUM_STRIP_SECTION1 + NUM_STRIP_SECTION2 + NUM_STRIP_SECTION3 + NUM_STRIP_SECTION4 + NUM_STRIP_SECTION5 + NUM_STRIP_SECTION6 + NUM_STRIP_SECTION7 + NUM_STRIP_SECTION8 + NUM_STRIP_SECTION9)
 
-// Define the array of LEDs for the red graph strip.
 CRGBArray<TOTAL_LED_STRIP> ledStrip;
-
 CRGB *section0Array = &ledStrip[0];
 CRGB *section1Array = &ledStrip[NUM_STRIP_SECTION0];
 CRGB *section2Array = &ledStrip[NUM_STRIP_SECTION0 + NUM_STRIP_SECTION1];
@@ -113,15 +105,14 @@ CRGB *section7Array = &ledStrip[NUM_STRIP_SECTION0 + NUM_STRIP_SECTION1 + NUM_ST
 CRGB *section8Array = &ledStrip[NUM_STRIP_SECTION0 + NUM_STRIP_SECTION1 + NUM_STRIP_SECTION2 + NUM_STRIP_SECTION3 + NUM_STRIP_SECTION4 + NUM_STRIP_SECTION5 + NUM_STRIP_SECTION6 + NUM_STRIP_SECTION7];
 CRGB *section9Array = &ledStrip[NUM_STRIP_SECTION0 + NUM_STRIP_SECTION1 + NUM_STRIP_SECTION2 + NUM_STRIP_SECTION3 + NUM_STRIP_SECTION4 + NUM_STRIP_SECTION5 + NUM_STRIP_SECTION6 + NUM_STRIP_SECTION7 + NUM_STRIP_SECTION8];
 
-// Declare functions.
+// Function declarations.
 void defaultRingColor();
 void lightLEDSection(uint8_t section);
 void resetGraphLights();
 int gameFinishedLightsRainbow(int countdown);
 int gameFinishedLightsBreathing(int countdown);
 
-void setupLEDs()
-{
+void setupLEDs() {
     FastLED.addLeds<NEOPIXEL, LED_STRIP_PIN>(ledStrip, TOTAL_LED_STRIP);
     FastLED.addLeds<NEOPIXEL, LED_UPPER_RING_PIN>(ledUpperRings, TOTAL_UPPER_LED);
     FastLED.addLeds<NEOPIXEL, LED_LOW_RING_PIN>(ledLowerRings, TOTAL_LOWER_LED);
@@ -138,11 +129,11 @@ void setupLEDs()
     defaultRingColor();
 }
 
-// Turn the ring LEDS all the same color, defaulted as white.
+// Turn the ring LEDS all the same color, defaulted as red (low power).
 void defaultRingColor()
 {
-    fill_solid(ledUpperRings, TOTAL_UPPER_LED, CRGB::White);
-    fill_solid(ledLowerRings, TOTAL_LOWER_LED, CRGB::White);
+    fill_solid(ledUpperRings, TOTAL_UPPER_LED, CRGB::Red);
+    fill_solid(ledLowerRings, TOTAL_LOWER_LED, CRGB::Red);
     FastLED.show();
 }
 

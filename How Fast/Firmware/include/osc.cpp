@@ -1,10 +1,10 @@
 // Using example from: https://github.com/CNMAT/OSC/blob/master/examples/SerialSendMessage/SerialSendMessage.ino
-
+/* 
 #include <OSCMessage.h>
 #include <OSCBoards.h>
-/*
-Make an OSC message and send it over serial
- */
+
+//Make an OSC message and send it over serial
+
 
 #ifdef BOARD_HAS_USB_SERIAL
 #include <SLIPEncodedUSBSerial.h>
@@ -32,4 +32,4 @@ void loop(){
     msg.empty(); // free space occupied by message
 
     delay(20);
-}
+} */

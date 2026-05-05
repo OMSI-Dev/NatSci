@@ -33,7 +33,8 @@ void loop()
   readTOFData();
   printTOFDistance();
   delay(1000);
-
+ 
+  /* 
   uint8_t tofDone = tofTriggered();
 
   if (tofDone != -1)
@@ -72,6 +73,7 @@ void loop()
 
   // uint8_t tofTriggered = tofTriggered();
   //
+  */
 }
 
 void resetSections()
