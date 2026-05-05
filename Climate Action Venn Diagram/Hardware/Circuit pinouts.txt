@@ -1,0 +1,81 @@
+**RFID Module**
+
+Left Side
+1. GND
+2. nRst
+3. nSleep
+4. nPWDRWN
+5. IO3
+6. IO2
+7. IO1
+8. IO0
+9. UART_TX
+10. UART_RX
+11. GND
+
+Right Side
+1. GND
+2. ANT2
+3. ANT1
+4. GND
+5. VDD
+6. TPI
+7. NC
+8. IDAC_OUT
+9. CPM_IN
+10. ADC_IN
+11. GND
+
+**RFID Main PCB Board**
+4-Pin Phoenix to RFID Antennae 1
+1. GND
+2. GND
+3. ANT2
+4. ANT1
+
+4-Pin Phoenix to RFID Antennae  2
+(...)
+
+4-Pin Phoenix to RFID Antennae 3
+(...) 
+
+3-Pin Phoenix to Playpiece PCB 1
+1. 5V
+2. LED_DATA
+3. GND
+
+3-Pin Phoenix to Playpiece PCB 2
+(...)
+
+3-Pin Phoenix to Playpiece PCB 3
+(...)
+
+4-Pin Phoenix to 12V PSU / Language button
+1. 12V
+2. BTN_1
+3. BTN1_PWM 
+4. GND 
+
+2-Pin Phoenix to 5V PSU 
+1. 5V VIN 
+2. GND 
+
+Teensy 4.0
+1. Pin 0 to BTN_1 -> (4-Pin Phoenix 12V PSU / Language button)
+2. Pin 1 to BTN_1_PWM -> (4-Pin Phoenix 12V PSU / Language button)
+3. Pin 2 to TPI1(1) -> (RFID Module 1) 
+4. Pin 3 to TPI(2) -> (RFID Module 2)
+5. Pin 4 to TPI(3) -> (RFID Module 3)
+6. Pin 5 to NPWRDN(1) -> (RFID Module 1)
+7. Pin 6 to NPWRDN(3) -> (RFID Module 3)
+8. Pin 7 to NPWRDN(2) -> (RFID Module 2)
+9. Pin 8 to LED_DATA -> (3-pin Phoenix to Playpiece PCB 1)
+10. Pin 9 to LED_DATA1 -> (3-pin Phoenix to Playpiece PCB 2)
+11. Pin 10 to LED_DATA2 -> (3-pin Phoenix to Playpiece PCB 3) 
+12. Pin 14 to RFID_TX(2) ->   (RFID Module 2)
+13. Pin 15 to RFID_RX(2) -> (RFID Module 2)
+14. Pin 16 to RFID_RX(1) -> (RFID Module 1)
+15. Pin 17 to RFID_TX(1) -> (RFID Module 1)
+16. Pin 20 to RFID_RX(3) -> (RFID Module 3)
+17. Pin 21 to RFID_TX(3) -> (RFID Module 3) 
+18. All GNDs to GND
