@@ -157,11 +157,12 @@ void printTOFDistance() {
 
 float getSpecificTOFDis(uint8_t tofNum) {
   // For array of TOFs, return the distance of a specific one.
-  // if(tofNum > TOTAL_TOFS || tofNum < 0) {
-  //      Serial.println("Requested distance for a TOF that does not exist.");
-  //      return 0.0;
-  //}
-  // return tofs[tofNum].dis;
+  if(tofNum > TOTAL_TOFS || tofNum < 0) {
+    Serial.println("Requested distance for a TOF that does not exist.");
+    return 0.0;
+  }
+  
+  return tofs[tofNum].dis;
 }
 
 // Print data through the serial port
