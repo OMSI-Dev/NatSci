@@ -15,8 +15,7 @@
 #define RX10PIN 4
 #define TX10PIN 5
 
-typedef struct
-{
+typedef struct {
   unsigned char id;              // ID of the TOF module
   unsigned long system_time;     // Time elapsed since the TOF module was powered on, in ms
   float dis;                     // Distance output by the TOF module, in meters
@@ -44,87 +43,74 @@ bool recdData(tof_parameter *buf, uint8_t id = 0);
 tof_parameter tof0; // Define a structure to store the decoded data
 tof_parameter tofs[TOTAL_TOFS];
 
-void setupTOFSerial()
-{
+void setupTOFSerial() {
   // Defaults to SERIAL_8N1 if not defined explicitly.
   // Baud rate 921600 for fast transmission.
   // All TOFs should have the same baud rate.
+  Serial.begin(9600);
   Serial1.begin(921600); // RX1,TX1
   Serial2.begin(921600); // RX2, TX2
-  // mySerial.begin(921600);  //RX,TX
+  
+  while(!Serial) { }
 }
 
-size_t readN(uint8_t *buf, size_t len, Stream &serialPort)
-{
+size_t readN(uint8_t *buf, size_t len, Stream &serialPort) {
   size_t offset = 0, left = len;
   int16_t Timeout = 250;
   uint8_t *buffer = buf;
   long curr = millis();
-  while (left)
-  {
-    if (serialPort.available())
-    {
+  while (left) {
+    // Check if the serial is available first
+    if (serialPort.available()) {
       buffer[offset] = serialPort.read();
       offset++;
       left--;
-    }
-    if (millis() - curr > Timeout)
-    {
-      break;
-    }
+    } else { Serial.println("Problem with serialPort."); }
+
+    // Timeout
+    if (millis() - curr > Timeout) { break; }
   }
+
   return offset;
 }
 
-bool recdData(tof_parameter *buf, uint8_t id, Stream &serialPort)
-{
+bool recdData(tof_parameter *buf, uint8_t id, Stream &serialPort) {
   uint8_t rx_buf[16]; // Serial receive array
   int16_t Timeout = 1000;
   uint8_t ch;
   bool ret = false;
   uint8_t Sum;
   uint8_t cmdBuf[8] = {0x57, 0x10, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0x00};
+
   cmdBuf[4] = id;
   cmdBuf[7] = 0;
-  for (int i = 0; i < 7; i++)
-    cmdBuf[7] += cmdBuf[i];
+
+  for (int i = 0; i < 7; i++) { cmdBuf[7] += cmdBuf[i]; }
+
   long timeStart = millis();
   long timeStart1 = 0;
 
-  while (!ret)
-  {
-    if (millis() - timeStart > Timeout)
-    {
-      break;
-    }
+  while (!ret) {
+    if (millis() - timeStart > Timeout) { break; }
 
-    if ((millis() - timeStart1) > 1000)
-    {
-      while (serialPort.available() > 0)
-      {
-        serialPort.read();
-      }
+    if ((millis() - timeStart1) > 1000) {
+      while (serialPort.available() > 0) { serialPort.read(); }
+
       serialPort.write(cmdBuf, 8);
       timeStart1 = millis();
     }
 
-    if (readN(&ch, 1, serialPort) == 1)
-    {
-      if (ch == 0x57)
-      {
+    if (readN(&ch, 1, serialPort) == 1) {
+      if (ch == 0x57) {
         rx_buf[0] = ch;
-        if (readN(&ch, 1, serialPort) == 1)
-        {
-          if (ch == 0x00)
-          {
+        if (readN(&ch, 1, serialPort) == 1) {
+          if (ch == 0x00) {
             rx_buf[1] = ch;
-            if (readN(&rx_buf[2], 14, serialPort) == 14)
-            {
+            if (readN(&rx_buf[2], 14, serialPort) == 14) {
               Sum = 0;
-              for (int i = 0; i < 15; i++)
-                Sum += rx_buf[i];
-              if (Sum == rx_buf[15])
-              {
+              for (int i = 0; i < 15; i++) { Sum += rx_buf[i]; }
+
+              if (Sum == rx_buf[15]) {
                 buf->id = rx_buf[3];                                                                                                                                                  // Take the id of the TOF module
                 buf->system_time = (unsigned long)(((unsigned long)rx_buf[7]) << 24 | ((unsigned long)rx_buf[6]) << 16 | ((unsigned long)rx_buf[5]) << 8 | (unsigned long)rx_buf[4]); // Take the time elapsed since the TOF module was powered on
                 buf->dis = ((float)(((long)(((unsigned long)rx_buf[10] << 24) | ((unsigned long)rx_buf[9] << 16) | ((unsigned long)rx_buf[8] << 8))) / 256)) / 1000.0;                // Take the distance output by the TOF module
@@ -142,8 +128,7 @@ bool recdData(tof_parameter *buf, uint8_t id, Stream &serialPort)
   return ret;
 }
 
-void readTOFData()
-{
+void readTOFData() {
   // recdData(&tof0, 0, Serial2);
   recdData(&tofs[0], 0, Serial2);
   recdData(&tofs[1], 1, Serial1);
@@ -154,8 +139,7 @@ void readTOFData()
   // }
 }
 
-void printTOFDistance()
-{
+void printTOFDistance() {
   Serial.print("ToF 0 distance:");
   Serial.println(tofs[0].dis);
   Serial.print("ToF 1 distance:");
@@ -171,8 +155,7 @@ void printTOFDistance()
   }*/
 }
 
-float getSpecificTOFDis(uint8_t tofNum)
-{
+float getSpecificTOFDis(uint8_t tofNum) {
   // For array of TOFs, return the distance of a specific one.
   // if(tofNum > TOTAL_TOFS || tofNum < 0) {
   //      Serial.println("Requested distance for a TOF that does not exist.");
@@ -182,8 +165,7 @@ float getSpecificTOFDis(uint8_t tofNum)
 }
 
 // Print data through the serial port
-void printTOFInfo()
-{
+void printTOFInfo() {
   Serial.print("id:");
   Serial.println(tof0.id);
   Serial.print("system_time:");
@@ -200,8 +182,7 @@ void printTOFInfo()
 }
 
 // Print data through the serial port
-void printSpecificTOFInfo(uint8_t tofNum)
-{
+void printSpecificTOFInfo(uint8_t tofNum) {
   Serial.print("**** INFO FOR TOF ");
   Serial.print(tofNum);
   Serial.println(" ****");
@@ -222,12 +203,9 @@ void printSpecificTOFInfo(uint8_t tofNum)
 
 // If a TOF is triggered, return that TOF number
 // Can be called in main loop?
-uint8_t tofTriggered()
-{
-  for (uint8_t i = 0; i < TOTAL_TOFS; i++)
-  {
-    if (tofs[i].dis < 4.0)
-    {
+uint8_t tofTriggered() {
+  for (uint8_t i = 0; i < TOTAL_TOFS; i++) {
+    if (tofs[i].dis < 4.0) {
       Serial.print("ToF #");
       Serial.print(i);
       Serial.println(" triggered.");
