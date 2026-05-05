@@ -341,6 +341,7 @@ public partial class Round2 : Node2D
 	// --------------------------------------------------------------
 	private bool checkADA() {
 		for(int i = 0; i < (r2States.Count - 5); i++) {
+			GD.Print("Checking ADA states in Round Two: " + string.Join(", ", r2States));
 			if(r2States[i]) { return false; }
 		}
 		return true;
