@@ -121,12 +121,54 @@ public partial class Results : Node2D
 	}
 
 	private void resultsAnimation() {
+		serialCom.sendData("A1255000000");
+		serialCom.sendData("B1255000000");
+		serialCom.sendData("C1255000000");
+		serialCom.sendData("D1255000000");
+		serialCom.sendData("E1255000000");
+		serialCom.sendData("B2255000000");
+		serialCom.sendData("C2255000000");
+		serialCom.sendData("D2255000000");
+		serialCom.sendData("C3255000000");
+
+		serialCom.sendData("A2000000000");
+		serialCom.sendData("A3000000000");
+		serialCom.sendData("A4000000000");
+		serialCom.sendData("A5000000000");
+		serialCom.sendData("B3000000000");
+		serialCom.sendData("B4000000000");
+		serialCom.sendData("B5000000000");
+
+		serialCom.sendData("C4255255255");
+		serialCom.sendData("C5255255255");
+
+		serialCom.sendData("D3000255000");
+		serialCom.sendData("D4000255000");
+		serialCom.sendData("D5000255000");
+		serialCom.sendData("E2000255000");
+		serialCom.sendData("E3000255000");
+		serialCom.sendData("E4000255000");
+		serialCom.sendData("E5000255000");
+
+		serialCom.sendData("E5000255000");
+		serialCom.sendData("E5000255000");
+		serialCom.sendData("E5000255000");
+		serialCom.sendData("E5000255000");
+		serialCom.sendData("E5000255000");
+		serialCom.sendData("E5000255000");
+		serialCom.sendData("E5000255000");
+		serialCom.sendData("E5000255000");
+		serialCom.sendData("E5000255000");
+		serialCom.sendData("E5000255000");
+/*
 		foreach(var tile in r1Tiles) {
 			serialCom.sendData(tile + "255000000");
 		}
+
 		foreach(var tile in r2Tiles) {
 			serialCom.sendData(tile + "000255000");
 		}
+*/
 		GD.Print("Results lights up.");
 	}
 

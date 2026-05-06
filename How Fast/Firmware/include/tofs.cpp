@@ -4,17 +4,20 @@
  * TOFs used are the DF Robot SEN0647
  * RX is BLUE wire
  * TX is GREEN wire
+ * References:
  * https://wiki.dfrobot.com/sen0647/docs/23372#Result
+ * https://www.pjrc.com/teensy/td_libs_SoftwareSerial.html
  * February 2026
  */
 
 #include <Arduino.h>
+#include <SoftwareSerial.h>
 
 #define TOTAL_TOFS 1
 
 // Software Serial pin definition.
-#define RX9PIN 2
-#define TX9PIN 3
+#define RX9PIN  2
+#define TX9PIN  3
 #define RX10PIN 4
 #define TX10PIN 5
 
@@ -53,6 +56,18 @@ void setupTOFSerial() {
   //Serial.begin(9600);
   Serial1.begin(921600); // RX1,TX1
   Serial2.begin(921600); // RX2, TX2
+  Serial3.begin(921600); // RX3, TX3
+  Serial4.begin(921600); // RX4, TX4
+  Serial5.begin(921600); // RX5, TX5
+  Serial6.begin(921600); // RX6, TX6
+  Serial7.begin(921600); // RX7, TX7
+  Serial8.begin(921600); // RX8, TX8
+
+  SoftwareSerial Serial9(RX9PIN, TX9PIN);
+  Serial9.begin(921600);
+
+  SoftwareSerial Serial10(RX10PIN, TX10PIN);
+  Serial10.begin(921600);
   
   while(!Serial) { }
 }
