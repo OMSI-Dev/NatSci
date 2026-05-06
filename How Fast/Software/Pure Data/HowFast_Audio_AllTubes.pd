@@ -1,4 +1,4 @@
-#N canvas 600 78 1370 707 12;
+#N canvas 76 182 597 707 12;
 #X obj 564 899 dac~;
 #X obj 519 797 *~;
 #X obj 573 738 line~;
@@ -172,18 +172,15 @@
 #X obj 331 242 clip 30 170;
 #X obj 683 359 sel 170;
 #X text 285 242 range;
-#X text 621 15 TUBE #1;
+#X text 618 15 TUBE #1;
 #X text 1728 23 TUBE #10 (Tallest);
 #X obj 498 -223 oscparse;
 #X obj 498 -182 list trim;
 #X obj 529 -102 print distance;
-#X obj 490 -144 unpack s s f;
+#X obj 275 -145 unpack s s f;
 #X obj 573 -305 loadbang;
 #X obj 559 -280 delay 500;
 #X text 490 -335 this section is for fetching OSC data;
-#N canvas 0 50 1058 528 (subpatch) 0;
-#X coords 0 1 100 -10 353 281 2 0 0;
-#X restore 434 -349 graph;
 #X obj 535 -256 netreceive -u -b 4559;
 #X connect 1 0 64 0;
 #X connect 1 0 0 0;
@@ -332,8 +329,7 @@
 #X connect 161 0 37 0;
 #X connect 161 0 9 0;
 #X connect 165 0 166 0;
-#X connect 166 0 168 0;
-#X connect 168 2 167 0;
+#X connect 166 0 167 0;
 #X connect 169 0 170 0;
-#X connect 170 0 173 0;
-#X connect 173 0 165 0;
+#X connect 170 0 172 0;
+#X connect 172 0 165 0;
