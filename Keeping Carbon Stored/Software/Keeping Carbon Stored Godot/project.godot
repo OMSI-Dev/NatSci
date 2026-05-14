@@ -24,10 +24,6 @@ config/icon="uid://clauysuohwi51"
 SerialCom="*uid://kaptmauqfqwc"
 TileInfo="*uid://ogeb2jk3k2lk"
 
-[display]
-
-window/size/mode=4
-
 [dotnet]
 
 project/assembly_name="KCS Draft"
