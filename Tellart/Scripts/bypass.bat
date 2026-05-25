@@ -1,0 +1,1 @@
+powershell.exe -ExecutionPolicy Bypass -File C:\OMSI_Scripts\shutdown.ps1
