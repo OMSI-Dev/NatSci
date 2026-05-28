@@ -11,10 +11,9 @@ The following pins need to have an inverted RTS Pin using the modified framework
 
 void setSerial()
 {
-    Serial1.begin(115400, SERIAL_8E1);
-    Serial1.attachCts(CTS_Pin);
-    Serial1.attachRtsInverted(RTS_Pin);
-    while(!Serial1);
+    Serial1.begin(115200, SERIAL_8E1);
+    // Serial1.attachCts(CTS_Pin);
+    // Serial1.attachRtsInverted(RTS_Pin);
     //This needs to be updated after new mainboard is finished. This only affects row 6
     Serial.println("Serial1 initialized for communication with 4.1");
 }
@@ -29,7 +28,7 @@ void sendSerial(uint8_t buttonNum)
 
 void clearBuffer()
 {
-    for (uint8_t i = 0; i <= dataBuffer - 2; i++)
+    for (uint8_t i = 0; i < 11; i++)
     {
         data[i] = 0;
     }
@@ -37,9 +36,9 @@ void clearBuffer()
 
 bool checkIfValid()
 {
-    for (uint8_t i = 0; i <= dataBuffer - 2; i++)
+    for (uint8_t i = 0; i <= dataBuffer - 1; i++)
     {
-        if (data[i] == '\0')
+        if (data[i] == '\0' || data[i] == '0')
         {
             return false;
         }

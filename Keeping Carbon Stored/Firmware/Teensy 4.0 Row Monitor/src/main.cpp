@@ -1,10 +1,11 @@
 #include <Arduino.h>
-// #include </include/serialOverride/HardwareSerial.h>
 #include <Adafruit_NeoPixel.h>
 bool idle = 1;
 #include <serial_handler.h>
 #include <led_Handler.h>
 #include <button_handler.h>
+
+void correctData();
 
 void setup()
 {
@@ -12,9 +13,10 @@ void setup()
   Serial.begin(115200);
   //delay(1000);
   //while(!Serial);
+  setPins();
   Serial.println("Teensy 4.0 (Child) - Starting up...");
   setSerial();
-  setPins();
+  
 
   Btn1LEDS.begin();
   Btn2LEDS.begin();
@@ -46,14 +48,16 @@ void setup()
 void loop()
 {
   // read incoming messages from 4.1
-
+  clearBuffer();
   readSerial();
   buttonUpdate();
   rgbValues();
+  correctData();
   idleButton();
   // updateLED(data[0]);
-  switch (data[0])
+/* switch (data[0])
   {
+
 
   case 49:
 #ifndef RGB
@@ -161,4 +165,109 @@ void loop()
   default:
     break;
   }
+    
+*/
+}
+
+void correctData()
+{
+    if(data[0] == 49 && data[1] == 2)
+    {
+        red = 255;
+        green = 0;
+        blue = 0;
+
+        Btn1LEDS.fill(Btn1LEDS.Color(red, green, blue));
+        Btn1LEDS.show();
+
+        Btn3LEDS.fill(Btn3LEDS.Color(red, green, blue));
+        Btn3LEDS.show();        
+
+        Btn5LEDS.fill(Btn5LEDS.Color(red, green, blue));
+        Btn5LEDS.show();
+        buttonStates[0] = true;
+        buttonStates[2] = true;
+        buttonStates[4] = true;
+    }
+
+    if(data[0] == 49 && data[1] == 0)
+    {
+        red = 0;
+        green = 0;
+        blue = 0;
+
+        Btn1LEDS.fill(Btn1LEDS.Color(red, green, blue));
+        Btn1LEDS.show();
+
+        Btn3LEDS.fill(Btn3LEDS.Color(red, green, blue));
+        Btn3LEDS.show();        
+
+        Btn5LEDS.fill(Btn5LEDS.Color(red, green, blue));
+        Btn5LEDS.show();
+        buttonStates[0] = true;
+        buttonStates[2] = true;
+        buttonStates[4] = true;
+    }    
+
+
+        if(data[0] == 50 && data[1] == 2)
+    {
+        red = 255;
+        green = 0;
+        blue = 0;
+
+        Btn2LEDS.fill(Btn2LEDS.Color(red, green, blue));
+        Btn2LEDS.show();
+
+        Btn4LEDS.fill(Btn4LEDS.Color(red, green, blue));
+        Btn4LEDS.show();    
+        buttonStates[1] = true;
+        buttonStates[3] = true;    
+    }
+
+    if(data[0] == 50 && data[1] == 0)
+    {
+        red = 0;
+        green = 0;
+        blue = 0;
+
+        Btn2LEDS.fill(Btn2LEDS.Color(red, green, blue));
+        Btn2LEDS.show();
+
+        Btn4LEDS.fill(Btn4LEDS.Color(red, green, blue));
+        Btn4LEDS.show();    
+        buttonStates[1] = true;
+        buttonStates[3] = true;    
+    }
+
+
+    if(data[0] == 73 && data[1] == 0)
+    {
+        red = 0;
+        green = 0;
+        blue = 0;
+
+        Btn1LEDS.fill(Btn1LEDS.Color(red, green, blue));
+        Btn1LEDS.show();
+
+        Btn2LEDS.fill(Btn2LEDS.Color(red, green, blue));
+        Btn2LEDS.show();    
+
+        Btn3LEDS.fill(Btn3LEDS.Color(red, green, blue));
+        Btn4LEDS.show();
+
+        Btn4LEDS.fill(Btn4LEDS.Color(red, green, blue));
+        Btn4LEDS.show();    
+
+        Btn5LEDS.fill(Btn5LEDS.Color(red, green, blue));
+        Btn5LEDS.show();   
+
+        buttonStates[0] = false;
+        buttonStates[1] = false;
+        buttonStates[2] = false;  
+        buttonStates[3] = false;
+        buttonStates[4] = false;    
+    }
+
+
 }

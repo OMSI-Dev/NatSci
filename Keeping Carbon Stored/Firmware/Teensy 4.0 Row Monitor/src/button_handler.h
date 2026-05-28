@@ -14,7 +14,7 @@ Bounce2::Button button2 = Bounce2::Button();
 Bounce2::Button button3 = Bounce2::Button();
 Bounce2::Button button4 = Bounce2::Button();
 Bounce2::Button button5 = Bounce2::Button();
-#define DEBOUNCE 10
+#define DEBOUNCE 3
 
 MoToTimer button1Timer, button2Timer, button3Timer, button4Timer,button5Timer,debugTimer;
 
