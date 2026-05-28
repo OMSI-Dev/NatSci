@@ -109,8 +109,8 @@ clearBuffer(data4);
 void setSerial5()
 {
     Serial5.begin(115200, SERIAL_8E1);
-    Serial5.attachRtsInverted(Serial5RTS);
-    Serial5.attachCts(Serial5CTS);
+    // Serial5.attachRtsInverted(Serial5RTS);
+    // Serial5.attachCts(Serial5CTS);
     while (!Serial5)
     {
 #ifdef debug
@@ -145,8 +145,8 @@ clearBuffer(data6);
 void setSerial7()
 {
     Serial7.begin(115200, SERIAL_8E1);
-    Serial7.attachRts(Serial7RTS);
-    Serial7.attachCts(Serial7CTS);
+    // Serial7.attachRts(Serial7RTS);
+    // Serial7.attachCts(Serial7CTS);
     while (!Serial7)
     {
 #ifdef debug
