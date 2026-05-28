@@ -34,6 +34,8 @@ void loop() {
   Serial.println();
   #endif
 
+  
+
   if (data[1] == '1')
   {
     static const uint8_t p1[12] = {'A','1','2','5','5','0','0','0','0','0','0','\0'};
@@ -44,13 +46,16 @@ void loop() {
     static const uint8_t p6[12] = {'F','2','2','5','5','0','0','0','0','0','0','\0'};
     static const uint8_t p7[12] = {'G','1','2','5','5','0','0','0','0','0','0','\0'};
 
-    Serial1.write(p1 + 1, 11); Serial1.flush();
-    Serial2.write(p2 + 1, 11); Serial2.flush();
-    Serial3.write(p3 + 1, 11); Serial3.flush();
-    Serial4.write(p4 + 1, 11); Serial4.flush();
-    Serial5.write(p5 + 1, 11); Serial5.flush();
-    Serial6.write(p6 + 1, 11); Serial6.flush();
-    Serial7.write(p7 + 1, 11); Serial7.flush();
+    Serial1.write(p1 + 1, 11);
+    Serial2.write(p2 + 1, 11); 
+    Serial3.write(p3 + 1, 11); 
+    Serial4.write(p4 + 1, 11);
+    
+    Serial5.write(p5 + 1, 11); 
+    
+    Serial6.write(p6 + 1, 11); 
+    Serial7.write(p7 + 1, 11); 
+
   }
 
   if (data[1] == '2')
@@ -63,13 +68,17 @@ void loop() {
     static const uint8_t p6[12] = {'F','1','2','5','5','0','0','0','0','0','0','\0'};
     static const uint8_t p7[12] = {'G','2','2','5','5','0','0','0','0','0','0','\0'};
 
-    Serial1.write(p1 + 1, 11); Serial1.flush();
-    Serial2.write(p2 + 1, 11); Serial2.flush();
-    Serial3.write(p3 + 1, 11); Serial3.flush();
-    Serial4.write(p4 + 1, 11); Serial4.flush();
-    Serial5.write(p5 + 1, 11); Serial5.flush();
-    Serial6.write(p6 + 1, 11); Serial6.flush();
-    Serial7.write(p7 + 1, 11); Serial7.flush();
+    Serial1.write(p1 + 1, 11);
+    
+    Serial2.write(p2 + 1, 11); 
+    
+    Serial3.write(p3 + 1, 11);
+    
+    Serial4.write(p4 + 1, 11);
+    Serial5.write(p5 + 1, 11); 
+    Serial6.write(p6 + 1, 11);
+    
+    Serial7.write(p7 + 1, 11); 
   }
 
   clearBuffer();
