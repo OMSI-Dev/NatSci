@@ -10,8 +10,8 @@ void setup()
 {
   // Initialize USB Serial for debugging
   Serial.begin(115200);
-  delay(1000);
-  // while(!Serial);
+  //delay(1000);
+  //while(!Serial);
   Serial.println("Teensy 4.0 (Child) - Starting up...");
   setSerial();
   setPins();
@@ -35,11 +35,11 @@ void setup()
   Btn4LEDS.setBrightness(200);
   Btn5LEDS.setBrightness(200);
 #else
-  Btn1LEDS.setBrightness(100);
-  Btn2LEDS.setBrightness(100);
-  Btn3LEDS.setBrightness(100);
-  Btn4LEDS.setBrightness(100);
-  Btn5LEDS.setBrightness(100);
+  Btn1LEDS.setBrightness(150);
+  Btn2LEDS.setBrightness(150);
+  Btn3LEDS.setBrightness(150);
+  Btn4LEDS.setBrightness(150);
+  Btn5LEDS.setBrightness(150);
 #endif
 }
 

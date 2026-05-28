@@ -8,7 +8,7 @@
 //ADA buttons needs to be defined as RGB
 //uncomment for the ADA Rows
 
-#define RGB
+//#define RGB
 #ifndef RGB
 #define NUM_LEDS 44
 #else
@@ -47,13 +47,26 @@ void rgbValues()
   uint32_t g3Temp = (data[6] - '0' );
 
   uint32_t b1Temp = (data[7] - '0') * 100;
-  uint32_t b2Temp = (data[8] - '0') * 10;
+  uint32_t b2Temp = (data[8] - '0') * 10;  
+  
   uint32_t b3Temp = (data[9] - '0');
  
+
   red = (r1Temp + r2Temp + r3Temp);
   green = (g1Temp + g2Temp + g3Temp);
   blue = (b1Temp + b2Temp + b3Temp);
 
+  if(data[0] > 0)
+{  
+  Serial.print("\n********************************\n");
+  Serial.print("Converted Red: ");
+  Serial.println(red);
+  Serial.print("Converted Green: ");
+  Serial.println(green);
+  Serial.print("Converted Blue: ");
+  Serial.println(blue);
+  Serial.print("\n********************************\n");
+}
 }
 
 void clearRGB()

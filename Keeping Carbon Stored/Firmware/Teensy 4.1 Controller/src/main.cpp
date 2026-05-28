@@ -39,6 +39,7 @@ void setup() {
   delay(1000);
 
   #ifdef debug
+  while(!Serial);
   Serial.println("Teensy 4.1 (Parent) - Starting up...");
   #endif
 
@@ -48,8 +49,8 @@ void setup() {
   setSerial3();
   setSerial4();
   setSerial5();
-  setSerial6();
-  setSerial7();
+  // setSerial6();
+  // setSerial7();
 }
 
 void loop() {
@@ -58,8 +59,8 @@ void loop() {
   readSerial3();
   readSerial4();
   readSerial5();
-  readSerial6();
-  readSerial7();
+  //readSerial6();
+  //readSerial7();
 
   if (Serial.available()) { PCData = Serial.readBytesUntil('\0', data, DATABUFFER); }
 

@@ -56,6 +56,7 @@ void buttonUpdate()
 
     if((button1.isPressed() || button2.isPressed() || button3.isPressed() || button4.isPressed() || button5.isPressed() ) && !debugTimer.running())
     {
+        Serial.print("*******************************************\n");
         Serial.print("Button State: ");
         Serial.print(button1.isPressed());
         Serial.print("|");
@@ -66,6 +67,7 @@ void buttonUpdate()
         Serial.print(button4.isPressed());
         Serial.print("|");
         Serial.println(button5.isPressed());
+        Serial.print("*******************************************\n");
         debugTimer.setTime(debugTime);
     }
 

@@ -20,6 +20,7 @@ The correct pins are:
 #define Serial6RTS 26
 #define Serial7RTS 27
 */
+
 #define Serial7RTS 26
 
 #define Serial1CTS 2
@@ -31,7 +32,7 @@ The correct pins are:
 #define Serial7CTS 32
 
 void clearBuffer(uint8_t dataArray[]);
-// #define debug
+#define debug
 
 void setSerial1()
 {
@@ -48,6 +49,7 @@ void setSerial1()
 #ifdef debug
     Serial.println("Serial 1 has started.");
 #endif
+clearBuffer(data1);
 }
 
 void setSerial2()
@@ -65,6 +67,7 @@ void setSerial2()
 #ifdef debug
     Serial.println("Serial 2 has started.");
 #endif
+clearBuffer(data2);
 }
 
 void setSerial3()
@@ -82,6 +85,7 @@ void setSerial3()
 #ifdef debug
     Serial.println("Serial 3 has started.");
 #endif
+clearBuffer(data3);
 }
 
 void setSerial4()
@@ -99,6 +103,7 @@ void setSerial4()
 #ifdef debug
     Serial.println("Serial 4 has started.");
 #endif
+clearBuffer(data4);
 }
 
 void setSerial5()
@@ -116,6 +121,7 @@ void setSerial5()
 #ifdef debug
     Serial.println("Serial 5 has started.");
 #endif
+clearBuffer(data5);
 }
 
 void setSerial6()
@@ -133,6 +139,7 @@ void setSerial6()
 #ifdef debug
     Serial.println("Serial 6 has started.");
 #endif
+clearBuffer(data6);
 }
 
 void setSerial7()
@@ -150,7 +157,11 @@ void setSerial7()
 #ifdef debug
     Serial.println("Serial 7 has started.");
 #endif
+clearBuffer(data7);
 }
+
+
+
 
 // READ FROM ROW A
 void readSerial1()
@@ -159,11 +170,6 @@ void readSerial1()
     {
         // load buffer
         Serial1.readBytesUntil('\0', data1, BUTTONDATABUFFER);
-
-#ifdef debug
-        Serial.print("Received button pressed: ");
-        Serial.println(data1[0]);
-#endif
 
         // This sends to Godot.
         Serial.print("A");
@@ -179,10 +185,6 @@ void readSerial2()
         // load buffer
         Serial2.readBytesUntil('\n', data2, BUTTONDATABUFFER);
 
-#ifdef debug
-        Serial.print("Received button pressed: ");
-        Serial.println(data1[0]);
-#endif
 
         // This sends to Godot.
         Serial.print("B");
@@ -198,11 +200,6 @@ void readSerial3()
         // load buffer
         Serial3.readBytesUntil('\n', data3, BUTTONDATABUFFER);
 
-#ifdef debug
-        Serial.print("Received button pressed: ");
-        Serial.println(data1[0]);
-#endif
-
         // This sends to Godot.
         Serial.print("C");
         Serial.println(data3[0]);
@@ -216,11 +213,6 @@ void readSerial4()
     {
         // load buffer
         Serial4.readBytesUntil('\n', data4, BUTTONDATABUFFER);
-
-#ifdef debug
-        Serial.print("Received button pressed: ");
-        Serial.println(data1[0]);
-#endif
 
         // This sends to Godot.
         Serial.print("D");
@@ -236,11 +228,6 @@ void readSerial5()
         // load buffer
         Serial5.readBytesUntil('\n', data5, BUTTONDATABUFFER);
 
-#ifdef debug
-        Serial.print("Received button pressed: ");
-        Serial.println(data1[0]);
-#endif
-
         // This sends to Godot.
         Serial.print("E");
         Serial.println(data5[0]);
@@ -255,11 +242,6 @@ void readSerial6()
         // load buffer
         Serial6.readBytesUntil('\n', data6, BUTTONDATABUFFER);
 
-#ifdef debug
-        Serial.print("Received button pressed: ");
-        Serial.println(data1[0]);
-#endif
-
         // This sends to Godot.
         Serial.print("F");
         Serial.println(data6[0]);
@@ -273,11 +255,6 @@ void readSerial7()
     {
         // load buffer
         Serial7.readBytesUntil('\n', data7, BUTTONDATABUFFER);
-
-#ifdef debug
-        Serial.print("Received button pressed: ");
-        Serial.println(data1[0]);
-#endif
 
         // This sends to Godot.
         Serial.print("G");

@@ -1,6 +1,11 @@
 const uint8_t dataBuffer = 11;
 uint8_t data[dataBuffer];
 
+/*
+The following pins need to have an inverted RTS Pin using the modified framework.
+ XBAR Pins 1, 2, 3, 4, 5, 7, 8, 30, 31, 32, 33
+ */
+
 #define CTS_Pin 8 // From RTS of Teensy
 #define RTS_Pin 7
 
@@ -9,14 +14,17 @@ void setSerial()
     Serial1.begin(115400, SERIAL_8E1);
     Serial1.attachCts(CTS_Pin);
     Serial1.attachRtsInverted(RTS_Pin);
+    while(!Serial1);
+    //This needs to be updated after new mainboard is finished. This only affects row 6
     Serial.println("Serial1 initialized for communication with 4.1");
 }
 
 void sendSerial(uint8_t buttonNum)
 {
     Serial1.write(buttonNum);
-    Serial.print("Sending button number to main: ");
-    Serial.println(buttonNum);
+    Serial.print("Sending button ");
+    Serial.print(buttonNum);
+    Serial.println(" to main.");
 }
 
 void clearBuffer()
@@ -53,8 +61,8 @@ void readSerial()
         Serial.println("Check if packet is valid.");
         bool validPacket = checkIfValid();
 
-        Serial.print("Packet returned: ");
-        Serial.println(validPacket);
+        // Serial.print("Packet returned: ");
+        // Serial.println(validPacket);
 
         if (validPacket)
         {
@@ -66,8 +74,10 @@ void readSerial()
                 Serial.print(i);
                 Serial.print(":");
                 Serial.print(data[i]);
+                Serial.print(" ");
             }
             Serial.println();
+        
         }
         else
         {
