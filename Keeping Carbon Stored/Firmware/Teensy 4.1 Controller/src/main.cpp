@@ -34,16 +34,25 @@ void loop() {
       #endif
       // FIX 1: use memcpy, not packet[12] = {}
       // FIX 2: added missing '\0' on the ON packet
-      if (data[2] == 2)
+      if (data[2] == '2' && data[1] == '1')
       {
         static const uint8_t on[12]  = {'A','1','2','5','5','0','0','0','0','0','0','\0'};
         memcpy(packet, on, 12);
       }
-      if (data[2] == 0)
+
+      if (data[2] == '2' && data[1] == '2')
+      {
+        static const uint8_t on[12]  = {'A','2','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+
+      if (data[2] == '0')
       {
         static const uint8_t off[12] = {'A','1','0','0','0','0','0','0','0','0','0','\0'};
         memcpy(packet, off, 12);
       }
+
+      
       Serial1.write(packet + 1, 11); // FIX 5: hardcode 11, not PCData-1
       Serial1.flush();
       clearBuffer();
@@ -56,12 +65,20 @@ void loop() {
       Serial.print("Sending to Row B: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-      if (data[2] == 2)
+      if (data[2] == '2' && data[1] == '1')
       {
         static const uint8_t on[12]  = {'B','1','2','5','5','0','0','0','0','0','0','\0'};
         memcpy(packet, on, 12);
       }
-      if (data[2] == 0)
+
+      if (data[2] == '2' && data[1] == '2')
+      {
+        static const uint8_t on[12]  = {'B','2','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+
+      
+      if (data[2] == '0')
       {
         static const uint8_t off[12] = {'B','1','0','0','0','0','0','0','0','0','0','\0'};
         memcpy(packet, off, 12);
@@ -78,12 +95,18 @@ void loop() {
       Serial.print("Sending to Row C: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-      if (data[2] == 2)
+      if (data[2] == '2' && data[1] == '1')
       {
         static const uint8_t on[12]  = {'C','1','2','5','5','0','0','0','0','0','0','\0'};
         memcpy(packet, on, 12);
       }
-      if (data[2] == 0)
+
+      if (data[2] == '2' && data[1] == '2')
+      {
+        static const uint8_t on[12]  = {'C','2','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+      if (data[2] == '0')
       {
         static const uint8_t off[12] = {'C','1','0','0','0','0','0','0','0','0','0','\0'};
         memcpy(packet, off, 12);
@@ -96,12 +119,19 @@ void loop() {
 
     case 68: // Row D
     {
-      if (data[2] == 2)
+      if (data[2] == '2')
+      if (data[2] == '2' && data[1] == '1')
       {
         static const uint8_t on[12]  = {'D','1','2','5','5','0','0','0','0','0','0','\0'};
         memcpy(packet, on, 12);
       }
-      if (data[2] == 0)
+
+      if (data[2] == '2' && data[1] == '2')
+      {
+        static const uint8_t on[12]  = {'D','2','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+      if (data[2] == '0')
       {
         static const uint8_t off[12] = {'D','1','0','0','0','0','0','0','0','0','0','\0'};
         memcpy(packet, off, 12);
@@ -120,12 +150,18 @@ void loop() {
       Serial.println();
       #endif
       // FIX 3: was = (assignment) instead of == (comparison)
-      if (data[2] == 2)
+      if (data[2] == '2' && data[1] == '1')
       {
         static const uint8_t on[12]  = {'E','1','2','5','5','0','0','0','0','0','0','\0'};
         memcpy(packet, on, 12);
       }
-      if (data[2] == 0)
+
+      if (data[2] == '2' && data[1] == '2')
+      {
+        static const uint8_t on[12]  = {'E','2','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+      if (data[2] == '0')
       {
         static const uint8_t off[12] = {'E','1','0','0','0','0','0','0','0','0','0','\0'};
         memcpy(packet, off, 12);
@@ -142,12 +178,18 @@ void loop() {
       Serial.print("Sending to Row F: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-      if (data[2] == 2)
+      if (data[2] == '2' && data[1] == '1')
       {
         static const uint8_t on[12]  = {'F','1','2','5','5','0','0','0','0','0','0','\0'};
         memcpy(packet, on, 12);
       }
-      if (data[2] == 0)
+
+      if (data[2] == '2' && data[1] == '2')
+      {
+        static const uint8_t on[12]  = {'F','2','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+      if (data[2] == '0')
       {
         static const uint8_t off[12] = {'F','1','0','0','0','0','0','0','0','0','0','\0'};
         memcpy(packet, off, 12);
@@ -164,7 +206,26 @@ void loop() {
       Serial.print("Sending to Row G: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-      Serial7.write(data + 1, PCData - 1);
+
+      if (data[2] == '2' && data[1] == '1')
+      {
+        static const uint8_t on[12]  = {'G','1','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+
+      if (data[2] == '2' && data[1] == '2')
+      {
+        static const uint8_t on[12]  = {'G','2','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+
+      if (data[2] == '0')
+      {
+        static const uint8_t off[12] = {'G','1','0','0','0','0','0','0','0','0','0','\0'};
+        memcpy(packet, off, 12);
+      }
+      
+      Serial7.write(packet + 1, 11);
       Serial7.flush();
       clearBuffer();
       break;
