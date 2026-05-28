@@ -171,7 +171,7 @@ void loop()
 
 void correctData()
 {
-    if(data[0] == 49 && data[1] == 2)
+    if(data[0] == '2')
     {
         red = 255;
         green = 0;
@@ -190,27 +190,7 @@ void correctData()
         buttonStates[4] = true;
     }
 
-    if(data[0] == 49 && data[1] == 0)
-    {
-        red = 0;
-        green = 0;
-        blue = 0;
-
-        Btn1LEDS.fill(Btn1LEDS.Color(red, green, blue));
-        Btn1LEDS.show();
-
-        Btn3LEDS.fill(Btn3LEDS.Color(red, green, blue));
-        Btn3LEDS.show();        
-
-        Btn5LEDS.fill(Btn5LEDS.Color(red, green, blue));
-        Btn5LEDS.show();
-        buttonStates[0] = true;
-        buttonStates[2] = true;
-        buttonStates[4] = true;
-    }    
-
-
-        if(data[0] == 50 && data[1] == 2)
+       if(data[0] == '1')
     {
         red = 255;
         green = 0;
@@ -225,7 +205,7 @@ void correctData()
         buttonStates[3] = true;    
     }
 
-    if(data[0] == 50 && data[1] == 0)
+    if(data[0] == '1')
     {
         red = 0;
         green = 0;
@@ -241,7 +221,7 @@ void correctData()
     }
 
 
-    if(data[0] == 73 && data[1] == 0)
+    if(data[0] == 73)
     {
         red = 0;
         green = 0;

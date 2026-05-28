@@ -19,7 +19,7 @@ Bounce2::Button button5 = Bounce2::Button();
 MoToTimer button1Timer, button2Timer, button3Timer, button4Timer,button5Timer,debugTimer;
 
 uint16_t buttonLock = 450, debugTime = 300;
-bool buttonStates[5] = {false,false,false,false,false};
+bool buttonStates[5] = {true,true,true,true,true};
 
 void setPins()
 {
