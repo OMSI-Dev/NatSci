@@ -48,12 +48,13 @@ void setup()
 void loop()
 {
   // read incoming messages from 4.1
-  clearBuffer();
+
   readSerial();
   buttonUpdate();
   rgbValues();
   correctData();
   idleButton();
+  clearBuffer();
   // updateLED(data[0]);
 /* switch (data[0])
   {
@@ -171,83 +172,69 @@ void loop()
 
 void correctData()
 {
-    if(data[0] == '2')
+    if (data[0] == 0) 
     {
-        red = 255;
-        green = 0;
-        blue = 0;
+        clearBuffer();
+        return;
+    }
 
-        Btn1LEDS.fill(Btn1LEDS.Color(red, green, blue));
+    if (data[0] == '1')
+    {
+        Serial.println("Corrected for btn 1");
+
+        // FIX 3: merge both '1' blocks — light odd buttons, clear even buttons
+        Btn1LEDS.fill(Btn1LEDS.Color(255, 0, 0));
         Btn1LEDS.show();
-
-        Btn3LEDS.fill(Btn3LEDS.Color(red, green, blue));
-        Btn3LEDS.show();        
-
-        Btn5LEDS.fill(Btn5LEDS.Color(red, green, blue));
+        Btn3LEDS.fill(Btn3LEDS.Color(255, 0, 0));
+        Btn3LEDS.show();
+        Btn5LEDS.fill(Btn5LEDS.Color(255, 0, 0));
         Btn5LEDS.show();
+
+        Btn2LEDS.fill(Btn2LEDS.Color(0, 0, 0));
+        Btn2LEDS.show();
+        Btn4LEDS.fill(Btn4LEDS.Color(0, 0, 0));
+        Btn4LEDS.show();
+
         buttonStates[0] = true;
         buttonStates[2] = true;
         buttonStates[4] = true;
     }
 
-       if(data[0] == '1')
+    if (data[0] == '2')
     {
-        red = 255;
-        green = 0;
-        blue = 0;
+        Serial.println("Corrected for btn 2");
 
-        Btn2LEDS.fill(Btn2LEDS.Color(red, green, blue));
+        // Light even buttons, clear odd buttons
+        Btn2LEDS.fill(Btn2LEDS.Color(255, 0, 0));
         Btn2LEDS.show();
-
-        Btn4LEDS.fill(Btn4LEDS.Color(red, green, blue));
-        Btn4LEDS.show();    
-        buttonStates[1] = true;
-        buttonStates[3] = true;    
-    }
-
-    if(data[0] == '1')
-    {
-        red = 0;
-        green = 0;
-        blue = 0;
-
-        Btn2LEDS.fill(Btn2LEDS.Color(red, green, blue));
-        Btn2LEDS.show();
-
-        Btn4LEDS.fill(Btn4LEDS.Color(red, green, blue));
-        Btn4LEDS.show();    
-        buttonStates[1] = true;
-        buttonStates[3] = true;    
-    }
-
-
-    if(data[0] == 73)
-    {
-        red = 0;
-        green = 0;
-        blue = 0;
-
-        Btn1LEDS.fill(Btn1LEDS.Color(red, green, blue));
-        Btn1LEDS.show();
-
-        Btn2LEDS.fill(Btn2LEDS.Color(red, green, blue));
-        Btn2LEDS.show();    
-
-        Btn3LEDS.fill(Btn3LEDS.Color(red, green, blue));
+        Btn4LEDS.fill(Btn4LEDS.Color(255, 0, 0));
         Btn4LEDS.show();
 
-        Btn4LEDS.fill(Btn4LEDS.Color(red, green, blue));
-        Btn4LEDS.show();    
+        Btn1LEDS.fill(Btn1LEDS.Color(0, 0, 0));
+        Btn1LEDS.show();
+        Btn3LEDS.fill(Btn3LEDS.Color(0, 0, 0));
+        Btn3LEDS.show();
+        Btn5LEDS.fill(Btn5LEDS.Color(0, 0, 0));
+        Btn5LEDS.show();
 
-        Btn5LEDS.fill(Btn5LEDS.Color(red, green, blue));
-        Btn5LEDS.show();   
-
-        buttonStates[0] = true;
         buttonStates[1] = true;
-        buttonStates[2] = true;  
         buttonStates[3] = true;
-        buttonStates[4] = true;    
     }
 
+    if (data[0] == 'I')
+    {
+        idle = 1;
 
+        Btn1LEDS.fill(Btn1LEDS.Color(0, 0, 0)); Btn1LEDS.show();
+        Btn2LEDS.fill(Btn2LEDS.Color(0, 0, 0)); Btn2LEDS.show();
+        Btn3LEDS.fill(Btn3LEDS.Color(0, 0, 0)); Btn3LEDS.show(); // FIX 4
+        Btn4LEDS.fill(Btn4LEDS.Color(0, 0, 0)); Btn4LEDS.show();
+        Btn5LEDS.fill(Btn5LEDS.Color(0, 0, 0)); Btn5LEDS.show();
+
+        buttonStates[0] = false;
+        buttonStates[1] = false;
+        buttonStates[2] = false;
+        buttonStates[3] = false;
+        buttonStates[4] = false;
+    }
 }
