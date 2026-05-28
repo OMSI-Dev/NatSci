@@ -73,9 +73,10 @@ void loop() {
       Serial.print("Sending to Row A: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-
+      uint8_t* PCDataTEMP[DATABUFFER] = ['A'];
       Serial1.write(data + 1, PCData - 1);
-      delay(3);
+      Serial1.flush();
+      ////delay(3);
       clearBuffer();
       break;
 
@@ -86,9 +87,11 @@ void loop() {
       Serial.print("Sending to Row B: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-
+      PCData = 'B1255000000';
       Serial2.write(data + 1, PCData - 1);
-      delay(3);
+            Serial2.flush();
+
+      ////delay(3);
       clearBuffer();
       break;
 
@@ -99,9 +102,11 @@ void loop() {
       Serial.print("Sending to Row C: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-
+          PCData = 'C1255000000';
       Serial3.write(data + 1, PCData - 1);
-      delay(3);
+            Serial3.flush();
+
+      ////delay(3);
       clearBuffer();
       break;
 
@@ -112,9 +117,11 @@ void loop() {
       Serial.print("Sending to Row D: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-
+          PCData = 'D1255000000';
       Serial4.write(data + 1, PCData - 1);
-      delay(3);
+            Serial4.flush();
+
+      ////delay(3);
       clearBuffer();
       break;
 
@@ -126,9 +133,11 @@ void loop() {
       Serial.write(data + 1, PCData - 1);
       Serial.println();
       #endif
-
+      PCData = 'E1255000000';
       Serial5.write(data + 1, PCData - 1);
-      delay(3);
+            Serial5.flush();
+
+      ////delay(3);
       clearBuffer();
       break;
 
@@ -139,9 +148,11 @@ void loop() {
       Serial.print("Sending to Row F: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-
+      PCData = 'F1255000000';
       Serial6.write(data + 1, PCData - 1);
-      delay(3);
+            Serial6.flush();
+
+      ////delay(3);
       clearBuffer();
       break;
 
@@ -152,14 +163,17 @@ void loop() {
       Serial.print("Sending to Row G: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-
+      PCData = 'G1255000000';
       Serial7.write(data + 1, PCData - 1);
-      delay(3);
+            Serial7.flush();
+
+      ////delay(3);
       clearBuffer();
       break;
 
     case 73:
       // Set all rows to IDLE state.
+      PCData = A1000000000;
       Serial1.write(data + 1, PCData - 1);
       Serial2.write(data + 1, PCData - 1);
       Serial3.write(data + 1, PCData - 1);

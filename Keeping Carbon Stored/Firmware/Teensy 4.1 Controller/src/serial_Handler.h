@@ -37,44 +37,44 @@ void clearBuffer(uint8_t dataArray[]);
 void setSerial1()
 {
     Serial1.begin(115200, SERIAL_8E1);
-    Serial1.attachRts(Serial1RTS);
-    Serial1.attachCts(Serial1CTS);
+    // Serial1.attachRts(Serial1RTS);
+    // Serial1.attachCts(Serial1CTS);
     while (!Serial1)
     {
-#ifdef debug
-        Serial.println("Waiting for Serial1 two begin...");
-#endif
+        #ifdef debug
+                Serial.println("Waiting for Serial1 two begin...");
+        #endif
     }
 
-#ifdef debug
-    Serial.println("Serial 1 has started.");
-#endif
+        #ifdef debug
+            Serial.println("Serial 1 has started.");
+        #endif
 clearBuffer(data1);
 }
 
 void setSerial2()
 {
     Serial2.begin(115200, SERIAL_8E1);
-    Serial2.attachRts(Serial2RTS);
-    Serial2.attachCts(Serial2CTS);
+    // Serial2.attachRts(Serial2RTS);
+    // Serial2.attachCts(Serial2CTS);
     while (!Serial2)
     {
-#ifdef debug
-        Serial.println("Waiting for Serial 2 two begin...");
-#endif
-    }
+    #ifdef debug
+            Serial.println("Waiting for Serial 2 two begin...");
+    #endif
+        }
 
-#ifdef debug
-    Serial.println("Serial 2 has started.");
-#endif
-clearBuffer(data2);
+    #ifdef debug
+        Serial.println("Serial 2 has started.");
+    #endif
+    clearBuffer(data2);
 }
 
 void setSerial3()
 {
     Serial3.begin(115200, SERIAL_8E1);
-    Serial3.attachRts(Serial3RTS);
-    Serial3.attachCts(Serial3CTS);
+    // Serial3.attachRts(Serial3RTS);
+    // Serial3.attachCts(Serial3CTS);
     while (!Serial3)
     {
 #ifdef debug
@@ -91,8 +91,8 @@ clearBuffer(data3);
 void setSerial4()
 {
     Serial4.begin(115200, SERIAL_8E1);
-    Serial4.attachRts(Serial4RTS);
-    Serial4.attachCts(Serial4CTS);
+    // Serial4.attachRts(Serial4RTS);
+    // Serial4.attachCts(Serial4CTS);
     while (!Serial4)
     {
 #ifdef debug
@@ -255,10 +255,12 @@ void readSerial7()
     {
         // load buffer
         Serial7.readBytesUntil('\n', data7, BUTTONDATABUFFER);
-
+        if(data7[0] != 0)
         // This sends to Godot.
+        {        
         Serial.print("G");
         Serial.println(data7[0]);
+         }
         clearBuffer(data7);
     }
 }

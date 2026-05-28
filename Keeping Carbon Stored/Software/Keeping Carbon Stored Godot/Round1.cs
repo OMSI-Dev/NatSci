@@ -229,6 +229,7 @@ public partial class Round1 : Node2D
 				GD.Print("Serial communication NOT CONNECTED in Round One's restartTiles function.");
 			}
 			serialCom.sendData(toSend);
+			//delay(0.1)
 			GD.Print(toSend);
 
 			// Set current state of the tile we just sent data to is true / on.
