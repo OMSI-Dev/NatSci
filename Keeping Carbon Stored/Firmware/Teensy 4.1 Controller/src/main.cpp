@@ -124,6 +124,7 @@ void loop() {
        #ifdef debug
       Serial.print("Sending to Row E: ");
       Serial.write(data + 1, PCData - 1);
+      Serial.println();
       #endif
 
       Serial5.write(data + 1, PCData - 1);

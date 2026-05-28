@@ -109,7 +109,7 @@ clearBuffer(data4);
 void setSerial5()
 {
     Serial5.begin(115200, SERIAL_8E1);
-    Serial5.attachRts(Serial5RTS);
+    Serial5.attachRtsInverted(Serial5RTS);
     Serial5.attachCts(Serial5CTS);
     while (!Serial5)
     {
