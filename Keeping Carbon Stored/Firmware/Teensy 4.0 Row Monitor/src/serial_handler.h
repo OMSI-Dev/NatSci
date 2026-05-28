@@ -38,7 +38,7 @@ bool checkIfValid()
 {
     for (uint8_t i = 0; i <= dataBuffer - 1; i++)
     {
-        if (data[i] == '\0' || data[i] == '0')
+        if (data[i] == '\0')
         {
             return false;
         }

@@ -1,215 +1,194 @@
-// Examples to send for testing:
-  // A2000000000
-  // A2000255000
-  // A2000000255
-  // B2000000255
-  // D1255000000
-  // E1255000000
-  // E5255000000
-  // A1255000000
-  // A1000255000
-  // II000000000
-  // F1255000000
-  // F1000255000
-  // F1000000255
-  // F2550000000
-  // F3255000000
-  // F4255000000
-  // F5255000000
-  // G1255000000
-  // G2255000000
-  // G3255000000
-  // G4255000000
-  // G5255000000
-  // E1255000000
-
 #include <Arduino.h>
 #include <serial_Handler.h>
 
 const uint8_t DATABUFFER = 12;
 uint8_t data[DATABUFFER];
-
 uint16_t PCData = 0;
 uint8_t packet[DATABUFFER];
-
 
 void clearBuffer();
 
 void setup() {
-  // Initialize USB Serial for debugging
   Serial.begin(115200);
   delay(1000);
-
   #ifdef debug
- // while(!Serial);
   Serial.println("Teensy 4.1 (Parent) - Starting up...");
   #endif
-
-  // Initialize Serials for communication with Teensy 4.0 rows
-  setSerial1();
-  setSerial2();
-  setSerial3();
-  setSerial4();
-  setSerial5();
-  setSerial6();
-  setSerial7();
+  setSerial1(); setSerial2(); setSerial3(); setSerial4();
+  setSerial5(); setSerial6(); setSerial7();
 }
 
 void loop() {
-  readSerial1();
-  readSerial2();
-  readSerial3();
-  readSerial4();
-  readSerial5();
-  readSerial6();
-  readSerial7();
+  readSerial1(); readSerial2(); readSerial3(); readSerial4();
+  readSerial5(); readSerial6(); readSerial7();
 
   if (Serial.available()) { PCData = Serial.readBytesUntil('\0', data, DATABUFFER); }
 
   switch (data[0])
   {
-    case 65:
-      // Serial data recieved for Row A.
-      // Send to Row A, button number and RGB.
+    case 65: // Row A
+    {
       #ifdef debug
       Serial.print("Sending to Row A: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-      
-      if(data[2] == 2 )
-      { 
-        packet[12] = {'A','1','2','5','5','0','0','0','0','0','0'};
+      // FIX 1: use memcpy, not packet[12] = {}
+      // FIX 2: added missing '\0' on the ON packet
+      if (data[2] == 2)
+      {
+        static const uint8_t on[12]  = {'A','1','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
       }
-      if(data[2] == 0 )
-      { packet[12] = {'A','1','0','0','0','0','0','0','0','0','0','\0'};}
-      Serial1.write(packet + 1, PCData - 1);
+      if (data[2] == 0)
+      {
+        static const uint8_t off[12] = {'A','1','0','0','0','0','0','0','0','0','0','\0'};
+        memcpy(packet, off, 12);
+      }
+      Serial1.write(packet + 1, 11); // FIX 5: hardcode 11, not PCData-1
       Serial1.flush();
-      ////delay(3);
       clearBuffer();
       break;
+    }
 
-    case 66:
-      // Serial data recieved for Row B.
-      // Send to Row B, button number and RGB.
+    case 66: // Row B
+    {
       #ifdef debug
       Serial.print("Sending to Row B: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-      
-      if(data[2] == 2 )
-      { packet[12] = {'B','1','2','5','5','0','0','0','0','0','0','\0'};}
-      if(data[2] == 0 )
-      { packet[12] = {'B','1','0','0','0','0','0','0','0','0','0','\0'};}
-      Serial1.write(packet + 1, PCData - 1);
-            Serial2.flush();
-
-      ////delay(3);
+      if (data[2] == 2)
+      {
+        static const uint8_t on[12]  = {'B','1','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+      if (data[2] == 0)
+      {
+        static const uint8_t off[12] = {'B','1','0','0','0','0','0','0','0','0','0','\0'};
+        memcpy(packet, off, 12);
+      }
+      Serial2.write(packet + 1, 11);
+      Serial2.flush(); // FIX 4: was Serial1.write / Serial2.flush mismatch
       clearBuffer();
       break;
+    }
 
-    case 67:
-      // Serial data recieved for Row C.
-      // Send to Row C, button number and RGB.
+    case 67: // Row C
+    {
       #ifdef debug
       Serial.print("Sending to Row C: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-      
-      if(data[2] == 2 )
-      { packet[12] = {'C','1','2','5','5','0','0','0','0','0','0','\0'};}
-      if(data[2] == 0 )
-      { packet[12] = {'C','1','0','0','0','0','0','0','0','0','0','\0'};}
-      Serial1.write(packet + 1, PCData - 1);
-            Serial3.flush();
-
-      ////delay(3);
+      if (data[2] == 2)
+      {
+        static const uint8_t on[12]  = {'C','1','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+      if (data[2] == 0)
+      {
+        static const uint8_t off[12] = {'C','1','0','0','0','0','0','0','0','0','0','\0'};
+        memcpy(packet, off, 12);
+      }
+      Serial3.write(packet + 1, 11);
+      Serial3.flush(); // FIX 4: was Serial1.write / Serial3.flush mismatch
       clearBuffer();
       break;
+    }
 
-    case 68:
-      // Serial data recieved for Row D.
-      // Send to Row D, button number and RGB.
-      
-      if(data[2] == 2 )
-      { packet[12] = {'D','1','2','5','5','0','0','0','0','0','0','\0'};}
-      if(data[2] == 0 )
-      { packet[12] = {'D','1','0','0','0','0','0','0','0','0','0','\0'};}
-      Serial1.write(packet + 1, PCData - 1);
-            Serial4.flush();
-
-      ////delay(3);
+    case 68: // Row D
+    {
+      if (data[2] == 2)
+      {
+        static const uint8_t on[12]  = {'D','1','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+      if (data[2] == 0)
+      {
+        static const uint8_t off[12] = {'D','1','0','0','0','0','0','0','0','0','0','\0'};
+        memcpy(packet, off, 12);
+      }
+      Serial4.write(packet + 1, 11);
+      Serial4.flush(); // FIX 4: was Serial1.write / Serial4.flush mismatch
       clearBuffer();
       break;
+    }
 
-    case 69:
-      // Serial data recieved for Row E.
-      // Send to Row E, button number and RGB.
-       #ifdef debug
+    case 69: // Row E
+    {
+      #ifdef debug
       Serial.print("Sending to Row E: ");
       Serial.write(data + 1, PCData - 1);
       Serial.println();
       #endif
-        if(data[2] = 2 )
-      { packet[12] = {'E','1','2','5','5','0','0','0','0','0','0','\0'};}
-      if(data[2] = 0 )
-      { packet[12] = {'E','1','0','0','0','0','0','0','0','0','0','\0'};}
-      Serial1.write(packet + 1, PCData - 1);
-
-      ////delay(3);
+      // FIX 3: was = (assignment) instead of == (comparison)
+      if (data[2] == 2)
+      {
+        static const uint8_t on[12]  = {'E','1','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+      if (data[2] == 0)
+      {
+        static const uint8_t off[12] = {'E','1','0','0','0','0','0','0','0','0','0','\0'};
+        memcpy(packet, off, 12);
+      }
+      Serial5.write(packet + 1, 11);
+      Serial5.flush();
       clearBuffer();
       break;
+    }
 
-    case 70:
-      // Serial data recieved for Row F. --------ADA--------
-      // Send to Row F, button number and RGB.
-       #ifdef debug
+    case 70: // Row F
+    {
+      #ifdef debug
       Serial.print("Sending to Row F: ");
       Serial.write(data + 1, PCData - 1);
       #endif
-      if(data[2] == 2 )
-      { packet[12] = {'F','1','2','5','5','0','0','0','0','0','0','\0'};}
-      if(data[2] == 0 )
-      { packet[12] = {'F','1','0','0','0','0','0','0','0','0','0','\0'};}
-      Serial1.write(packet + 1, PCData - 1);
-      ////delay(3);
+      if (data[2] == 2)
+      {
+        static const uint8_t on[12]  = {'F','1','2','5','5','0','0','0','0','0','0','\0'};
+        memcpy(packet, on, 12);
+      }
+      if (data[2] == 0)
+      {
+        static const uint8_t off[12] = {'F','1','0','0','0','0','0','0','0','0','0','\0'};
+        memcpy(packet, off, 12);
+      }
+      Serial6.write(packet + 1, 11);
+      Serial6.flush();
       clearBuffer();
       break;
+    }
 
-    case 71:
-      // Serial data recieved for Row G. --------ADA--------
-      // Send to Row G, button number and RGB.
-       #ifdef debug
+    case 71: // Row G
+    {
+      #ifdef debug
       Serial.print("Sending to Row G: ");
       Serial.write(data + 1, PCData - 1);
       #endif
       Serial7.write(data + 1, PCData - 1);
-            Serial7.flush();
-
-      ////delay(3);
+      Serial7.flush();
       clearBuffer();
       break;
+    }
 
-    case 73:
-      // Set all rows to IDLE state.
-      uint8_t packet1[12] = {'A','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial1.write(packet1 + 1, PCData - 1);
-          uint8_t packet2[12] = {'B','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial2.write(packet2 + 1, PCData - 1);
-            uint8_t packet3[12] = {'C','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial3.write(packet3 + 1, PCData - 1);
-            uint8_t packet4[12] = {'D','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial4.write(packet4 + 1, PCData - 1);
-            uint8_t packet5[12] = {'E','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial5.write(packet5 + 1, PCData - 1);
-            uint8_t packet6[12] = {'F','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial6.write(packet6 + 1, PCData - 1);
-            uint8_t packet7[12] = {'G','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial7.write(packet7 + 1, PCData - 1);
+    case 73: // 'I' — Set all rows to IDLE
+    {
+      static const uint8_t idle[12] = {'X','1','0','0','0','0','0','0','0','0','0','\0'};
+      uint8_t tmp[12];
+      // Send IDLE to all rows, updating the row letter for each
+      const char rows[] = {'A','B','C','D','E','F','G'};
+      HardwareSerial* serials[] = {&Serial1,&Serial2,&Serial3,&Serial4,&Serial5,&Serial6,&Serial7};
+      for (int i = 0; i < 7; i++) {
+        memcpy(tmp, idle, 12);
+        tmp[0] = rows[i];
+        serials[i]->write(tmp + 1, 11);
+        serials[i]->flush();
+      }
       clearBuffer();
       break;
+    }
   }
 }
 
 void clearBuffer() {
-  for(int i = 0; i < DATABUFFER; i++) { data[i] = 0; }
+  for (int i = 0; i < DATABUFFER; i++) { data[i] = 0; }
 }

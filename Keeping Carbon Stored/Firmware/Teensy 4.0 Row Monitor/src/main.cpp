@@ -262,11 +262,11 @@ void correctData()
         Btn5LEDS.fill(Btn5LEDS.Color(red, green, blue));
         Btn5LEDS.show();   
 
-        buttonStates[0] = false;
-        buttonStates[1] = false;
-        buttonStates[2] = false;  
-        buttonStates[3] = false;
-        buttonStates[4] = false;    
+        buttonStates[0] = true;
+        buttonStates[1] = true;
+        buttonStates[2] = true;  
+        buttonStates[3] = true;
+        buttonStates[4] = true;    
     }
 
 
