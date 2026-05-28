@@ -41,7 +41,7 @@ void setup() {
   delay(1000);
 
   #ifdef debug
-  while(!Serial);
+ // while(!Serial);
   Serial.println("Teensy 4.1 (Parent) - Starting up...");
   #endif
 
@@ -77,9 +77,11 @@ void loop() {
       #endif
       
       if(data[2] == 2 )
-      {uint8_t packet[12] = {'A','1','2','5','5','0','0','0','0','0','0','\0'};}
+      { 
+        packet[12] = {'A','1','2','5','5','0','0','0','0','0','0'};
+      }
       if(data[2] == 0 )
-      {uint8_t packet[12] = {'A','1','0','0','0','0','0','0','0','0','0','\0'};}
+      { packet[12] = {'A','1','0','0','0','0','0','0','0','0','0','\0'};}
       Serial1.write(packet + 1, PCData - 1);
       Serial1.flush();
       ////delay(3);
@@ -95,9 +97,9 @@ void loop() {
       #endif
       
       if(data[2] == 2 )
-      {uint8_t packet[12] = {'B','1','2','5','5','0','0','0','0','0','0','\0'};}
+      { packet[12] = {'B','1','2','5','5','0','0','0','0','0','0','\0'};}
       if(data[2] == 0 )
-      {uint8_t packet[12] = {'B','1','0','0','0','0','0','0','0','0','0','\0'};}
+      { packet[12] = {'B','1','0','0','0','0','0','0','0','0','0','\0'};}
       Serial1.write(packet + 1, PCData - 1);
             Serial2.flush();
 
@@ -114,9 +116,9 @@ void loop() {
       #endif
       
       if(data[2] == 2 )
-      {uint8_t packet[12] = {'C','1','2','5','5','0','0','0','0','0','0','\0'};}
+      { packet[12] = {'C','1','2','5','5','0','0','0','0','0','0','\0'};}
       if(data[2] == 0 )
-      {uint8_t packet[12] = {'C','1','0','0','0','0','0','0','0','0','0','\0'};}
+      { packet[12] = {'C','1','0','0','0','0','0','0','0','0','0','\0'};}
       Serial1.write(packet + 1, PCData - 1);
             Serial3.flush();
 
@@ -129,9 +131,9 @@ void loop() {
       // Send to Row D, button number and RGB.
       
       if(data[2] == 2 )
-      {uint8_t packet[12] = {'D','1','2','5','5','0','0','0','0','0','0','\0'};}
+      { packet[12] = {'D','1','2','5','5','0','0','0','0','0','0','\0'};}
       if(data[2] == 0 )
-      {uint8_t packet[12] = {'D','1','0','0','0','0','0','0','0','0','0','\0'};}
+      { packet[12] = {'D','1','0','0','0','0','0','0','0','0','0','\0'};}
       Serial1.write(packet + 1, PCData - 1);
             Serial4.flush();
 
@@ -148,9 +150,9 @@ void loop() {
       Serial.println();
       #endif
         if(data[2] = 2 )
-      {uint8_t packet[12] = {'E','1','2','5','5','0','0','0','0','0','0','\0'};}
+      { packet[12] = {'E','1','2','5','5','0','0','0','0','0','0','\0'};}
       if(data[2] = 0 )
-      {uint8_t packet[12] = {'E','1','0','0','0','0','0','0','0','0','0','\0'};}
+      { packet[12] = {'E','1','0','0','0','0','0','0','0','0','0','\0'};}
       Serial1.write(packet + 1, PCData - 1);
 
       ////delay(3);
@@ -165,9 +167,9 @@ void loop() {
       Serial.write(data + 1, PCData - 1);
       #endif
       if(data[2] == 2 )
-      {uint8_t packet[12] = {'F','1','2','5','5','0','0','0','0','0','0','\0'};}
+      { packet[12] = {'F','1','2','5','5','0','0','0','0','0','0','\0'};}
       if(data[2] == 0 )
-      {uint8_t packet[12] = {'F','1','0','0','0','0','0','0','0','0','0','\0'};}
+      { packet[12] = {'F','1','0','0','0','0','0','0','0','0','0','\0'};}
       Serial1.write(packet + 1, PCData - 1);
       ////delay(3);
       clearBuffer();
@@ -189,20 +191,20 @@ void loop() {
 
     case 73:
       // Set all rows to IDLE state.
-      uint8_t packet[12] = {'A','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial1.write(packet + 1, PCData - 1);
-          uint8_t packet[12] = {'B','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial2.write(packet + 1, PCData - 1);
-            uint8_t packet[12] = {'C','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial3.write(packet + 1, PCData - 1);
-            uint8_t packet[12] = {'D','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial4.write(packet + 1, PCData - 1);
-            uint8_t packet[12] = {'E','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial5.write(packet + 1, PCData - 1);
-            uint8_t packet[12] = {'F','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial6.write(packet + 1, PCData - 1);
-            uint8_t packet[12] = {'G','1','0','0','0','0','0','0','0','0','0','\0'};
-      Serial7.write(packet + 1, PCData - 1);
+      uint8_t packet1[12] = {'A','1','0','0','0','0','0','0','0','0','0','\0'};
+      Serial1.write(packet1 + 1, PCData - 1);
+          uint8_t packet2[12] = {'B','1','0','0','0','0','0','0','0','0','0','\0'};
+      Serial2.write(packet2 + 1, PCData - 1);
+            uint8_t packet3[12] = {'C','1','0','0','0','0','0','0','0','0','0','\0'};
+      Serial3.write(packet3 + 1, PCData - 1);
+            uint8_t packet4[12] = {'D','1','0','0','0','0','0','0','0','0','0','\0'};
+      Serial4.write(packet4 + 1, PCData - 1);
+            uint8_t packet5[12] = {'E','1','0','0','0','0','0','0','0','0','0','\0'};
+      Serial5.write(packet5 + 1, PCData - 1);
+            uint8_t packet6[12] = {'F','1','0','0','0','0','0','0','0','0','0','\0'};
+      Serial6.write(packet6 + 1, PCData - 1);
+            uint8_t packet7[12] = {'G','1','0','0','0','0','0','0','0','0','0','\0'};
+      Serial7.write(packet7 + 1, PCData - 1);
       clearBuffer();
       break;
   }
