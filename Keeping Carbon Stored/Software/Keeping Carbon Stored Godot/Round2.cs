@@ -12,31 +12,34 @@ using System.Collections.Generic;
 
 public partial class Round2 : Node2D
 {
-	private RichTextLabel     _r2ScoreText;
+	private RichTextLabel _r2ScoreText;
 	private VideoStreamPlayer _r2VideoPlayer;
-	private RichTextLabel     _r2SmallScoreText;
-	private RichTextLabel     _r2SmallScoreText2;
+	private RichTextLabel _r2SmallScoreText;
+	private RichTextLabel _r2SmallScoreText2;
+
+	private RichTextLabel _Score;
+	private RichTextLabel _Puntaje;
 
 	[Export] public VideoStream introVideo;
 	[Export] public VideoStream gameplayVideo;
-	[Export] public float showTriggerTime      = 12.5f;
-	[Export] public float hideTriggerTime      = 42.25f;
+	[Export] public float showTriggerTime = 12.5f;
+	[Export] public float hideTriggerTime = 42.25f;
 	[Export] public float showSmallTriggerTime = 47.0f;
 	[Export] public float hideSmallTriggerTime = 52.5f;
 
-	string serialData     = "";
+	string serialData = "";
 	List<string> dataList = new List<string>();
-	List<string> r2Tiles  = new List<string>();
-	List<bool> r2States   = new List<bool>();
+	List<string> r2Tiles = new List<string>();
+	List<bool> r2States = new List<bool>();
 
-	private int score            = 0;
-	private bool round2Over      = false;
-	private bool round2Start     = false;
-	private bool tilesSet        = false;
-	private bool txtTriggered    = false;
+	private int score = 0;
+	private bool round2Over = false;
+	private bool round2Start = false;
+	private bool tilesSet = false;
+	private bool txtTriggered = false;
 	private bool smallTxtTrigger = false;
 	private bool vidSigConnected = false;
-	private Vector2 txtPos       = new Vector2(0.0f, 0.0f);
+	private Vector2 txtPos = new Vector2(0.0f, 0.0f);
 
 	SerialCom serialCom;
 	TileInfo tileInfo;
@@ -47,26 +50,30 @@ public partial class Round2 : Node2D
 	public override void _Ready()
 	{
 		serialCom = GetNode<SerialCom>("/root/SerialCom");
-		tileInfo  = GetNode<TileInfo>("/root/TileInfo");
+		tileInfo = GetNode<TileInfo>("/root/TileInfo");
 
-		r2Tiles  = tileInfo.getRound2Tiles();
+		r2Tiles = tileInfo.getRound2Tiles();
 		r2States = tileInfo.getRound2States();
 
 		// Verify that the autoload is in the global root folder.
 		//if (HasNode("/root"))
-			//GD.Print("Root exists");
+		//GD.Print("Root exists");
 		//var auto = GetNodeOrNull<Node>("/root/SerialCom");
 		//GD.Print(auto == null ? "Autoload NOT found" : "Autoload FOUND");
 
-		_r2VideoPlayer     = GetNode<VideoStreamPlayer>("RoundTwoVideoPlayer");
-		_r2ScoreText       = GetNode<RichTextLabel>("CanvasLayer/RoundTwoScore");
-		_r2SmallScoreText  = GetNode<RichTextLabel>("CanvasLayer/RoundTwoSmallScore");
+		_r2VideoPlayer = GetNode<VideoStreamPlayer>("RoundTwoVideoPlayer");
+		_r2ScoreText = GetNode<RichTextLabel>("CanvasLayer/RoundTwoScore");
+		_r2SmallScoreText = GetNode<RichTextLabel>("CanvasLayer/RoundTwoSmallScore");
 		_r2SmallScoreText2 = GetNode<RichTextLabel>("CanvasLayer/RoundTwoSmallScore2");
+		_Score = GetNode<RichTextLabel>("CanvasLayer/Score");
+		_Puntaje = GetNode<RichTextLabel>("CanvasLayer/Puntaje");
 
 		_r2ScoreText.Hide();
 		_r2SmallScoreText.Hide();
 		_r2SmallScoreText2.Hide();
 		_r2VideoPlayer.Hide();
+		_Score.Hide();
+		_Puntaje.Hide();
 	}
 
 	// ------------------------------------------------------------
@@ -74,78 +81,94 @@ public partial class Round2 : Node2D
 	// ------------------------------------------------------------
 	public override void _Process(double delta)
 	{
-		if(round2Over) { return; }
+		if (round2Over) { return; }
 
-		if(tileInfo == null)  { GD.Print("Tile Info node is NULL in Round Two."); }
-		if(serialCom == null) { GD.Print("SerialCom node is NULL in Round Two."); }
+		if (tileInfo == null) { GD.Print("Tile Info node is NULL in Round Two."); }
+		if (serialCom == null) { GD.Print("SerialCom node is NULL in Round Two."); }
 
-		if(_r2VideoPlayer == null) {
+		if (_r2VideoPlayer == null)
+		{
 			GD.Print("Round Two videos FAILED TO LOAD in Round Two script.");
 			return;
 		}
 
-		if(!IsVisibleInTree()) { return; }
+		if (!IsVisibleInTree()) { return; }
 
-		if(round2Start && !round2Over) {
-			if(!_r2VideoPlayer.IsPlaying()) {
+		if (round2Start && !round2Over)
+		{
+			if (!_r2VideoPlayer.IsPlaying())
+			{
 				_r2VideoPlayer.Show();
 				_r2VideoPlayer.Play();
 			}
 
 			string vidSource = "res://Media/r2Gameplay1080.ogv";
-			if(_r2VideoPlayer.Stream.ResourcePath != vidSource) { return; }
+			if (_r2VideoPlayer.Stream.ResourcePath != vidSource) { return; }
 
 			// Check if video is playing and target time is reached for the big score
 			if (!txtTriggered && _r2VideoPlayer.IsPlaying() && _r2VideoPlayer.StreamPosition >= showTriggerTime)
 			{
-				if(_r2ScoreText == null) { GD.Print("Text node is NULL in Round Two's _Process function."); }
+				if (_r2ScoreText == null) { GD.Print("Text node is NULL in Round Two's _Process function."); }
 				ShowScoreText(false, true);
 			}
 
-			if(txtTriggered && _r2VideoPlayer.IsPlaying() && _r2VideoPlayer.StreamPosition >= hideTriggerTime) {
+			if (txtTriggered && _r2VideoPlayer.IsPlaying() && _r2VideoPlayer.StreamPosition >= hideTriggerTime)
+			{
 				ShowScoreText(false, false);
 			}
 
 			// Check if video is playing and target time is reached for the small score
 			if (!smallTxtTrigger && _r2VideoPlayer.IsPlaying() && _r2VideoPlayer.StreamPosition >= showSmallTriggerTime)
 			{
-				if(_r2SmallScoreText == null) { GD.Print("Text node is NULL in Round Two's _Process function."); }
+				if (_r2SmallScoreText == null) { GD.Print("Text node is NULL in Round Two's _Process function."); }
 				ShowScoreText(true, true);
 			}
 
-			if(smallTxtTrigger && _r2VideoPlayer.IsPlaying() && _r2VideoPlayer.StreamPosition >= hideSmallTriggerTime) {
+			if (smallTxtTrigger && _r2VideoPlayer.IsPlaying() && _r2VideoPlayer.StreamPosition >= hideSmallTriggerTime)
+			{
 				ShowScoreText(true, false);
 			}
 
 			// __________________________________________________
 			// ***************** REAL GAMEPLAY *****************
-			if(txtTriggered && _r2ScoreText.IsVisible()) {
-				if(!tilesSet) {
+			if (txtTriggered && _r2ScoreText.IsVisible())
+			{
+				if (!tilesSet)
+				{
 					startRound2Tiles();
 					GD.Print(r2States.Count + " tiles set in Round Two: " + string.Join(", ", r2States));
 				}
 
 				//string[] newData = serialCom.getSplit();
 				string newData = serialCom.getRawData();
-				if(newData != null || newData.Length != 0) {
-					if(newData != "") {
+				if (newData != null || newData.Length != 0)
+				{
+					if (newData != "")
+					{
 						//GD.Print("New data recieved in Round One gameplay: " + newData);
 						string selected = newData.Substring(0, 2);
 						GD.Print(selected + " tile pressed while playing Round Two.");
 						int indx = getTileIndex(selected);
-						if(indx >= 0) {
-							if(!r2States[indx]) {
+						if (indx >= 0)
+						{
+							if (!r2States[indx])
+							{
 								GD.Print(selected + " already OFF.");
-							} else {
+							}
+							else
+							{
 								bool done = allTilesOff(selected);
 								score++;
-								if(done) {
+								if (done)
+								{
 									GD.Print("All non-ADA tiles have been pressed in Round Two. Turning them on again...");
 									restartTiles();
 									done = false;
 								}
 							}
-						} else {
+						}
+						else
+						{
 							GD.Print("Tile " + selected + " is not in Round Two.");
 						}
 					}
@@ -174,8 +197,8 @@ public partial class Round2 : Node2D
 					}
 				}
 			} */
-			_r2ScoreText.Text       = score.ToString();
-			_r2SmallScoreText.Text  = score.ToString();
+			_r2ScoreText.Text = score.ToString();
+			_r2SmallScoreText.Text = score.ToString();
 			_r2SmallScoreText2.Text = score.ToString();
 		}
 		// If round2Start = false: code here
@@ -184,18 +207,20 @@ public partial class Round2 : Node2D
 	// -------------------------------------------------------------
 	//  ********************* START ROUND TWO *********************
 	// -------------------------------------------------------------
-	public void startRoundTwo(bool strt) {
+	public void startRoundTwo(bool strt)
+	{
 		round2Start = strt;
-		round2Over  = !strt;
+		round2Over = !strt;
 
-		if(strt) {
+		if (strt)
+		{
 			// Reset everything for a fresh start
-			tilesSet     = false;
+			tilesSet = false;
 			txtTriggered = false;
-			score        = 0;
+			score = 0;
 
 			// Reset tile states
-			for(int i = 0; i < r2States.Count; i++) { r2States[i] = false; }
+			for (int i = 0; i < r2States.Count; i++) { r2States[i] = false; }
 
 			// Reconnect signal cleanly - unsub first to avoid double connections
 			// Use functions so it won't give an error if not connected.
@@ -205,8 +230,8 @@ public partial class Round2 : Node2D
 			_r2ScoreText.Hide();
 			_r2SmallScoreText.Hide();
 			_r2SmallScoreText2.Hide();
-			_r2ScoreText.Text       = "0";
-			_r2SmallScoreText.Text  = "0";
+			_r2ScoreText.Text = "0";
+			_r2SmallScoreText.Text = "0";
 			_r2SmallScoreText2.Text = "0";
 		}
 	}
@@ -214,17 +239,20 @@ public partial class Round2 : Node2D
 	// -----------------------------------------------------------
 	//  ********************* RESTART TILES *********************
 	// -----------------------------------------------------------
-	private void restartTiles() {
+	private void restartTiles()
+	{
 		// Send the data to the round 1 tiles to turn on. All tiles turn on at once.
 		string toSend;
 		int i = 0;
 		GD.Print("Sending serial com to restart Round Two's tiles:");
-		foreach(var tile in r2Tiles) {
+		foreach (var tile in r2Tiles)
+		{
 			// If tile is already on, don't resend.
-			if(r2States[i]) { return; }
+			if (r2States[i]) { return; }
 
 			toSend = tile + "255000000";
-			if(serialCom == null) {
+			if (serialCom == null)
+			{
 				GD.Print("Serial communication NOT CONNECTED in Round Two's restartTiles function.");
 			}
 			serialCom.sendData(toSend);
@@ -239,14 +267,17 @@ public partial class Round2 : Node2D
 	// -------------------------------------------------------
 	//  ********************* SET TILES *********************
 	// -------------------------------------------------------
-	private void startRound2Tiles() {
+	private void startRound2Tiles()
+	{
 		// Send the data to the round 1 tiles to turn on. All tiles turn on at once.
 		string toSend;
 		int i = 0;
 		GD.Print("Sending serial com to Round Two's tiles:");
-		foreach(var tile in r2Tiles) {
+		foreach (var tile in r2Tiles)
+		{
 			toSend = tile + "255000000";
-			if(serialCom == null) {
+			if (serialCom == null)
+			{
 				GD.Print("Serial communication NOT CONNECTED in Round Two's startRound2Tiles function.");
 			}
 			serialCom.sendData(toSend);
@@ -257,11 +288,11 @@ public partial class Round2 : Node2D
 			i++;
 		}
 		tilesSet = true;
-		score    = 0;
-		_r2ScoreText.Text       = "0";
-		_r2SmallScoreText.Text  = "0";
+		score = 0;
+		_r2ScoreText.Text = "0";
+		_r2SmallScoreText.Text = "0";
 		_r2SmallScoreText2.Text = "0";
-		GD.Print(i + " tiles have been turned ON in Round 2's startRound2Tiles() function. Scores set to: " + _r2ScoreText.Text + _r2SmallScoreText.Text + _r2SmallScoreText2.Text);;
+		GD.Print(i + " tiles have been turned ON in Round 2's startRound2Tiles() function. Scores set to: " + _r2ScoreText.Text + _r2SmallScoreText.Text + _r2SmallScoreText2.Text); ;
 		GD.Print("Round Two tile list: " + string.Join(", ", r2Tiles));
 	}
 
@@ -271,7 +302,8 @@ public partial class Round2 : Node2D
 	private void OnVideoFinished()
 	{
 		_r2VideoPlayer.Hide();
-		if(tilesSet) {
+		if (tilesSet)
+		{
 			// We have already played both videos and the round is over.
 			roundTwoFinished();
 			return;
@@ -282,7 +314,7 @@ public partial class Round2 : Node2D
 		_r2VideoPlayer.Show();
 
 		var texture = _r2VideoPlayer.GetVideoTexture();
-		if(texture != null) { txtPos = texture.GetSize(); }
+		if (texture != null) { txtPos = texture.GetSize(); }
 
 		//startRound2Tiles();
 		//GD.Print(r2States.Count + " states set in Round Two.");
@@ -292,7 +324,8 @@ public partial class Round2 : Node2D
 	// ------------------------------------------------------------
 	//  ********************* GET TILE INDEX *********************
 	// ------------------------------------------------------------
-	private int getTileIndex(string tile) {
+	private int getTileIndex(string tile)
+	{
 		int index = r2Tiles.IndexOf(tile);
 		return index;
 	}
@@ -300,23 +333,27 @@ public partial class Round2 : Node2D
 	// ------------------------------------------------------------
 	//  ********************* TURN TILES OFF *********************
 	// ------------------------------------------------------------
-	private bool allTilesOff(string tile) {
+	private bool allTilesOff(string tile)
+	{
 		int index = getTileIndex(tile);
 
-		if(!r2States[index]) {
+		if (!r2States[index])
+		{
 			GD.Print(tile + " with index #" + index + " already OFF.");
 			return false;
 		}
 
 		// Guard against tile not found
-		if(index == -1) {
+		if (index == -1)
+		{
 			GD.Print(tile + " NOT FOUND in r2Tiles list.");
 			GD.Print("Current tile list: " + string.Join(", ", r2Tiles));
 			return false;
 		}
 
 		// Guard against r2States being out of sync with r1Tiles
-		if(index >= r2States.Count) {
+		if (index >= r2States.Count)
+		{
 			GD.Print("Index " + index + " is OUT OF RANGE for r2States (count: " + r2States.Count + ")");
 			return false;
 		}
@@ -339,10 +376,12 @@ public partial class Round2 : Node2D
 	// --------------------------------------------------------------
 	//  ********************* CHECK ADA TILES *********************
 	// --------------------------------------------------------------
-	private bool checkADA() {
-		for(int i = 0; i < (r2States.Count - 5); i++) {
+	private bool checkADA()
+	{
+		for (int i = 0; i < (r2States.Count - 5); i++)
+		{
 			GD.Print("Checking ADA states in Round Two: " + string.Join(", ", r2States));
-			if(r2States[i]) { return false; }
+			if (r2States[i]) { return false; }
 		}
 		return true;
 	}
@@ -350,12 +389,13 @@ public partial class Round2 : Node2D
 	// ----------------------------------------------------------------
 	//  ********************* ROUND TWO FINISHED *********************
 	// ----------------------------------------------------------------
-	private void roundTwoFinished() {
+	private void roundTwoFinished()
+	{
 		GD.Print("ROUND TWO FINISHED." + r2States.Count + " states set in Round Two: " + string.Join(", ", r2States));
 
-		round2Start  = false;
-		round2Over   = true;
-		tilesSet     = false;
+		round2Start = false;
+		round2Over = true;
+		tilesSet = false;
 		txtTriggered = false;
 
 		DisconnectVideoSignal();
@@ -367,8 +407,10 @@ public partial class Round2 : Node2D
 	// ------------------------------------------------------------
 	//  ********************* CONNECT SIGNAL *********************
 	// ------------------------------------------------------------
-	private void ConnectVideoSignal() {
-		if(!vidSigConnected) {
+	private void ConnectVideoSignal()
+	{
+		if (!vidSigConnected)
+		{
 			_r2VideoPlayer.Finished += OnVideoFinished;
 			vidSigConnected = true;
 		}
@@ -377,8 +419,10 @@ public partial class Round2 : Node2D
 	// ---------------------------------------------------------------
 	//  ********************* DISCONNECT SIGNAL *********************
 	// ---------------------------------------------------------------
-	private void DisconnectVideoSignal() {
-		if(vidSigConnected) {
+	private void DisconnectVideoSignal()
+	{
+		if (vidSigConnected)
+		{
 			_r2VideoPlayer.Finished -= OnVideoFinished;
 			vidSigConnected = false;
 		}
@@ -387,48 +431,66 @@ public partial class Round2 : Node2D
 	// -------------------------------------------------------------
 	//  ********************* SHOW SCORE TEXT *********************
 	// -------------------------------------------------------------
-	private void ShowScoreText(bool small, bool vis) {
-		txtTriggered    = vis;
+	private void ShowScoreText(bool small, bool vis)
+	{
+		txtTriggered = vis;
 		smallTxtTrigger = small;
 
-		if(txtTriggered && !smallTxtTrigger) {
+		if (txtTriggered && !smallTxtTrigger)
+		{
 			// Score is actively collecting input
 			_r2ScoreText.GlobalPosition = new Vector2((txtPos.X / 2) - 245, (txtPos.Y / 4) - 10);
 			_r2ScoreText.Show();
-		} else if(!txtTriggered && !small){
+			_Score.Show();
+			_Puntaje.Show();
+		}
+		else if (!txtTriggered && !small)
+		{
 			// Round Two game is over. Turn all remaining tiles off.
 			//GD.Print("Turning OFF remaining tiles in Round Two...");
 			TilesOff();
 			_r2ScoreText.Hide();
-		} else if(txtTriggered && small) {
-			_r2SmallScoreText.GlobalPosition = new Vector2(1040, 340);
+			_Score.Hide();
+			_Puntaje.Hide();
+		}
+		else if (txtTriggered && small)
+		{
+			_r2SmallScoreText.GlobalPosition = new Vector2(1071, 340);
 			_r2SmallScoreText.Show();
-			_r2SmallScoreText2.GlobalPosition = new Vector2(1085, 440);
+			_r2SmallScoreText2.GlobalPosition = new Vector2(1034, 445);
 			_r2SmallScoreText2.Show();
-		} else if(!txtTriggered && small) {
+
+		}
+		else if (!txtTriggered && small)
+		{
 			_r2SmallScoreText.Hide();
 			_r2SmallScoreText2.Hide();
 		}
 	}
 
-	public bool getRound2Start() {
+	public bool getRound2Start()
+	{
 		return round2Start;
 	}
 
-	public bool isRound2Over() {
+	public bool isRound2Over()
+	{
 		return round2Over;
 	}
 
-	public void resetRound2Score() {
+	public void resetRound2Score()
+	{
 		score = 0;
 	}
 
-	public int round2Score() {
+	public int round2Score()
+	{
 		return score;
 	}
 
-	public void TilesOff() {
+	public void TilesOff()
+	{
 		// Turn off all of the tiles.
-		foreach(var tile in r2Tiles) { serialCom.sendData(tile + "000000000"); }
+		foreach (var tile in r2Tiles) { serialCom.sendData(tile + "000000000"); }
 	}
 }

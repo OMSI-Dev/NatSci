@@ -475,8 +475,11 @@ void setup()
 
   // Initialize external LED ring
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 750);
-  FastLED.setBrightness(75);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 700);
+  // FastLED.setBrightness(75);
+  // Max Power throttles brightness based on available power set by the amount of LEDs.
+  // Control brightness in functions. ie. Max red (255,0,0) vs (175,0,0)
+
   setLEDs(CRGB::Black);
 
   // Initialize sensor tracking and I2C buffer
