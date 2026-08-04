@@ -39,7 +39,6 @@
 #define FAIL 5
 #define YELLOW 6
 #define WIN 7
-#define RESET 8
 
 // ── Pin definitions ────────────────────────────────────────────────────────────
 #define ENERGY_SWITCH_PIN 14
@@ -118,6 +117,9 @@ void processResults();
 void handleSerialDevTools();
 bool checkEnergySwitchPulled();
 void printCurrentStateStatus();
+void printM0ResponseSummary();
+void printM0RegistrationSummary();
+void printSerialDevHelp();
 const char* getGameStateName(GameState state);
 void updateCityLEDs();
 void setAllCitiesColor(CRGB color);
@@ -184,36 +186,19 @@ void setup() {
   changeGameState(GAME_READY_IDLE);
   lastActivityTime = millis();
   
-
-  // Serial.println("'2' = Force READY_IDLE");
-  // Serial.println("'3' = Force ACTIVE");
-  // Serial.println("'4' = Force PRE_RESULTS");
-  // Serial.println("'5' = Force RESULTS");
-  // Serial.println("'p' = Poll M0 boards");
-  // Serial.println("'e' = Simulate energy switch pull");
-  // Serial.println("'s' = Print current state status");
-  // Serial.println("'r' = Reset to READY_IDLE");
+  printSerialDevHelp();
 
 }
 
 void loop() {
   static uint32_t lastPollTime = 0;
-  static uint32_t lastStatusPrintTime = 0;
   const uint32_t POLL_INTERVAL = 500;  // Poll M0s every 500ms
-  const uint32_t STATUS_PRINT_INTERVAL = 5000;  // Print status every 5 seconds
   
   // Update city LEDs continuously
   updateCityLEDs();
   
   // Handle serial dev tools
   handleSerialDevTools();
-  
-  // Periodic status printing 
-  if (currentGameState != GAME_PRE_RESULTS && 
-      (millis() - lastStatusPrintTime >= STATUS_PRINT_INTERVAL)) {
-    printCurrentStateStatus();
-    lastStatusPrintTime = millis();
-  }
   
   // State machine
   switch (currentGameState) {
@@ -352,7 +337,6 @@ void loop() {
 void changeGameState(GameState newState) {
   if (newState == currentGameState) return;
   
-  GameState oldState = currentGameState;
   currentGameState = newState;
   
   // Serial.println("\n╔══════════════════════════════════════════════════════════╗");
@@ -442,7 +426,7 @@ void sendGameStateToM0s() {
  * Poll all M0 boards and update their status
  * Pass verbose=true to print detailed status (used by dev tools)
  */
-void pollM0Boards(bool verbose = false) {
+void pollM0Boards(bool verbose) {
   uint8_t registeredCount = 0;
   uint8_t correctCount = 0;
   uint8_t incorrectCount = 0;
@@ -486,14 +470,16 @@ void pollM0Boards(bool verbose = false) {
       }
     } else {
       m0Boards[i].responseReceived = false;
-      // Always show communication errors
-      Serial.print("\n  ⚠ No response from M0 #");
-      Serial.print(i + 1);
-      Serial.print(" at 0x");
-      Serial.print(m0Addresses[i], HEX);
-      Serial.print(" (received ");
-      Serial.print(bytesReceived);
-      Serial.print(" bytes)");
+
+      if (verbose) {
+        Serial.print("\n  ⚠ No response from M0 #");
+        Serial.print(i + 1);
+        Serial.print(" at 0x");
+        Serial.print(m0Addresses[i], HEX);
+        Serial.print(" (received ");
+        Serial.print(bytesReceived);
+        Serial.print(" bytes)");
+      }
     }
   }
   
@@ -666,6 +652,16 @@ void handleSerialDevTools() {
         Serial.println("\n[DEV] Polling M0 boards...");
         pollM0Boards(true);  // Verbose output
         break;
+
+      case 'c':
+      case 'C':
+        printM0ResponseSummary();
+        break;
+result
+      case 'm':
+      case 'M':
+        printM0RegistrationSummary();
+        break;
         
       case 'e':
       case 'E':
@@ -681,6 +677,7 @@ void handleSerialDevTools() {
       case 's':
       case 'S':
         Serial.println("\n[DEV] Current state status:");
+        pollM0Boards(false);
         printCurrentStateStatus();
         break;
         
@@ -688,6 +685,12 @@ void handleSerialDevTools() {
       case 'R':
         // Serial.println("\n[DEV] Manual reset to READY_IDLE");
         changeGameState(GAME_READY_IDLE);
+        break;
+
+      case 'h':
+      case 'H':
+      case '?':
+        printSerialDevHelp();
         break;
         
       case '\n':
@@ -700,6 +703,88 @@ void handleSerialDevTools() {
         break;
     }
   }
+}
+
+void printM0ResponseSummary() {
+  pollM0Boards(false);
+
+  uint8_t responding = 0;
+  Serial.println("\n[DEV] Response poll:");
+
+  for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
+    if (m0Boards[i].responseReceived) {
+      responding++;
+    }
+
+    Serial.print("  M0#");
+    Serial.print(i + 1);
+    Serial.print(" [0x");
+    Serial.print(m0Addresses[i], HEX);
+    Serial.print("]: ");
+    Serial.println(m0Boards[i].responseReceived ? "RESPONDED" : "NO RESPONSE");
+  }
+
+  Serial.print("  Summary: ");
+  Serial.print(responding);
+  Serial.print("/");
+  Serial.print(NUM_M0_BOARDS);
+  Serial.println(" boards responded");
+}
+
+void printM0RegistrationSummary() {
+  pollM0Boards(false);
+
+  uint8_t registered = 0;
+  Serial.println("\n[DEV] Registration poll:");
+
+  for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
+    Serial.print("  M0#");
+    Serial.print(i + 1);
+    Serial.print(" [0x");
+    Serial.print(m0Addresses[i], HEX);
+    Serial.print("]: ");
+
+    if (!m0Boards[i].responseReceived) {
+      Serial.println("NO RESPONSE");
+      continue;
+    }
+
+    if (!m0Boards[i].isRegistered) {
+      Serial.print("EMPTY (state=");
+      Serial.print(m0Boards[i].detectState);
+      Serial.println(")");
+      continue;
+    }
+
+    registered++;
+    bool isCorrect = validatePiecePlacement(m0Boards[i].address,
+                                            m0Boards[i].s1Polarity,
+                                            m0Boards[i].s2Polarity,
+                                            m0Boards[i].s3Polarity);
+
+    Serial.print(isCorrect ? "REGISTERED, CORRECT" : "REGISTERED, INCORRECT");
+    Serial.print(" (state=");
+    Serial.print(m0Boards[i].detectState);
+    Serial.println(")");
+  }
+
+  Serial.print("  Summary: ");
+  Serial.print(registered);
+  Serial.print("/");
+  Serial.print(NUM_M0_BOARDS);
+  Serial.println(" boards registered");
+}
+
+void printSerialDevHelp() {
+  Serial.println("\nSerial dev commands:");
+  Serial.println("  h or ? = show this help");
+  Serial.println("  p      = verbose M0 poll");
+  Serial.println("  c      = poll response status");
+  Serial.println("  m      = poll registration status");
+  Serial.println("  s      = poll and print full state");
+  Serial.println("  r      = reset to READY_IDLE");
+  Serial.println("  e      = simulate energy switch pull");
+  Serial.println("  2/3/4/5 = force game state");
 }
 
 bool checkEnergySwitchPulled() {
@@ -744,7 +829,8 @@ void printCurrentStateStatus() {
   Serial.println("\n┌────────────────────────────────────────────────────────┐");
   Serial.print("│  Current State: ");
   Serial.print(getGameStateName(currentGameState));
-  for (int i = 0; i < 38 - strlen(getGameStateName(currentGameState)); i++) Serial.print(" ");
+  size_t stateNameLength = strlen(getGameStateName(currentGameState));
+  for (size_t i = 0; i < 38U - stateNameLength; i++) Serial.print(" ");
   Serial.println("│");
  
   uint8_t registered = 0, correct = 0, incorrect = 0, responding = 0;
@@ -876,7 +962,7 @@ void updateCityLEDs() {
           setAllCitiesRainbow();
         }
         // Some wrong - Yellow
-        else if (registeredCount == NUM_M0_BOARDS && correctCount > 0 && incorrectCount > 0) {g
+        else if (registeredCount == NUM_M0_BOARDS && correctCount > 0 && incorrectCount > 0) {
           Serial.println(" -> YELLOW");
           setAllCitiesColor(CRGB::Yellow);
         }

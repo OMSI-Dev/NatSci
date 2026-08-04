@@ -15,7 +15,7 @@
 #define NUMPIXELS  1
 Adafruit_DotStar strip(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
 
-uint16_t i2cAddress = 0x08;
+uint16_t i2cAddress = 0x09;
 volatile uint8_t counter = 0;
 volatile bool communicationActive = false;
 unsigned long lastHeartbeat = 0;

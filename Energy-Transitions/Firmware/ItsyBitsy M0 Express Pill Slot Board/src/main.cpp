@@ -57,6 +57,11 @@
 #define SENSOR_2_PIN A1
 #define SENSOR_3_PIN A2
 
+// ── Sensor LED pins ───────────────────────────────────────────────────────────────
+#define SEN1_LED_PIN  11
+#define SEN2_LED_PIN  10
+#define SEN3_LED_PIN  9
+
 // ── DotStar pins (ItsyBitsy M0) ───────────────────────────────────────────────
 #define DOTSTAR_DATA 41
 #define DOTSTAR_CLK 40
@@ -73,10 +78,11 @@
 
 // ── Registration Configuration ────────────────────────────────────────────────
 MoToTimer magDebounce;
-#define DEBOUNCE_DELAY_MS 500      // Delay before starting registration (ms)
+#define DEBOUNCE_DELAY_MS 120      // Short debounce for quick-but-stable registration start
 #define CONFIRM_SAMPLES 10         // Consecutive samples needed to lock polarity
 #define CANDIDATE_STABILITY 3      // Consecutive reads needed to switch candidates
 #define FORCE_LOCK_TIMEOUT_MS 3000 // Timeout to force-lock uncertain sensors (ms)
+const uint32_t MIN_REGISTERING_DISPLAY_MS = 800; // Keep chase visible for one full ring pass
 
 // ── LED ring ──────────────────────────────────────────────────────────────────
 #define LED_PIN 2
@@ -102,7 +108,6 @@ enum DetectState : uint8_t
 
 enum GameState : uint8_t
 {
-  GAME_RESET_IDLE = 0,
   GAME_READY_IDLE = 1,
   GAME_ACTIVE = 2,
   GAME_PRE_RESULTS = 3,
@@ -123,12 +128,17 @@ struct SensorTrack
 // ── Globals ───────────────────────────────────────────────────────────────────
 uint16_t i2cAddress = 0x08;
 DetectState detectState = STATE_IDLE;
-GameState gameState = GAME_RESET_IDLE;
+GameState gameState = GAME_READY_IDLE;
 bool isRegistered = false;
 bool isCorrectPlacement = false; // Stored during GAME_ACTIVE for later reporting
 bool hasReportedResults = false; // Ensure we only send results once in PRE_RESULTS
 SensorTrack track[3];
 volatile uint8_t txBuf[8] = {0, 0, 0, 0, 0x08, 0, 0, 0};
+volatile bool teensyContactFlag = false;
+bool hasSeenTeensyContact = false;
+uint32_t lastTeensyContactMs = 0;
+const uint32_t I2C_CONTACT_TIMEOUT_MS = 3000;
+const uint32_t SENSOR_LED_BLINK_MS = 250;
 
 // ── ADC and Classification Helpers ───────────────────────────────────────────
 
@@ -151,6 +161,7 @@ uint16_t readSensorAveraged(uint8_t pin)
  * Classify sensor reading with hysteresis to prevent boundary oscillation.
  * Uses lastReading to apply appropriate thresholds based on previous state.
  */
+
 Polarity classifyWithHysteresis(uint16_t raw, Polarity lastReading)
 {
   // Apply hysteresis based on previous state
@@ -205,6 +216,28 @@ void resetTracks()
 void setLEDs(CRGB color)
 {
   fill_solid(leds, NUM_LEDS, color);
+  FastLED.show();
+}
+
+/**
+ * White trail chase animation for early registration feedback.
+ */
+void setLEDsWhiteTrailChase()
+{
+  static uint16_t head = 0;
+  static uint32_t lastStepMs = 0;
+  const uint32_t stepMs = 40;
+
+  if (millis() - lastStepMs >= stepMs)
+  {
+    head = (head + 1) % NUM_LEDS;
+    lastStepMs = millis();
+  }
+
+  fadeToBlackBy(leds, NUM_LEDS, 48);
+  leds[head] = CRGB(220, 220, 220);
+  leds[(head + NUM_LEDS - 1) % NUM_LEDS] = CRGB(120, 120, 120);
+  leds[(head + NUM_LEDS - 2) % NUM_LEDS] = CRGB(60, 60, 60);
   FastLED.show();
 }
 
@@ -289,6 +322,7 @@ void writeTxBuf(DetectState st, Polarity p0, Polarity p1, Polarity p2)
  */
 void onRequest()
 {
+  teensyContactFlag = true;
   Wire.write((uint8_t *)txBuf, 8);
 }
 
@@ -300,6 +334,7 @@ void onReceive(int numBytes)
 {
   if (numBytes >= 1)
   {
+    teensyContactFlag = true;
     uint8_t receivedState = Wire.read();
 
     // Clear any remaining bytes
@@ -308,7 +343,11 @@ void onReceive(int numBytes)
       Wire.read();
     }
 
-    GameState newGameState = (GameState)receivedState;
+    GameState newGameState = GAME_READY_IDLE;
+    if (receivedState >= (uint8_t)GAME_READY_IDLE && receivedState <= (uint8_t)GAME_RESULTS)
+    {
+      newGameState = (GameState)receivedState;
+    }
 
     // Only update if state changed
     if (newGameState != gameState)
@@ -324,9 +363,6 @@ void onReceive(int numBytes)
       Serial.print(">>> GAME STATE CHANGED: ");
       switch (gameState)
       {
-      case GAME_RESET_IDLE:
-        Serial.println("RESET IDLE");
-        break;
       case GAME_READY_IDLE:
         Serial.println("READY IDLE");
         break;
@@ -461,29 +497,35 @@ void setup()
 {
   // Initialize serial communication
   Serial.begin(115200);
-  // delay(2500); // Wait for serial monitor to connect,no need for the delay
-  while (!Serial)
-    ; //<- only use this during debug. Remove for production.
+  uint32_t serialWaitStart = millis();
+  while (!Serial && (millis() - serialWaitStart) < 1500)
+  {
+  }
 
   // Disable on-board LEDs to prevent interference
   turnOffDotStar();
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
 
+  // Configure LED pins for sensors
+  pinMode(SEN1_LED_PIN, OUTPUT);
+  pinMode(SEN2_LED_PIN, OUTPUT);
+  pinMode(SEN3_LED_PIN, OUTPUT);
+
   // Configure ADC for 12-bit resolution (0-4095)
   analogReadResolution(12);
 
   // Initialize external LED ring
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 750);
-  FastLED.setBrightness(75);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 500);
   setLEDs(CRGB::Black);
 
   // Initialize sensor tracking and I2C buffer
   resetTracks();
-  gameState = GAME_RESET_IDLE;
+  gameState = GAME_READY_IDLE;
   isRegistered = false;
   isCorrectPlacement = false;
+  lastTeensyContactMs = millis();
   writeTxBuf(STATE_IDLE, POL_UNCERTAIN, POL_UNCERTAIN, POL_UNCERTAIN);
 
   // Read I2C address from hardware pins
@@ -521,6 +563,32 @@ void loop()
   static const uint8_t PINS[3] = {SENSOR_1_PIN, SENSOR_2_PIN, SENSOR_3_PIN};
   static uint32_t lastDebug = 0;
 
+  if (teensyContactFlag)
+  {
+    noInterrupts();
+    teensyContactFlag = false;
+    interrupts();
+    hasSeenTeensyContact = true;
+    lastTeensyContactMs = millis();
+  }
+
+  bool i2cFaultActive = hasSeenTeensyContact &&
+                        (millis() - lastTeensyContactMs) > I2C_CONTACT_TIMEOUT_MS;
+
+  if (i2cFaultActive)
+  {
+    bool ledOn = ((millis() / SENSOR_LED_BLINK_MS) % 2) == 0;
+    digitalWrite(SEN1_LED_PIN, ledOn ? HIGH : LOW);
+    digitalWrite(SEN2_LED_PIN, ledOn ? HIGH : LOW);
+    digitalWrite(SEN3_LED_PIN, ledOn ? HIGH : LOW);
+  }
+  else
+  {
+    digitalWrite(SEN1_LED_PIN, LOW);
+    digitalWrite(SEN2_LED_PIN, LOW);
+    digitalWrite(SEN3_LED_PIN, LOW);
+  }
+
   // Read all sensors with averaging and hysteresis
   Polarity cur[3];
   uint16_t raw[3];
@@ -547,6 +615,7 @@ void loop()
     {
       resetTracks();
       detectState = STATE_DEBOUNCING;
+      magDebounce.setTime(DEBOUNCE_DELAY_MS);
       Serial.println("\n>>> MAGNETISM DETECTED - DEBOUNCING <<<");
       // Stay dark during debounce - don't light up for transient signals
       writeTxBuf(STATE_DEBOUNCING, cur[0], cur[1], cur[2]);
@@ -581,7 +650,6 @@ void loop()
       detectState = STATE_REGISTERING;
 
       // debounceTimerStarted = false;
-      magDebounce.setTime(DEBOUNCE_DELAY_MS);
       // LED feedback now handled by game state logic
       writeTxBuf(STATE_REGISTERING, cur[0], cur[1], cur[2]);
     }
@@ -759,7 +827,7 @@ void loop()
       lastDebug = millis();
     }
 
-    if (allLocked)
+    if (allLocked && (millis() - registerStartTime) >= MIN_REGISTERING_DISPLAY_MS)
     {
       bool correct = isCorrect();
       detectState = correct ? STATE_CORRECT : STATE_INCORRECT;
@@ -815,30 +883,33 @@ void loop()
   // ══════════════════════════════════════════════════════════════════════════════
   // LED behavior is controlled by game state, not detection state
 
-  switch (gameState)
-  {
-  case GAME_RESET_IDLE:
-    // All slots pulsate red
-    setLEDsPulsating(CRGB::Red, 30, 200, 800);
-    break;
+  GameState displayGameState = i2cFaultActive ? GAME_READY_IDLE : gameState;
 
+  switch (displayGameState)
+  {
   case GAME_READY_IDLE:
-    // Unregistered slots breathe white
-    if (!isRegistered)
+    // Show immediate registration feedback, then solid white once confirmed.
+    if (detectState == STATE_REGISTERING)
+    {
+      setLEDsWhiteTrailChase();
+    }
+    else if (!isRegistered)
     {
       setLEDsBreathing(CRGB::White, 20, 150, 2000);
     }
     else
     {
-      // If somehow registered in ready idle, show it
-      setLEDs(CRGB(50, 50, 50));
+      setLEDs(CRGB(100, 100, 100));
     }
     break;
 
   case GAME_ACTIVE:
-    // Registered pieces: solid white
-    // Unregistered: breathe white
-    if (isRegistered)
+    // Registered pieces: solid white, registering: chase, unregistered: breathe white.
+    if (detectState == STATE_REGISTERING)
+    {
+      setLEDsWhiteTrailChase();
+    }
+    else if (isRegistered)
     {
       setLEDs(CRGB(100, 100, 100)); // Solid white
     }
@@ -870,6 +941,10 @@ void loop()
       // Incorrect placement: red
       setLEDs(CRGB(200, 0, 0));
     }
+    break;
+
+  default:
+    setLEDsBreathing(CRGB::White, 20, 150, 2000);
     break;
   }
 
