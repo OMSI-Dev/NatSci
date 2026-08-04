@@ -72,9 +72,9 @@ Teensy 4.1
 4. GND
 5. 3.3V
 
-Address Pins to M0 Express
+Address Pins to M0 Express (***changed from first version)
 1. Pin 7 to D_ADDR
-2. Pin 5 to C_ADDR
+2. Pin 18 to C_ADDR***
 3. Pin 4 to B_ADDR
 2. Pin 3 to A_ADDR
 
@@ -84,9 +84,9 @@ SS39ET Hall Effect Sensors to M0 Express
 3. Sen3_OUT to Pin A2
 
 Sensor Indicator LEDs
-1. (D1) Pin 11 on M0 Express
-2. (D2) Pin 10 on M0 Express
-3. (D3) Pin 9 on M0 Express
+1. (D1) SEN1_INDICATOR Pin 11 on M0 Express
+2. (D2) SEN2_INDICATOR Pin 10 on M0 Express
+3. (D3) SEN3_INDICATOR Pin 9 on M0 Express
 
 Pill LEDs for gameplay 
 1. LED 1-20 to DOUT

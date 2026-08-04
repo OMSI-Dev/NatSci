@@ -8,7 +8,7 @@ This header should run before Wire is started.
 
 #define aPin 3
 #define bPin 4
-#define cPin 12
+#define cPin 18
 #define dPin 7
 
 bool A = false, B = false, C = false, D = false;
