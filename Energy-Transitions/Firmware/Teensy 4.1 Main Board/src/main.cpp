@@ -176,9 +176,9 @@ void setup() {
   FastLED.addLeds<LED_TYPE, 7, COLOR_ORDER>(leds5, NUM_LEDS_PER_STRIP);
   FastLED.addLeds<LED_TYPE, 8, COLOR_ORDER>(leds6, NUM_LEDS_PER_STRIP);
   FastLED.addLeds<LED_TYPE, 9, COLOR_ORDER>(leds7, NUM_LEDS_PER_STRIP);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 2000); // 5V and 2A max for all LEDs combined
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 1300); // 5V and 2A max for all LEDs combined
   // FastLED.setMaxPowerInVoltsAndMilliamps(3.3, 2000); // 3.3V and 2A max for all LEDs combined
-  FastLED.setBrightness(LED_BRIGHTNESS);
+  // FastLED.setBrightness(LED_BRIGHTNESS);
   setAllCitiesOff();
   // Serial.println("✓ City LEDs initialized on pins 3-9");
   
