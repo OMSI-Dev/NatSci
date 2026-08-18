@@ -19,6 +19,7 @@ void setLED()
     FastLED.addLeds<WS2812, ledData2>(person, NUM_LEDS);
     FastLED.addLeds<WS2812, ledData3>(cloud, NUM_LEDS);
 
+    // Test RGB
     ledTest();
 
     Serial.println("Leds Set and Tested");
