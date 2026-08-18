@@ -24,9 +24,9 @@ void setup()
     }
     
     Serial.println("\n\n");
-    Serial.println("===============================================");
+    Serial.println("==========================================");
     Serial.println("  Climate Action Venn Diagram - RFID Test");
-    Serial.println("===============================================");
+    Serial.println("==========================================");
     
     // Setup pin modes
     setPins();

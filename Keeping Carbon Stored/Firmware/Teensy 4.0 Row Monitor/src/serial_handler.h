@@ -36,39 +36,35 @@ void clearBuffer()
 
 bool checkIfValid()
 {
-    for (uint8_t i = 0; i <= dataBuffer - 1; i++)
-    {
-        if (data[i] == '\0')
-        {
-            return false;
-        }
-        else
-        {
-            return true;
-        }
-    }
-    return false;
+    // FIX 1&2: just check that data[0] is a valid button number
+    // and not an empty buffer
+    return (data[0] == '1' || data[0] == '2' || 
+            data[0] == '3' || data[0] == '4' || data[0] == '5');
 }
 
 void readSerial()
 {
     if (Serial1.available())
     {
-        // load buffer
-        Serial1.readBytesUntil('\0', data, dataBuffer);
+        uint8_t bytesRead = Serial1.readBytesUntil('\0', data, dataBuffer);
 
         Serial.println("Check if packet is valid.");
-        bool validPacket = checkIfValid();
 
-        // Serial.print("Packet returned: ");
-        // Serial.println(validPacket);
+        // FIX 3: also validate we got a reasonable number of bytes
+        if (bytesRead < 1)
+        {
+            Serial.println("Bad Packet! - Empty read.");
+            clearBuffer();
+            return;
+        }
+
+        bool validPacket = checkIfValid();
 
         if (validPacket)
         {
             Serial.print("Button: ");
             Serial.println(data[0] - '0');
-
-            for (uint8_t i = 0; i <= dataBuffer - 2; i++)
+            for (uint8_t i = 0; i < bytesRead; i++)
             {
                 Serial.print(i);
                 Serial.print(":");
@@ -76,12 +72,11 @@ void readSerial()
                 Serial.print(" ");
             }
             Serial.println();
-        
         }
         else
         {
             Serial.println("Bad Packet! - Clearing buffer.");
-            clearBuffer();
+            clearBuffer(); // FIX 1: just clear, don't fake data[0] = '1'
         }
     }
 }

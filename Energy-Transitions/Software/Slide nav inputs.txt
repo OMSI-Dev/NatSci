@@ -2,6 +2,11 @@ Keypress Inputs from Teensy 4.1 to B-link computer (slideshow display navigation
 
 Space = Language 
 'i' = ready idle (gameplay instructions slide)
-'r' = reset (reset instructions slide)
+'r' = reset (reset instructions slide) ***
 'g' = game active (last slide)
 's' = result (last slide)
+'p' = piece registered
+
+
+**Changed and must be updated in Godot - there is no longer  reset game state. 'p' keypress in firmware code is now sent every time a piece is registered.
+8/5/26

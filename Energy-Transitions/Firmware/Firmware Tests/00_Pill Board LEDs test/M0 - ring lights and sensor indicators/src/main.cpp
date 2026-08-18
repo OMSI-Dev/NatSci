@@ -1,12 +1,19 @@
+/*
+Autumn 8/4/26 Added simple digitalwrite for three sensor LEDs to turn on
+*/
+
 #include <Arduino.h>
 #include <FastLED.h>
 
 // LED Chain Configuration
 const int LED_PIN = 2;        // Data pin for LED chain
 const int NUM_LEDS = 20;      // Number of LEDs in the chain
-
-// Define the array of LEDs
 CRGB leds[NUM_LEDS];
+
+// Sensor LED pins - standard green LEDs
+const int SEN1_LED_PIN = 11;
+const int SEN2_LED_PIN = 10;
+const int SEN3_LED_PIN = 9;
 
 void setup() {
   // Initialize Serial for debugging
@@ -19,23 +26,30 @@ void setup() {
   Serial.print("Data Pin: ");
   Serial.println(LED_PIN);
   
-  // Initialize FastLED
+  // Initialize FastLED for main LED chain
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
-  FastLED.setBrightness(50);  // Brightness level (0-255)
-  FastLED.clear();
-  FastLED.show();
-  delay(100);  // Give LEDs time to initialize
+  FastLED.setBrightness(50);
   
-  // Turn on all LEDs to white
+  // Initialize sensor LED pins as outputs
+  pinMode(SEN1_LED_PIN, OUTPUT);
+  pinMode(SEN2_LED_PIN, OUTPUT);
+  pinMode(SEN3_LED_PIN, OUTPUT);
+  
+  // Turn on all LEDs
   Serial.println("Turning on all LEDs...");
   for(int i = 0; i < NUM_LEDS; i++) {
     leds[i] = CRGB::White;
   }
   FastLED.show();
   
+  // Turn on sensor LEDs
+  digitalWrite(SEN1_LED_PIN, HIGH);
+  digitalWrite(SEN2_LED_PIN, HIGH);
+  digitalWrite(SEN3_LED_PIN, HIGH);
+  
   Serial.println("All LEDs turned ON!");
 }
 
 void loop() {
-  // LEDs stay on - nothing to do in loop
+  // Nothing to do - LEDs stay on
 }

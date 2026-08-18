@@ -1,4 +1,5 @@
 #include <Timer.h>
+#include <audioControl.h>
 
 Bounce2::Button btn1 = Bounce2::Button();
 Bounce2::Button btn2 = Bounce2::Button();
@@ -72,6 +73,14 @@ void attachButtons()
     btn5.attach(btnInput5, INPUT_PULLUP);
     btn5.setPressedState(LOW);
     btn5.interval(5);
+
+    //LEDs 
+    digitalWrite(btnPWM1, HIGH);
+    digitalWrite(btnPWM2, HIGH);
+    digitalWrite(btnPWM3, HIGH);
+    digitalWrite(btnPWM4, HIGH);
+    digitalWrite(btnPWM5, HIGH);
+
 }
 
 void buttonUpdate()

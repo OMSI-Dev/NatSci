@@ -1,9 +1,11 @@
-Referenced from miro [https://miro.com/app/board/uXjVLfXSY8s=/?share_link_id=686399557613] 
+Copied directly from Development Team's miro board: [https://miro.com/app/board/uXjVLfXSY8s=/?share_link_id=686399557613] 
+Updated 8/4/26
+
 "3.4 Energy Transitions Game Sequence" 
 
 **Gameplay Summary:**
 
-There are multiple ‘slots’ that have a combination of gameplay pieces placed inside of them by visitors. These slots have designated pieces that are ‘correct’. There ae secondary visual cities next to these slots, that have an array of LEDs in them to 
+There are multiple ‘slots’ that have a combination of gameplay pieces placed inside of them by visitors. These slots have designated pieces that are ‘correct’. There are secondary visual cities next to these slots, that have an array of LEDs in them for visual gameplay feedback.
 
 **Overall Notes**
 
