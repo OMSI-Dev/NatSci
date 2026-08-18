@@ -22,8 +22,8 @@ script = ExtResource("1_2pltu")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=695396155]
 custom_maximum_size = Vector2(1920, 1080)
-offset_right = 2460.0
-offset_bottom = 1580.0
+offset_right = 1920.0
+offset_bottom = 1080.0
 texture = ExtResource("2_krmtw")
 
 [node name="TextureRect4" type="TextureRect" parent="." unique_id=1900387884]
@@ -68,10 +68,10 @@ offset_right = 1920.0
 offset_bottom = 1080.0
 size_flags_vertical = 4
 stream = ExtResource("5_aomqu")
+speed_scale = 4.0
 buffering_msec = 100
 
 [node name="CanvasLayer" type="CanvasLayer" parent="Round1" unique_id=1213338764]
-visible = false
 
 [node name="RoundOneScore" type="RichTextLabel" parent="Round1/CanvasLayer" unique_id=1376457684]
 visible = false
@@ -148,6 +148,11 @@ shortcut_keys_enabled = false
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="ColorRect" type="ColorRect" parent="Round1" unique_id=652878097]
+offset_right = 108.0
+offset_bottom = 103.0
+color = Color(0, 0, 0, 1)
+
 [node name="Round2" type="Node2D" parent="." unique_id=808558755]
 script = ExtResource("5_mf81u")
 introVideo = ExtResource("9_krmtw")
@@ -159,6 +164,7 @@ offset_bottom = 1080.0
 buffering_msec = 100
 
 [node name="CanvasLayer" type="CanvasLayer" parent="Round2" unique_id=1125704180]
+visible = false
 
 [node name="RoundTwoScore" type="RichTextLabel" parent="Round2/CanvasLayer" unique_id=1146076865]
 visible = false
@@ -259,7 +265,7 @@ offset_left = 1035.0
 offset_top = 438.0
 offset_right = 1157.0
 offset_bottom = 535.0
-theme_override_colors/default_color = Color(0.27058825, 0.38039216, 0.35686275, 1)
+theme_override_colors/default_color = Color(0.84705883, 0.3372549, 0.11372549, 1)
 theme_override_fonts/normal_font = ExtResource("7_aomqu")
 theme_override_font_sizes/normal_font_size = 54
 text = "0"

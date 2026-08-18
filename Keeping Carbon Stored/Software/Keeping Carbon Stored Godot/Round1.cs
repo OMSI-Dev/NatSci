@@ -9,7 +9,9 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Reflection;
+using System.Threading.Tasks;
 
 public partial class Round1 : Node2D
 {
@@ -41,20 +43,22 @@ public partial class Round1 : Node2D
 	private bool smallTxtTrigger = false;
 	private bool vidSigConnected = false;
 	private Vector2 txtPos = new Vector2(0.0f, 0.0f);
-
 	SerialCom serialCom;
 	TileInfo tileInfo;
 
+	private ColorRect _TestRect;
 	// -------------------------------------------------------------
 	//  ********************* ROUND ONE READY *********************
 	// -------------------------------------------------------------
 	public override void _Ready()
 	{
+		_TestRect = GetNode<ColorRect>("ColorRect");
 		serialCom = GetNode<SerialCom>("/root/SerialCom");
 		tileInfo = GetNode<TileInfo>("/root/TileInfo");
 
 		r1Tiles = tileInfo.getRound1Tiles();
 		r1States = tileInfo.getRound1States();
+
 
 		// Verify that the autoload is in the global root folder.
 		//if (HasNode("/root"))
@@ -239,7 +243,7 @@ public partial class Round1 : Node2D
 	// -----------------------------------------------------------
 	//  ********************* RESTART TILES *********************
 	// -----------------------------------------------------------
-	private void restartTiles()
+	private async void restartTiles()
 	{
 		// Send the data to the round 1 tiles to turn on. All tiles turn on at once.
 		string toSend;
@@ -249,12 +253,16 @@ public partial class Round1 : Node2D
 		{
 			// If tile is already on, don't resend.
 			if (r1States[i]) { return; }
+			_TestRect.Color = new Godot.Color(1, 0, 0);
 
+			//Send Red 
 			toSend = tile + "255000000";
 			if (serialCom == null)
 			{
 				GD.Print("Serial communication NOT CONNECTED in Round One's restartTiles function.");
 			}
+			//small delay to not over run the teensy
+			await ToSignal(GetTree().CreateTimer(1.0f, ignoreTimeScale: true), SceneTreeTimer.SignalName.Timeout);
 			serialCom.sendData(toSend);
 			//delay(0.1)
 			GD.Print(toSend);
@@ -268,31 +276,33 @@ public partial class Round1 : Node2D
 	// -------------------------------------------------------
 	//  ********************* SET TILES *********************
 	// -------------------------------------------------------
-	private void startRound1Tiles()
+	private async void startRound1Tiles()
 	{
 		// Send the data to the round 1 tiles to turn on. All tiles turn on at once.
 		string toSend;
 		int i = 0;
+		tilesSet = true;
 		GD.Print("Sending serial com to Round One's tiles:");
 		foreach (var tile in r1Tiles)
 		{
+			_TestRect.Color = new Godot.Color(0, 0, 0);
+
+			//Send Red 
 			toSend = tile + "255000000";
 			if (serialCom == null)
 			{
-				GD.Print("Serial communication NOT CONNECTED in Round One's startRound1Tiles function.");
+				GD.Print("Serial communication NOT CONNECTED in Round One's restartTiles function.");
 			}
+			//small delay to not over run the teensy
+			await ToSignal(GetTree().CreateTimer(0.1f, ignoreTimeScale: true), SceneTreeTimer.SignalName.Timeout);
+			_TestRect.Color = new Godot.Color(1, 0, 0);
 			serialCom.sendData(toSend);
 			GD.Print(toSend);
-			//create a small delay before sending next packet to prevent overflow
-			//Sleep(25);
-
-			System.Threading.Thread.Sleep(25);
-
-			// Set current state of the tile we just sent data to is true / on.
 			r1States[i] = true;
 			i++;
 		}
-		tilesSet = true;
+
+
 		score = 0;
 		_r1ScoreText.Text = "0";
 		_r1SmallScoreText.Text = "0";
