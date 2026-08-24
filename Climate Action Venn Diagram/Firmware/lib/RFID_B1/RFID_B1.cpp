@@ -246,6 +246,11 @@ bool RFID_B1::writeRFIDMemory(uint16_t address, const uint8_t* data, uint16_t da
     memcpy(&params[idx], data, dataSize);
     idx += dataSize;
     
+    // Discard any stray/leftover bytes before starting a fresh exchange -
+    // guards against the response parser getting out of sync after a long
+    // run (e.g. a partial/garbled frame left over from a previous call).
+    clearSerialBuffer();
+
     if (!sendCommand(CMD_WRITE_RFID_MEMORY, params, idx)) {
         return false;
     }
@@ -271,6 +276,8 @@ bool RFID_B1::readRFIDMemory(uint16_t address, uint8_t* data, uint16_t dataSize)
     params[2] = dataSize & 0xFF;
     params[3] = (dataSize >> 8) & 0xFF;
     
+    clearSerialBuffer();
+
     if (!sendCommand(CMD_READ_RFID_MEMORY, params, 4)) {
         return false;
     }
@@ -391,6 +398,124 @@ bool RFID_B1::passwordAuthentication(uint8_t passwordNumber, const uint8_t* pass
 
 bool RFID_B1::halt() {
     return executeRFIDCommand(RFID_CMD_HALT, nullptr, 0);
+}
+
+// Polling Mode (0x22)
+//
+// Unlike other RFID commands, Polling is not a one-shot operation: once
+// started, the module repeatedly checks for tags in the background and
+// reports detections via async/binary/string packets (manual 5.5). Because
+// of that we deliberately do NOT reuse executeRFIDCommand()'s
+// waitForAsyncPacket(), which blocks until the *next* async packet arrives
+// - that would stall here until a tag happens to be detected. Instead we
+// write params + command, then check the Result Register once to confirm
+// the module accepted the configuration.
+bool RFID_B1::startPolling(const PollingConfig &config) {
+    uint8_t params[18];
+
+    params[0] = config.period;
+    params[1] = config.numDefinedTags;
+
+    params[2] = config.definedTag.asyncPacketMode;
+    params[3] = config.definedTag.ioConfig;
+    params[4] = config.definedTag.pwmChannel;
+    params[5] = config.definedTag.pwmDuty;
+    params[6] = config.definedTag.pwmPeriodUs & 0xFF;
+    params[7] = (config.definedTag.pwmPeriodUs >> 8) & 0xFF;
+    params[8] = (config.definedTag.pwmPeriodUs >> 16) & 0xFF;
+    params[9] = config.definedTag.tagTimeout;
+
+    params[10] = config.undefinedTag.asyncPacketMode;
+    params[11] = config.undefinedTag.ioConfig;
+    params[12] = config.undefinedTag.pwmChannel;
+    params[13] = config.undefinedTag.pwmDuty;
+    params[14] = config.undefinedTag.pwmPeriodUs & 0xFF;
+    params[15] = (config.undefinedTag.pwmPeriodUs >> 8) & 0xFF;
+    params[16] = (config.undefinedTag.pwmPeriodUs >> 16) & 0xFF;
+    params[17] = config.undefinedTag.tagTimeout;
+
+    // Write parameters to the Command Parameters register (0x0002-0x0013)
+    if (!writeRFIDMemory(ADDR_COMMAND_PARAMS, params, sizeof(params))) {
+        return false;
+    }
+    delay(10);
+
+    // Trigger the Polling command
+    uint8_t cmd = RFID_CMD_POLLING;
+    if (!writeRFIDMemory(ADDR_COMMAND_REG, &cmd, 1)) {
+        return false;
+    }
+
+    delay(10);
+    readRFIDMemory(ADDR_RESULT_REG, &_lastResult, 1);
+    return true;
+}
+
+bool RFID_B1::stopPolling() {
+    // Manual 5.5: "Polling mode can be stopped by writing any RFID command
+    // to the Command Register." Halt is the least disruptive choice since
+    // it takes no arguments and doesn't touch any tag/auth state.
+    return halt();
+}
+
+bool RFID_B1::startPresenceWatch(uint8_t periodX100ms) {
+    // Defined/Undefined tag settings default-construct to:
+    // asyncPacketMode = POLL_PKT_NONE, ioConfig = POLL_IO_CONFIG_NONE,
+    // pwmChannel = POLL_PWM_NONE - i.e. no UART chatter, no IO, no PWM.
+    // The module still runs its internal tag-detect cycle every `period`,
+    // which is what keeps the TPI pin current - that's all we need here.
+    PollingConfig config;
+    config.period = periodX100ms;
+    config.numDefinedTags = 0;
+    return startPolling(config);
+}
+
+bool RFID_B1::pollForPacket(uint8_t* data, uint8_t &size, unsigned long timeout) {
+    uint16_t receivedSize = 0;
+    if (receivePacket(data, receivedSize, 255, timeout)) {
+        size = (uint8_t)receivedSize;
+        return true;
+    }
+    size = 0;
+    return false;
+}
+
+// Unlock (0x1B) / Lock (0x1C)
+//
+// Per Table 5.4 the Unlock command takes the Password directly as its RFID
+// command argument (it is not first written to the Password register).
+bool RFID_B1::unlock(const uint8_t* password) {
+    return executeRFIDCommand(RFID_CMD_UNLOCK, password, 8);
+}
+
+bool RFID_B1::lock() {
+    return executeRFIDCommand(RFID_CMD_LOCK, nullptr, 0);
+}
+
+// Defined Tag List (manual 5.5.6)
+//
+// Stored in User Memory starting at byte index 19: <UIDSize><UID> repeated
+// for each tag. Only UID sizes 4, 7 or 10 are valid - an invalid size makes
+// the module stop comparing detected tags against the list. User Memory
+// must be unlocked before writing and locked afterward to persist it.
+bool RFID_B1::setDefinedTagList(const uint8_t uidSizes[], const uint8_t* const uids[], uint8_t numTags) {
+    uint8_t buffer[USER_MEMORY_SIZE];
+    uint16_t idx = 0;
+
+    for (uint8_t i = 0; i < numTags; i++) {
+        uint8_t uidSize = uidSizes[i];
+        if (uidSize != TAG_UID_SIZE_4 && uidSize != TAG_UID_SIZE_7 && uidSize != TAG_UID_SIZE_10) {
+            return false; // manual 5.5.6: allowed UID sizes are 4, 7 and 10
+        }
+        if (idx + 1 + uidSize > sizeof(buffer)) {
+            return false; // would exceed available User Memory
+        }
+        buffer[idx++] = uidSize;
+        memcpy(&buffer[idx], uids[i], uidSize);
+        idx += uidSize;
+    }
+
+    return writeRFIDMemory(ADDR_DEFINED_TAG_LIST, buffer, idx);
 }
 
 bool RFID_B1::writeDataBuffer(uint16_t offset, const uint8_t* data, uint16_t size) {

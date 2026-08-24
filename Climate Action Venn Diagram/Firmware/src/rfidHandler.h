@@ -9,15 +9,11 @@ Handles reading RFID tags for testing purposes.
 #define bytesPerPage 4
 #define numPagesToRead 1
 
-#define TPI1 2
-#define TPI2 3
-#define TPI3 4
-
 uint16_t rfidTimeout = 5000;
 
-RFID_B1 groupRFID(Serial3);    // Pins 14(TX3)/15(RX3)
-RFID_B1 interestRFID(Serial4); // Pins 16(RX4)/17(TX4)
-RFID_B1 topicRFID(Serial5);    // Pins 20(TX5)/21(RX5)
+RFID_B1 interestRFID(Serial3);    // Pins 14(TX3)/15(RX3) TPI Pin: 3
+RFID_B1 topicRFID(Serial4); // Pins 16(RX4)/17(TX4) TPI Pin: 2
+RFID_B1 groupRFID(Serial5);    // Pins 20(TX5)/21(RX5) TPI Pin: 4
 
 uint8_t specificData[bytesPerPage * numPagesToRead];
 
@@ -196,6 +192,8 @@ void startRfidSerial()
     Serial.println("TPI Pins: 2 (Group), 3 (Interest), 4 (Topic)");
     Serial.println("nPWRDN Pins: 5 (Group), 11 (Interest), 6 (Topic)");
     Serial.println("-----------------------------------------------\n");
+
+    
 }
 
 /**
@@ -203,23 +201,9 @@ void startRfidSerial()
  */
 void scanForRfid()
 {
-    static unsigned long lastDebugTime = 0;
-    static unsigned long lastScanTime = 0;
     static bool lastTPI1State = true;
     static bool lastTPI2State = true;
-    
-    // Print TPI status every 5 seconds for debugging
-    if (millis() - lastDebugTime > 5000)
-    {
-        lastDebugTime = millis();
-        Serial.print("TPI Status - Pin2:");
-        Serial.print(digitalRead(TPI1) ? "HIGH" : "LOW");
-        Serial.print(" Pin3:");
-        Serial.print(digitalRead(TPI2) ? "HIGH" : "LOW");
-        Serial.print(" Pin4:");
-        Serial.println(digitalRead(TPI3) ? "HIGH" : "LOW");
-    }
-    
+        
     // Monitor TPI changes in real-time
     bool currentTPI1 = digitalRead(TPI1);
     if (currentTPI1 != lastTPI1State)
@@ -236,97 +220,191 @@ void scanForRfid()
         Serial.print(">>> TPI2 changed to: ");
         Serial.println(currentTPI2 ? "HIGH (no tag)" : "LOW (tag present!)");
     }
+            
+        // // Check Interest RFID (Reader 2) - active polling
+        // if (interestRFID.getUIDandType())
+        // {
+        //     Serial.println("\n[Reader 2 - Interest] Tag detected!");
+            
+        //     // Read the tag data
+        //     if (interestRFID.readNTAG215(startPage, numPagesToRead, specificData))
+        //     {
+        //         Serial.print("  Data: ");
+        //         interestRFID.printBuffer(specificData, sizeof(specificData));
+                
+        //         // Check if it matches a known tag
+        //         for (uint8_t i = 0; i < sizeof(knownTagsInterest); i++)
+        //         {
+        //             if (knownTagsInterest[i] == specificData[3])
+        //             {
+        //                 currentInterestTag = specificData[3];
+        //                 Serial.print("  -> Matched interest tag 0x");
+        //                 if (currentInterestTag < 0x10) Serial.print("0");
+        //                 Serial.println(currentInterestTag, HEX);
+        //                 sendTag(currentInterestTag, 2);
+        //                 break;
+        //             }
+        //         }
+        //     }
+        //     interestRFID.halt();
+
+        // }
+        
+        // // Check Topic RFID (Reader 3) - active polling
+        // if (topicRFID.getUIDandType())
+        // {
+        //     Serial.println("\n[Reader 3 - Topic] Tag detected!");
+            
+        //     // Read the tag data
+        //     if (topicRFID.readNTAG215(startPage, numPagesToRead, specificData))
+        //     {
+        //         Serial.print("  Data: ");
+        //         topicRFID.printBuffer(specificData, sizeof(specificData));
+                
+        //         // Check if it matches a known tag
+        //         for (uint8_t i = 0; i < sizeof(knownTagsTopic); i++)
+        //         {
+        //             if (knownTagsTopic[i] == specificData[3])
+        //             {
+        //                 currentTopicTag = specificData[3];
+        //                 Serial.print("  -> Matched topic tag 0x");
+        //                 if (currentTopicTag < 0x10) Serial.print("0");
+        //                 Serial.println(currentTopicTag, HEX);
+        //                 sendTag(currentTopicTag, 3);
+        //                 break;
+        //             }
+        //         }
+        //     }
+        //     topicRFID.halt();
+
+        // }
     
-    // Poll for tags every 500ms (don't rely solely on TPI)
-    if (millis() - lastScanTime > 500)
+}
+
+uint8_t GT = 0;
+uint8_t getGroupData()
+{
+    if (groupRFID.getUIDandType())
     {
-        lastScanTime = millis();
-        
-        // Check Group RFID (Reader 1) - active polling
-        if (groupRFID.getUIDandType())
+        // Read the tag data
+        if (groupRFID.readNTAG215(startPage, numPagesToRead, specificData))
         {
-            Serial.println("\n[Reader 1 - Group] Tag detected!");
-            
-            // Read the tag data
-            if (groupRFID.readNTAG215(startPage, numPagesToRead, specificData))
+            Serial.print("Group Data: ");
+            groupRFID.printBuffer(specificData, sizeof(specificData));
+
+            // Check if it matches a known tag
+            if( GT < sizeof(knownTagsGroup))
             {
-                Serial.print("  Data: ");
-                groupRFID.printBuffer(specificData, sizeof(specificData));
-                
-                // Check if it matches a known tag
-                for (uint8_t i = 0; i < sizeof(knownTagsGroup); i++)
+                if (knownTagsGroup[GT] == specificData[3])
                 {
-                    if (knownTagsGroup[i] == specificData[3])
-                    {
-                        currentGroupTag = specificData[3];
-                        Serial.print("  -> Matched group tag 0x");
-                        if (currentGroupTag < 0x10) Serial.print("0");
-                        Serial.println(currentGroupTag, HEX);
-                        sendTag(currentGroupTag, 1);
-                        break;
-                    }
+                    currentGroupTag = specificData[3];
+                    Serial.print("  -> Matched group tag 0x");
+                    if (currentGroupTag < 0x10) Serial.print("0");
+                    Serial.println(currentGroupTag, HEX);
+                    sendTag(currentGroupTag, 1);
                 }
+                GT++;
             }
-            groupRFID.halt();
-            delay(1000); // Wait before next scan to avoid spam
+             if(GT == sizeof(knownTagsGroup)){GT = 0;}
         }
         
-        // Check Interest RFID (Reader 2) - active polling
-        if (interestRFID.getUIDandType())
-        {
-            Serial.println("\n[Reader 2 - Interest] Tag detected!");
-            
-            // Read the tag data
-            if (interestRFID.readNTAG215(startPage, numPagesToRead, specificData))
-            {
-                Serial.print("  Data: ");
-                interestRFID.printBuffer(specificData, sizeof(specificData));
-                
-                // Check if it matches a known tag
-                for (uint8_t i = 0; i < sizeof(knownTagsInterest); i++)
-                {
-                    if (knownTagsInterest[i] == specificData[3])
-                    {
-                        currentInterestTag = specificData[3];
-                        Serial.print("  -> Matched interest tag 0x");
-                        if (currentInterestTag < 0x10) Serial.print("0");
-                        Serial.println(currentInterestTag, HEX);
-                        sendTag(currentInterestTag, 2);
-                        break;
-                    }
-                }
-            }
-            interestRFID.halt();
-            delay(1000); // Wait before next scan to avoid spam
-        }
-        
-        // Check Topic RFID (Reader 3) - active polling
-        if (topicRFID.getUIDandType())
-        {
-            Serial.println("\n[Reader 3 - Topic] Tag detected!");
-            
-            // Read the tag data
-            if (topicRFID.readNTAG215(startPage, numPagesToRead, specificData))
-            {
-                Serial.print("  Data: ");
-                topicRFID.printBuffer(specificData, sizeof(specificData));
-                
-                // Check if it matches a known tag
-                for (uint8_t i = 0; i < sizeof(knownTagsTopic); i++)
-                {
-                    if (knownTagsTopic[i] == specificData[3])
-                    {
-                        currentTopicTag = specificData[3];
-                        Serial.print("  -> Matched topic tag 0x");
-                        if (currentTopicTag < 0x10) Serial.print("0");
-                        Serial.println(currentTopicTag, HEX);
-                        sendTag(currentTopicTag, 3);
-                        break;
-                    }
-                }
-            }
-            topicRFID.halt();
-            delay(1000); // Wait before next scan to avoid spam
-        }
     }
+    return currentGroupTag;
+}
+
+uint8_t getTopicData()
+{
+    if (topicRFID.getUIDandType())
+    {
+        // Read the tag data
+        if (topicRFID.readNTAG215(startPage, numPagesToRead, specificData))
+        {
+            Serial.print("Topic Data: ");
+            topicRFID.printBuffer(specificData, sizeof(specificData));
+
+            // Check if it matches a known tag
+            for (uint8_t i = 0; i < sizeof(knownTagsGroup); i++)
+            {
+                if (knownTagsGroup[i] == specificData[3])
+                {
+                    currentTopicTag = specificData[3];
+                    Serial.print("  -> Matched group tag 0x");
+                    if (currentTopicTag < 0x10) Serial.print("0");
+                    Serial.println(currentTopicTag, HEX);
+                    sendTag(currentTopicTag, 1);
+                    break;
+                }
+            }
+        }
+        
+    }
+    return currentTopicTag;
+}
+
+
+uint8_t getInterestData()
+{
+    if (interestRFID.getUIDandType())
+    {
+        // Read the tag data
+        if (interestRFID.readNTAG215(startPage, numPagesToRead, specificData))
+        {
+            Serial.print("Interest Data: ");
+            interestRFID.printBuffer(specificData, sizeof(specificData));
+
+            // Check if it matches a known tag
+            for (uint8_t i = 0; i < sizeof(knownTagsGroup); i++)
+            {
+                if (knownTagsGroup[i] == specificData[3])
+                {
+                    currentInterestTag = specificData[3];
+                    Serial.print("  -> Matched group tag 0x");
+                    if (currentInterestTag < 0x10) Serial.print("0");
+                    Serial.println(currentInterestTag, HEX);
+                    sendTag(currentInterestTag, 1);
+                    break;
+                }
+            }
+        }
+        
+    }
+    return currentInterestTag;
+}
+
+bool resumeGroupPresenceWatch() {
+    for (uint8_t attempt = 0; attempt < 3; attempt++) {
+        if (groupRFID.startPresenceWatch(1)) {
+            Serial.println("Started Group Presence Watch.");
+            return true;
+        }
+        Serial.println("startPresenceWatch for group failed, retrying...");
+    }
+    Serial.println("!!! startPresenceWatch for group failed after 3 attempts - presence sensing is down");
+    return false;
+}
+
+bool resumeTopicPresenceWatch() {
+    for (uint8_t attempt = 0; attempt < 3; attempt++) {
+        if (topicRFID.startPresenceWatch(1)) {
+            Serial.println("Started Topic Presence Watch.");            
+            return true;
+        }
+        Serial.println("startPresenceWatch for topic failed, retrying...");
+
+    }
+    Serial.println("!!! startPresenceWatch for topic failed after 3 attempts - presence sensing is down");
+    return false;
+}
+
+bool resumeInterestPresenceWatch() {
+    for (uint8_t attempt = 0; attempt < 3; attempt++) {
+        if (interestRFID.startPresenceWatch(1)) {
+            Serial.println("Started Interest Presence Watch.");            
+            return true;
+        }
+        Serial.println("startPresenceWatch for interest failed, retrying...");
+
+    }
+    Serial.println("!!! startPresenceWatch for interest failed after 3 attempts - presence sensing is down");
+    return false;
 }
