@@ -37,113 +37,6 @@ uint8_t knownTagsTopic[12] =
     {
         0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24};
 
-/**
- * Reads tag from specified RFID reader
- * @param RFID 1 = group, 2 = interest, 3 = topic
- * @return Tag byte value if found, 0 if not found
- */
-u_int8_t getTag(uint8_t RFID = 1)
-{
-    u_int8_t knownByte = 0;
-
-    switch (RFID)
-    {
-    case 1:
-        Serial.println("  Calling readNTAG215...");
-        if (groupRFID.readNTAG215(startPage, numPagesToRead, specificData))
-        {
-            Serial.println("  ✓ Read successful!");
-            Serial.print("  Data buffer: ");
-            groupRFID.printBuffer(specificData, sizeof(specificData));
-            
-            for (uint8_t i = 0; i < sizeof(knownTagsGroup); i++)
-            {
-                if (knownTagsGroup[i] == specificData[3])
-                {
-                    knownByte = specificData[3];
-                    currentGroupTag = specificData[3];
-                    Serial.println("  -> Matched known group tag!");
-                    break;
-                }
-            }
-            if (knownByte == 0)
-            {
-                Serial.print("  -> Tag byte 0x");
-                Serial.print(specificData[3], HEX);
-                Serial.println(" not in known group tags list");
-            }
-        }
-        else
-        {
-            Serial.println("  ✗ Read failed (readNTAG215 returned false)");
-        }
-        groupRFID.halt();
-        break;
-        
-    case 2:
-        if (interestRFID.readNTAG215(startPage, numPagesToRead, specificData))
-        {
-            Serial.println("Interest RFID read:");
-            interestRFID.printBuffer(specificData, sizeof(specificData));
-            
-            for (uint8_t i = 0; i < sizeof(knownTagsInterest); i++)
-            {
-                if (knownTagsInterest[i] == specificData[3])
-                {
-                    knownByte = specificData[3];
-                    currentInterestTag = specificData[3];
-                    Serial.println("  -> Matched known interest tag!");
-                    break;
-                }
-            }
-        }
-        interestRFID.halt();
-        break;
-        
-    case 3:
-        if (topicRFID.readNTAG215(startPage, numPagesToRead, specificData))
-        {
-            Serial.println("Topic RFID read:");
-            topicRFID.printBuffer(specificData, sizeof(specificData));
-            
-            for (uint8_t i = 0; i < sizeof(knownTagsTopic); i++)
-            {
-                if (knownTagsTopic[i] == specificData[3])
-                {
-                    knownByte = specificData[3];
-                    currentTopicTag = specificData[3];
-                    Serial.println("  -> Matched known topic tag!");
-                    break;
-                }
-            }
-        }
-        topicRFID.halt();
-        break;
-    default:
-        break;
-    }
-
-    return knownByte;
-}
-
-/**
- * Check if tag is detected and recognized
- */
-bool referenceKnownTags(uint8_t RFID)
-{
-    uint8_t tagID = getTag(RFID);
-    return (tagID != 0);
-}
-
-/**
- * Check if tag is present on reader
- */
-bool checkTPI(uint8_t pin)
-{
-    // B1 Module returns a low signal for detecting a tag.
-    // Flipping the bool so the logic is easier to follow.
-    return !digitalRead(pin);
-}
 
 /**
  * Initialize all RFID serial connections
@@ -196,92 +89,7 @@ void startRfidSerial()
     
 }
 
-/**
- * Scan all three RFID readers for tags
- */
-void scanForRfid()
-{
-    static bool lastTPI1State = true;
-    static bool lastTPI2State = true;
-        
-    // Monitor TPI changes in real-time
-    bool currentTPI1 = digitalRead(TPI1);
-    if (currentTPI1 != lastTPI1State)
-    {
-        lastTPI1State = currentTPI1;
-        Serial.print(">>> TPI1 changed to: ");
-        Serial.println(currentTPI1 ? "HIGH (no tag)" : "LOW (tag present!)");
-    }
-    
-    bool currentTPI2 = digitalRead(TPI2);
-    if (currentTPI2 != lastTPI2State)
-    {
-        lastTPI2State = currentTPI2;
-        Serial.print(">>> TPI2 changed to: ");
-        Serial.println(currentTPI2 ? "HIGH (no tag)" : "LOW (tag present!)");
-    }
-            
-        // // Check Interest RFID (Reader 2) - active polling
-        // if (interestRFID.getUIDandType())
-        // {
-        //     Serial.println("\n[Reader 2 - Interest] Tag detected!");
-            
-        //     // Read the tag data
-        //     if (interestRFID.readNTAG215(startPage, numPagesToRead, specificData))
-        //     {
-        //         Serial.print("  Data: ");
-        //         interestRFID.printBuffer(specificData, sizeof(specificData));
-                
-        //         // Check if it matches a known tag
-        //         for (uint8_t i = 0; i < sizeof(knownTagsInterest); i++)
-        //         {
-        //             if (knownTagsInterest[i] == specificData[3])
-        //             {
-        //                 currentInterestTag = specificData[3];
-        //                 Serial.print("  -> Matched interest tag 0x");
-        //                 if (currentInterestTag < 0x10) Serial.print("0");
-        //                 Serial.println(currentInterestTag, HEX);
-        //                 sendTag(currentInterestTag, 2);
-        //                 break;
-        //             }
-        //         }
-        //     }
-        //     interestRFID.halt();
-
-        // }
-        
-        // // Check Topic RFID (Reader 3) - active polling
-        // if (topicRFID.getUIDandType())
-        // {
-        //     Serial.println("\n[Reader 3 - Topic] Tag detected!");
-            
-        //     // Read the tag data
-        //     if (topicRFID.readNTAG215(startPage, numPagesToRead, specificData))
-        //     {
-        //         Serial.print("  Data: ");
-        //         topicRFID.printBuffer(specificData, sizeof(specificData));
-                
-        //         // Check if it matches a known tag
-        //         for (uint8_t i = 0; i < sizeof(knownTagsTopic); i++)
-        //         {
-        //             if (knownTagsTopic[i] == specificData[3])
-        //             {
-        //                 currentTopicTag = specificData[3];
-        //                 Serial.print("  -> Matched topic tag 0x");
-        //                 if (currentTopicTag < 0x10) Serial.print("0");
-        //                 Serial.println(currentTopicTag, HEX);
-        //                 sendTag(currentTopicTag, 3);
-        //                 break;
-        //             }
-        //         }
-        //     }
-        //     topicRFID.halt();
-
-        // }
-    
-}
-
-uint8_t GT = 0;
+uint8_t GT = 0,TT = 0,IT = 0;
 uint8_t getGroupData()
 {
     if (groupRFID.getUIDandType())
@@ -323,18 +131,19 @@ uint8_t getTopicData()
             topicRFID.printBuffer(specificData, sizeof(specificData));
 
             // Check if it matches a known tag
-            for (uint8_t i = 0; i < sizeof(knownTagsGroup); i++)
+            if( TT < sizeof(knownTagsGroup))
             {
-                if (knownTagsGroup[i] == specificData[3])
+                if (knownTagsGroup[TT] == specificData[3])
                 {
                     currentTopicTag = specificData[3];
                     Serial.print("  -> Matched group tag 0x");
                     if (currentTopicTag < 0x10) Serial.print("0");
                     Serial.println(currentTopicTag, HEX);
                     sendTag(currentTopicTag, 1);
-                    break;
                 }
+                TT++;
             }
+             if(TT == sizeof(knownTagsGroup)){TT = 0;}
         }
         
     }
@@ -353,18 +162,19 @@ uint8_t getInterestData()
             interestRFID.printBuffer(specificData, sizeof(specificData));
 
             // Check if it matches a known tag
-            for (uint8_t i = 0; i < sizeof(knownTagsGroup); i++)
+            if( IT < sizeof(knownTagsGroup))
             {
-                if (knownTagsGroup[i] == specificData[3])
+                if (knownTagsGroup[IT] == specificData[3])
                 {
                     currentInterestTag = specificData[3];
                     Serial.print("  -> Matched group tag 0x");
                     if (currentInterestTag < 0x10) Serial.print("0");
                     Serial.println(currentInterestTag, HEX);
                     sendTag(currentInterestTag, 1);
-                    break;
                 }
+                IT++;
             }
+             if(IT == sizeof(knownTagsGroup)){IT = 0;}
         }
         
     }
