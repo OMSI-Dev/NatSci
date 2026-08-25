@@ -1,3 +1,24 @@
+
+# Godot Install Configuraion 
+1. Godot Version
+This project is configured for Godot 4.6 Mono
+https://github.com/godotengine/godot/releases#release-4.6-stable
+
+Ensure the Mono variation is installed, otherwise C# scripts won't run. 
+
+2. .NET Configuration 
+
+`[#user]@[#computer]: cd "/home/#user/NatSci/Climate Action Venn Diagram/Software/Godot"
+[#user]@[#computer]:~/NatSci/Climate Action Venn Diagram/Software/Godot$ dotnet add package System.IO.Ports
+`
+
+
+# Execution flow 
+
+1: Autoloaded Scripts (project.godot)
+- SerialCom.cs: SerialCom._Ready()
+- SheetManager.cs: SheetManager._Ready()
+
 # Godot Sync Spreadsheets
 
 This is a plugin for Godot 4+ that allows to synchronize CSV files with Google Spreadsheets from godot. 

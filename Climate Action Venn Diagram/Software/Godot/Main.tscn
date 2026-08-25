@@ -11,7 +11,7 @@ script = ExtResource("1_r0du0")
 [node name="QRNode" type="Node2D" parent="." unique_id=1105511294]
 script = ExtResource("1_uu6xs")
 
-[node name="QRTexture" type="TextureRect" parent="QRNode" unique_id=487329397]
+[node name="QRTextureNational" type="TextureRect" parent="QRNode" unique_id=487329397]
 custom_minimum_size = Vector2(100, 100)
 offset_left = 5.0
 offset_top = -3.0
@@ -21,7 +21,16 @@ offset_bottom = 253.0
 [node name="QRCodeHelper" type="Node" parent="QRNode" unique_id=1124186671]
 script = ExtResource("2_r0du0")
 
-[node name="CSVDownloader" type="HTTPRequest" parent="QRNode" unique_id=221733154]
+[node name="NationalCSVDownloader" type="HTTPRequest" parent="QRNode" unique_id=221733154]
+
+[node name="LocalCSVDownloader" type="HTTPRequest" parent="QRNode" unique_id=221733155]
+
+[node name="QRTextureLocal" type="TextureRect" parent="QRNode" unique_id=304977012]
+custom_minimum_size = Vector2(100, 100)
+offset_left = 253.0
+offset_top = 25.0
+offset_right = 509.0
+offset_bottom = 281.0
 
 [node name="Slideshow" type="Node2D" parent="." unique_id=594792257]
 
