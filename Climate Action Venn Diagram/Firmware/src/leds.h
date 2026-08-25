@@ -22,7 +22,9 @@ void setLED()
     // Test RGB
     ledTest();
 
-    Serial.println("Leds Set and Tested");
+    #ifdef DEBUG 
+    Serial.println("LEDs Set and Tested");
+    #endif
 }
 
 void ledTest()
@@ -38,19 +40,19 @@ void ledTest()
     fill_solid(house, NUM_LEDS, CRGB::Blue);
     fill_solid(cloud, NUM_LEDS, CRGB::Blue);
     fill_solid(person, NUM_LEDS, CRGB::Blue);
-    FastLED.show();
+    FastLED.show();    
     delay(1000);
 
     digitalWrite(13, HIGH);
     fill_solid(house, NUM_LEDS, CRGB::Green);
     fill_solid(cloud, NUM_LEDS, CRGB::Green);
     fill_solid(person, NUM_LEDS, CRGB::Green);
-    FastLED.show();
+    FastLED.show();    
     delay(1000);
 
     digitalWrite(13, LOW);
     FastLED.clear(1);
-    FastLED.show();
+    
     delay(1000);
 }
 
@@ -60,16 +62,19 @@ void confirmLED(u_int8_t RFID_NUM)
     {
     case 1:
         fill_solid(person,NUM_LEDS, CRGB::DarkOrange);
-        FastLED.show();
+
         break;
     case 2:
         fill_solid(cloud,NUM_LEDS, CRGB::Blue);
-        FastLED.show();
+
         break;        
     case 3:
-        fill_solid(house,NUM_LEDS, CRGB::DeepPink1);
-        FastLED.show();
+        fill_solid(house,NUM_LEDS, CRGB::DeepPink1);        
         break;    
+    case 4:
+        fill_solid(house,NUM_LEDS, CRGB::Black);
+        fill_solid(cloud,NUM_LEDS, CRGB::Black);
+        fill_solid(person,NUM_LEDS, CRGB::Black);
     default:
         break;
     }
@@ -83,7 +88,7 @@ void scanLED(uint8_t RFID_NUM)
         uint8_t brightness = beatsin8(16);  // 12 BPM
         fill_solid(person,NUM_LEDS,CRGB::White);
         fadeToBlackBy(person,NUM_LEDS,(255 - brightness));
-        FastLED.show();
+        
 
     }
 
@@ -92,7 +97,7 @@ void scanLED(uint8_t RFID_NUM)
         uint8_t brightness = beatsin8(16);  // 12 BPM
         fill_solid(cloud,NUM_LEDS,CRGB::White);
         fadeToBlackBy(cloud,NUM_LEDS,(255 - brightness));
-        FastLED.show();
+        
     }
 
     if(RFID_NUM == 3) 
@@ -101,7 +106,6 @@ void scanLED(uint8_t RFID_NUM)
         // Set all LEDs to color with varying brightness
         fill_solid(house,NUM_LEDS,CRGB::White);
         fadeToBlackBy(house,NUM_LEDS,(255 - brightness));
-        FastLED.show();
     }
 
 }
