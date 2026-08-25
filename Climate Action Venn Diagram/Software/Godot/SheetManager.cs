@@ -7,6 +7,7 @@ using System.Collections.Generic;
 * Google Sheet needs to be PUBLISHED TO WEB as a CSV.
 * This script has to be autoloaded. Project > Project Settings > Autoload.
 * Access from any script via: SheetManager.Instance.GetCell(row, "ColumnName").
+* As of 2026-08-25, both CSV files have 217 rows of data
 * * * * * * * * * * */
 
 public partial class SheetManager : Node
@@ -36,30 +37,75 @@ public partial class SheetManager : Node
 		var http = new HttpRequest();
 		AddChild(http);
 
-		var tcs = new System.Threading.Tasks.TaskCompletionSource<Godot.Collections.Array>();
-		http.RequestCompleted += (result, responseCode, headers, body) =>
-			tcs.TrySetResult(new Godot.Collections.Array { result, responseCode, body });
+		string urlToFetch = SHEET_CSV_URL;
+		int maxRedirects = 5;
+		int redirectCount = 0;
 
-		Error err = http.Request(SHEET_CSV_URL);
-		if (err != Error.Ok) {
-			GD.PrintErr($"[SheetManager] HTTP request failed to start: {err}");
-			EmitSignal(SignalName.DataFailed, err.ToString());
-			return;
-		}
+		while (redirectCount < maxRedirects) {
+			var tcs = new System.Threading.Tasks.TaskCompletionSource<Godot.Collections.Array>();
+			
+			void OnCompleted(long result, long responseCode, string[] headers, byte[] body) {
+				tcs.TrySetResult(new Godot.Collections.Array { result, responseCode, headers, body });
+			}
+			
+			http.RequestCompleted += OnCompleted;
 
-		var response = await tcs.Task;
+			Error err = http.Request(urlToFetch);
+			if (err != Error.Ok) {
+				GD.PrintErr($"[SheetManager] HTTP request failed to start: {err}");
+				EmitSignal(SignalName.DataFailed, err.ToString());
+				http.QueueFree();
+				return;
+			}
 
-		long responseCode = response[1].AsInt64();
-		byte[] body = (byte[])response[2];
+			var response = await tcs.Task;
+			http.RequestCompleted -= OnCompleted;
 
-		if (responseCode != 200) {
+			long responseCode = response[1].AsInt64();
+			string[] headers = response[2].AsStringArray();
+			byte[] body = (byte[])response[3];
+
+			// Handle redirects
+			if (responseCode == 307 || responseCode == 302 || responseCode == 301) {
+				string redirectUrl = null;
+				foreach (string header in headers) {
+					if (header.StartsWith("Location:", StringComparison.OrdinalIgnoreCase)) {
+						redirectUrl = header.Substring("Location:".Length).Trim();
+						break;
+					}
+				}
+
+				if (!string.IsNullOrEmpty(redirectUrl)) {
+					GD.Print($"[SheetManager] Redirecting to: {redirectUrl}");
+					urlToFetch = redirectUrl;
+					redirectCount++;
+					continue;
+				} else {
+					GD.PrintErr("[SheetManager] Redirect received but no Location header found.");
+					EmitSignal(SignalName.DataFailed, "Redirect without Location header");
+					http.QueueFree();
+					return;
+				}
+			}
+
+			// Success
+			if (responseCode == 200) {
+				ParseCsv(System.Text.Encoding.UTF8.GetString(body));
+				http.QueueFree();
+				return;
+			}
+
+			// Other error
 			string errMsg = $"HTTP {responseCode}: {System.Text.Encoding.UTF8.GetString(body)}";
 			GD.PrintErr($"[SheetManager] {errMsg}");
 			EmitSignal(SignalName.DataFailed, errMsg);
+			http.QueueFree();
 			return;
 		}
 
-		ParseCsv(System.Text.Encoding.UTF8.GetString(body));
+		// Max redirects exceeded
+		GD.PrintErr("[SheetManager] Too many redirects");
+		EmitSignal(SignalName.DataFailed, "Too many redirects");
 		http.QueueFree();
 	}
 

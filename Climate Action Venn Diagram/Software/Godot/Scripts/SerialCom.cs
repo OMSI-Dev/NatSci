@@ -2,7 +2,7 @@
 * This script should be autoloaded into the scene.
 * It needs to be used by everything throughout the game.
 * Set this in Project Settings, Global tab and add this script
-* to the global path. Then it can be called as a vairable just
+* to the global path. Then it can be called as a variable just
 * like any object.
 */
 
