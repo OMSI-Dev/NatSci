@@ -27,11 +27,7 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-// FastLED >= 3.9 defaults to the ObjectFLED DMA driver for WS2812 on Teensy 4.x,
-// which conflicts with the I2C peripheral (pins 18/19). Force the classic driver.
-#define FASTLED_NOT_USES_OBJECTFLED
 #include <FastLED.h>
-#include <Bounce2.h>
 #include <Keyboard.h>
 
 // ── Pin definitions ────────────────────────────────────────────────────────────
@@ -80,12 +76,6 @@ struct M0Status {
 // ── Global variables ───────────────────────────────────────────────────────────
 GameState currentGameState = GAME_READY_IDLE;
 M0Status m0Boards[NUM_M0_BOARDS];
-volatile bool i2cTransactionInProgress = false;
-
-// Debounced physical inputs
-Bounce energySwitchDebouncer = Bounce();
-Bounce languageButtonDebouncer = Bounce();
-
 // uint8_t m0Addresses[NUM_M0_BOARDS] = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11};
 
 uint8_t m0Addresses[NUM_M0_BOARDS] = {0x08, 0x0C, 0x09, 0x0B, 0x0A, 0x0D, 0x10, 0x0E, 0x0F, 0x11};
@@ -98,6 +88,16 @@ CRGB leds4[NUM_LEDS_PER_STRIP];
 CRGB leds5[NUM_LEDS_PER_STRIP];
 CRGB leds6[NUM_LEDS_PER_STRIP];
 CRGB leds7[NUM_LEDS_PER_STRIP];
+
+// Energy switch state
+bool energySwitchStableState = HIGH;      // Debounced stable state
+bool energySwitchLastReading = HIGH;      // Last raw reading
+uint32_t energySwitchLastDebounceTime = 0;
+
+// Language button state
+bool languageButtonStableState = HIGH;      // Debounced stable state
+bool languageButtonLastReading = HIGH;      // Last raw reading
+uint32_t languageButtonLastDebounceTime = 0;
 
 // Results display timer
 uint32_t resultsDisplayStartTime = 0;
@@ -131,26 +131,6 @@ bool validatePiecePlacement(uint8_t address, uint8_t s1, uint8_t s2, uint8_t s3)
 void updateButtonLED();
 void updateLanguageButtonLED();
 
-static void acquireI2CBus() {
-  while (i2cTransactionInProgress) {
-    delayMicroseconds(200);
-  }
-  i2cTransactionInProgress = true;
-}
-
-static void releaseI2CBus() {
-  i2cTransactionInProgress = false;
-}
-
-static void resetI2CBus() {
-  Wire.end();
-  delay(20);
-  Wire.begin();
-  Wire.setClock(100000);
-  delay(50);
-  i2cTransactionInProgress = false;
-}
-
 void setup() {
   Serial.begin(115200);
   delay(1000);
@@ -162,20 +142,18 @@ void setup() {
   // Initialize I2C as big friend
   Wire.begin();
   Wire.setClock(100000);  // 100kHz I2C clock
-  delay(100);  // give M0 slaves a moment after init
+  // Serial.println("✓ I2C handshake)");
   
-  // Energy switch
+  //Energy switch 
   pinMode(ENERGY_SWITCH_PIN, INPUT_PULLUP);
-  energySwitchDebouncer.attach(ENERGY_SWITCH_PIN, INPUT_PULLUP);
-  energySwitchDebouncer.interval(ENERGY_SWITCH_DEBOUNCE_MS);
-  energySwitchDebouncer.update();
+  energySwitchStableState = digitalRead(ENERGY_SWITCH_PIN);
+  energySwitchLastReading = energySwitchStableState;
   // Serial.println("✓ Energy switch initialized on pin 14");
   
-  // Language button
+  //Language button
   pinMode(LANGUAGE_BUTTON_PIN, INPUT_PULLUP);
-  languageButtonDebouncer.attach(LANGUAGE_BUTTON_PIN, INPUT_PULLUP);
-  languageButtonDebouncer.interval(LANGUAGE_BUTTON_DEBOUNCE_MS);
-  languageButtonDebouncer.update();
+  languageButtonStableState = digitalRead(LANGUAGE_BUTTON_PIN);
+  languageButtonLastReading = languageButtonStableState;
   // Serial.println("✓ Language button initialized on pin 15");
   
   // Initialize Button LED PWM (repurposed TX pin)
@@ -203,6 +181,7 @@ void setup() {
   // FastLED.setBrightness(LED_BRIGHTNESS);
   setAllCitiesOff();
   // Serial.println("✓ City LEDs initialized on pins 3-9");
+  
 
   delay(1000);
   // Initialize M0 board tracking
@@ -346,12 +325,11 @@ void loop() {
         changeGameState(GAME_READY_IDLE);
       }
       
-          // Energy switch only works in ACTIVE state
+      // Energy switch only works in ACTIVE state
       if (checkEnergySwitchPulled()) {
         Serial.println("\n>>> ENERGY SWITCH PULLED - Checking results!");
         preResultsProcessed = false;  // Reset flag for next results check
         changeGameState(GAME_PRE_RESULTS);
-        delay(150);  // Let the M0s finish processing the PRE_RESULTS state change before polling.
       }
       break;
     
@@ -363,7 +341,6 @@ void loop() {
       // Only process results once when entering this state
       if (!preResultsProcessed) {
         // Serial.println("\n[PRE_RESULTS] Collecting final board states...");
-        delay(100);  // Give the M0s a brief settle window after the state transition.
         pollM0Boards(false);  //turn to true for verbose output
         
         delay(100);
@@ -424,7 +401,6 @@ void changeGameState(GameState newState) {
   
   // Send new state to all M0 boards
   sendGameStateToM0s();
-  delay(100);  // Give the M0s time to process the state-change write before the next poll.
   
   // State-specific initialization
   switch (currentGameState) {
@@ -459,19 +435,18 @@ void changeGameState(GameState newState) {
 
 // Send current game state to all M0 boards via I2C
 void sendGameStateToM0s() {
+  
   uint8_t successCount = 0;
-
-  acquireI2CBus();
+  
   for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
     Wire.beginTransmission(m0Addresses[i]);
     Wire.write((uint8_t)currentGameState);
     uint8_t error = Wire.endTransmission();
+    
     if (error == 0) {
       successCount++;
     }
-    delayMicroseconds(200);
   }
-  releaseI2CBus();
 }
 
 /**
@@ -483,11 +458,10 @@ void pollM0Boards(bool verbose) {
   uint8_t correctCount = 0;
   uint8_t incorrectCount = 0;
   uint8_t unregisteredCount = 0;
-
-  acquireI2CBus();
+  
   for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
     uint8_t bytesReceived = Wire.requestFrom(m0Addresses[i], (uint8_t)14);
-
+    
     if (bytesReceived == 14) {
       m0Boards[i].detectState = Wire.read();
       m0Boards[i].s1Polarity = Wire.read();
@@ -497,21 +471,23 @@ void pollM0Boards(bool verbose) {
       m0Boards[i].gameState = Wire.read();
       m0Boards[i].isRegistered = Wire.read() == 1;
       m0Boards[i].isCorrect = Wire.read() == 1;
-
+      
+      // Read 16-bit raw ADC values (high byte first, then low byte)
       uint8_t raw1High = Wire.read();
       uint8_t raw1Low = Wire.read();
       m0Boards[i].rawSensor1 = (raw1High << 8) | raw1Low;
-
+      
       uint8_t raw2High = Wire.read();
       uint8_t raw2Low = Wire.read();
       m0Boards[i].rawSensor2 = (raw2High << 8) | raw2Low;
-
+      
       uint8_t raw3High = Wire.read();
       uint8_t raw3Low = Wire.read();
       m0Boards[i].rawSensor3 = (raw3High << 8) | raw3Low;
-
+      
       m0Boards[i].responseReceived = true;
-
+      
+      // Count states
       if (m0Boards[i].isRegistered) {
         registeredCount++;
         if (m0Boards[i].isCorrect) {
@@ -522,7 +498,8 @@ void pollM0Boards(bool verbose) {
       } else {
         unregisteredCount++;
       }
-
+      
+      // Dev tool 'p'
       if (verbose) {
         Serial.print(" | M0#");
         Serial.print(i + 1);
@@ -532,9 +509,6 @@ void pollM0Boards(bool verbose) {
         Serial.print(m0Boards[i].detectState);
       }
     } else {
-      while (Wire.available()) {
-        Wire.read();
-      }
       m0Boards[i].responseReceived = false;
 
       if (verbose) {
@@ -546,16 +520,9 @@ void pollM0Boards(bool verbose) {
         Serial.print(bytesReceived);
         Serial.print("/14 bytes");
       }
-
-      if (bytesReceived == 0 || bytesReceived < 14) {
-        resetI2CBus();
-        break;
-      }
     }
-    delayMicroseconds(200);
   }
-  releaseI2CBus();
-
+  
   if (verbose) {
     Serial.print("\n  Status: ");
     Serial.print(registeredCount);
@@ -565,7 +532,27 @@ void pollM0Boards(bool verbose) {
     Serial.print(incorrectCount);
     Serial.print(" incorrect), ");
     Serial.print(unregisteredCount);
-    Serial.println(" unregistered");
+    Serial.println(" unregistered"); 
+  }
+  
+  // Auto-recovery: If more than 5 boards have no response, scan I2C bus and retry
+  static bool isRetrying = false;  // Prevent infinite recursion
+  if (!isRetrying) {
+    uint8_t noResponseCount = 0;
+    for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
+      if (!m0Boards[i].responseReceived) {
+        noResponseCount++;
+      }
+    }
+    
+    if (noResponseCount > 5) {
+      Serial.println("\n[AUTO-RECOVERY] More than 5 M0s not responding. Scanning I2C bus and retrying...");
+      isRetrying = true;
+      scanI2CBus();
+      delay(100);  // Brief delay to let bus settle
+      pollM0Boards(verbose);
+      isRetrying = false;
+    }
   }
 }
 
@@ -735,19 +722,57 @@ void handleSerialDevTools() {
 }
 
 bool checkEnergySwitchPulled() {
-  energySwitchDebouncer.update();
-  if (energySwitchDebouncer.fell()) {
-    Serial.println("[DEBUG] Energy switch PULLED (edge detected)");
-    return true;
+  bool currentReading = digitalRead(ENERGY_SWITCH_PIN);
+  
+  // Reset timer when raw reading changes
+  if (currentReading != energySwitchLastReading) {
+    energySwitchLastDebounceTime = millis();
   }
+  
+  // After debounce period, accept the new stable state
+  if ((millis() - energySwitchLastDebounceTime) > ENERGY_SWITCH_DEBOUNCE_MS) {
+    // Check if stable state changed
+    if (currentReading != energySwitchStableState) {
+      bool oldStableState = energySwitchStableState;
+      energySwitchStableState = currentReading;
+      energySwitchLastReading = currentReading;
+
+      // Detect HIGH to LOW transition (switch pulled)
+      if (oldStableState == HIGH && energySwitchStableState == LOW) {
+        Serial.println("[DEBUG] Energy switch PULLED (edge detected)");
+        return true;
+      }
+    }
+  }
+  
+  energySwitchLastReading = currentReading;
   return false;
 }
 
 bool checkLanguageButtonPressed() {
-  languageButtonDebouncer.update();
-  if (languageButtonDebouncer.fell()) {
-    return true;
+  bool currentReading = digitalRead(LANGUAGE_BUTTON_PIN);
+  
+  // Reset timer when raw reading changes
+  if (currentReading != languageButtonLastReading) {
+    languageButtonLastDebounceTime = millis();
   }
+  
+  // After debounce period, accept the new stable state
+  if ((millis() - languageButtonLastDebounceTime) > LANGUAGE_BUTTON_DEBOUNCE_MS) {
+    // Check if stable state changed
+    if (currentReading != languageButtonStableState) {
+      bool oldStableState = languageButtonStableState;
+      languageButtonStableState = currentReading;
+      languageButtonLastReading = currentReading;
+
+      // Detect HIGH to LOW transition (button pressed)
+      if (oldStableState == HIGH && languageButtonStableState == LOW) {
+        return true;
+      }
+    }
+  }
+  
+  languageButtonLastReading = currentReading;
   return false;
 }
 
@@ -771,7 +796,6 @@ void scanI2CBus() {
   Serial.println("│  I2C Bus Scan (addresses 0x01-0x7F)                   │");
   Serial.println("├────────────────────────────────────────────────────────┤");
   
-  acquireI2CBus();
   for (uint8_t address = 1; address < 127; address++) {
     Wire.beginTransmission(address);
     uint8_t error = Wire.endTransmission();
@@ -800,6 +824,7 @@ void scanI2CBus() {
         Serial.print(" ⚠ UNKNOWN");
       }
       
+      // Padding
       int pad = isExpected ? 24 : 16;
       for (int j = 0; j < pad; j++) Serial.print(" ");
       Serial.println("│");
@@ -807,7 +832,6 @@ void scanI2CBus() {
       devicesFound++;
     }
   }
-  releaseI2CBus();
   
   Serial.println("├────────────────────────────────────────────────────────┤");
   Serial.print("│  Total devices found: ");
@@ -823,7 +847,6 @@ void scanI2CBus() {
   // List missing M0s
   if (devicesFound < NUM_M0_BOARDS) {
     Serial.println("\nMissing M0 boards:");
-    acquireI2CBus();
     for (uint8_t i = 0; i < NUM_M0_BOARDS; i++) {
       Wire.beginTransmission(m0Addresses[i]);
       uint8_t error = Wire.endTransmission();
@@ -835,7 +858,6 @@ void scanI2CBus() {
         Serial.println(" - NO RESPONSE");
       }
     }
-    releaseI2CBus();
   }
 }
 

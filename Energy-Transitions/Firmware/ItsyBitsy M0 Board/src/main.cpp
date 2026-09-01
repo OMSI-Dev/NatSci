@@ -17,7 +17,7 @@
  *   IDLE → DEBOUNCING → REGISTERING → LOCKED (CORRECT/INCORRECT) → IDLE
  *
  * SENSOR CONFIGURATION:
- *   Physical PCB layout (left to right): S2 — S1 — S3
+ *   Physical PCB layout (left top right): S2 — S1 — S3
  *   Code mapping: p0=S1 (middle), p1=S2 (left), p2=S3 (right)
  *
  * ⚠️ CALIBRATION REQUIRED ⚠️
