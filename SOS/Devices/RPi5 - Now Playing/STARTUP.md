@@ -1,9 +1,11 @@
 If re-installing a RPi from scratch for the SOS system, follow the steps below:
 
 1. Flash RPi with latest (Linux) distribution 
+
     a) user: omsiadmin
     
 2. Configure Rust Desk 
+
     a) Install (Ubuntu, AArch64)
     https://github.com/rustdesk/rustdesk/releases
     
@@ -20,6 +22,7 @@ If re-installing a RPi from scratch for the SOS system, follow the steps below:
     rustdesk 
     
 3. Configure python and venv environment
+
     a)
     ```
     sudo apt install python3 python3-pip -y
@@ -36,6 +39,7 @@ If re-installing a RPi from scratch for the SOS system, follow the steps below:
     ```
     
 4. Create nowPlaying.py script 
+
     a)
     ```
     cd Documents
@@ -55,6 +59,7 @@ If re-installing a RPi from scratch for the SOS system, follow the steps below:
     
 
 5. Create OS startup script service 
+
     a) Create bash script
     ```
     cd Documents/SOS/
