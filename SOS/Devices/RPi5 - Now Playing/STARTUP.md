@@ -1,4 +1,5 @@
-#OMSI SOS RPi5 Startup Guide
+# OMSI SOS RPi5 Startup Guide
+
 last updated 2026-09-01 by autumn 
 
 *If re-installing a RPi from scratch for the SOS system, follow the steps below:*
