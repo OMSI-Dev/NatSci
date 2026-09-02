@@ -111,6 +111,7 @@ def init_display():
     for attempt in range(30):  # retry for up to ~30s
         try:
             screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
+            pygame.mouse.set_visible(False)
             break
         except pygame.error as e:
             print(f"[Pi] Display not ready ({e}), retrying...")
