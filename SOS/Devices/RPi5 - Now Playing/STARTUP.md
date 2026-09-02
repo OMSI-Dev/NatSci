@@ -1,27 +1,25 @@
-If re-installing a RPi from scratch for the SOS system, follow the steps below:
+#OMSI SOS RPi5 Startup Guide
+last updated 2026-09-01 by autumn 
 
-1. Flash RPi with latest (Linux) distribution 
+*If re-installing a RPi from scratch for the SOS system, follow the steps below:*
+
+1. **Flash RPi with latest (Linux) distribution** 
 
     a) user: omsiadmin
     
-2. Configure Rust Desk 
+2. **Configure ConnectPi**
 
-    a) Install (Ubuntu, AArch64)
-    https://github.com/rustdesk/rustdesk/releases
+    ```
+    sudo apt update && sudo apt upgrade -y
+    sudo apt install rpi-connect
+    ```
     
-    b) 
     ```
-    sudo apt install ./rustdesk-*.deb
+    sudo systemctl enable rpi-connect
+    sudo systemctl start rpi-connect
+    sudo reboot   
     ```
-    c) 
-    ```
-    sudo systemctl enable rustdesk.service
-    sudo systemctl start rustdesk.service
-    ```
-    d) Optional start 
-    rustdesk 
-    
-3. Configure python and venv environment
+3. **Configure python and venv environment**
 
     a)
     ```
@@ -38,7 +36,7 @@ If re-installing a RPi from scratch for the SOS system, follow the steps below:
     python3 -m venv --system-site-packages myenv
     ```
     
-4. Create nowPlaying.py script 
+4. **Create nowPlaying.py script** 
 
     a)
     ```
@@ -58,7 +56,7 @@ If re-installing a RPi from scratch for the SOS system, follow the steps below:
     ```
     
 
-5. Create OS startup script service 
+5. **Create OS startup script service** 
 
     a) Create bash script
     ```
@@ -97,4 +95,3 @@ If re-installing a RPi from scratch for the SOS system, follow the steps below:
     ```
     
 
-Created 2026-09-01 by autumn 
