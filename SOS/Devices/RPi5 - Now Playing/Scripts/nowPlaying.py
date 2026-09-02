@@ -108,7 +108,15 @@ def init_display():
     global inter_title_font, inter_subtitle_font, duration_font, background, paused_image
     
     pygame.init()
-    screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
+    for attempt in range(30):  # retry for up to ~30s
+        try:
+            screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
+            break
+        except pygame.error as e:
+            print(f"[Pi] Display not ready ({e}), retrying...")
+            import time; time.sleep(1)
+        else:
+            raise RuntimeError("Display never became available")
     pygame.display.set_caption('Now Playing')
     clock = pygame.time.Clock()
     
@@ -834,9 +842,14 @@ def pi_socket_server() -> None:
     print("[Pi] Server stopped")
 
 
-def main() -> None:
+def main():
     signal.signal(signal.SIGINT, signal_handler)
-    pi_socket_server()
+    try:
+        pi_socket_server()
+    except Exception as e:
+        print(f"[Pi] FATAL: {e}")
+        cleanup_pid_file()
+        raise
 
 
 if __name__ == "__main__":
