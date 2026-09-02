@@ -1,0 +1,17 @@
+[Unit]
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=omsiadmin
+Group=omsiadmin
+Environment="XDG_RUNTIME_DIR=/run/user/1000"
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/omsiadmin/.Xauthority"
+ExecStart=/home/omsiadmin/Documents/SOS/service.sh
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
