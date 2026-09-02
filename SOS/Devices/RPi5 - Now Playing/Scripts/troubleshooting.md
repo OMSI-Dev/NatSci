@@ -1,14 +1,10 @@
-sudo nano /Documents/SOS/service.sh
-#!/bin/bash
-set -e
+# Wait for the window to exist, then force focus onto it
+for i in $(seq 1 30); do
+    if DISPLAY=:0 wmctrl -l | grep -q "Now Playing"; then
+        DISPLAY=:0 wmctrl -a "Now Playing"
+        break
+    fi
+    sleep 0.5
+done
 
-VENV_PATH="/home/omsiadmin/Documents/SOS/myenv/bin/activate"
-PYTHON_SCRIPT="/home/omsiadmin/Documents/SOS/nowPlaying.py"
-
-source "$VENV_PATH"
-
-python "$PYTHON_SCRIPT" "$@"
-
-journalctl -u nowplaying.service
-Sep 02 11:28:26 raspberrypi systemd[1]: Started nowplaying.service.
-Sep 02 11:28:29 raspberrypi service.sh[1077]: XDG_RUNTIME_DIR (/run/user/1000) is not owned by us (uid 0), but by uid 1000!
+wait $PY_PID
