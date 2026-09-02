@@ -111,7 +111,6 @@ def init_display():
     for attempt in range(30):  # retry for up to ~30s
         try:
             screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
-            pygame.mouse.set_visible(False)
             break
         except pygame.error as e:
             print(f"[Pi] Display not ready ({e}), retrying...")
@@ -481,6 +480,10 @@ def filter_credits(titles: List[Optional[str]]) -> List[int]:
 
 def render_display():
     """Render the complete display."""
+    #Hide mouse
+    pygame.mouse.set_visible(False)
+
+    
     # Check if in facilitation pause mode
     if is_paused:
         if paused_image:
