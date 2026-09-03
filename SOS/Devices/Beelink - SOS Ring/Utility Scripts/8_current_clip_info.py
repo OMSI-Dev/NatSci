@@ -1,5 +1,5 @@
 """
-Executes on the B-link device in the SOS network.
+Executes on the B-link  or Pi device in the SOS network.
 Retrieves get_clip_info and get_all_name_value_pairs for the currently loaded clip only.
 
 IMPORTANT: The SOS app must be running with a playlist loaded for this to work.

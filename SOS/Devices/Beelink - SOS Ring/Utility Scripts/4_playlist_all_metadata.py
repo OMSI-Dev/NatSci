@@ -1,5 +1,5 @@
 """
-Executes on the B-link device in the SOS network.
+Executes on the B-link or Pi  device in the SOS network.
 Retrieves complete metadata for all clips in the current playlist.
 Combines functionality of test_connect (getting all metadata) with query_metadata (iterating through playlist).
 

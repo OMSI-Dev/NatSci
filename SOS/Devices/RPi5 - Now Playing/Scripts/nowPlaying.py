@@ -443,28 +443,35 @@ def draw_playlist_item(x: int, y: int, english: str, spanish: str,
     return total_item_height + 25  # Add spacing between items
 
 
+DEFAULT_DURATION_DISPLAY = "3m 0s"  # Fallback when duration is missing, N/A, or 0
+
+
 def format_duration(duration_str: str) -> str:
     """
     Convert duration in seconds to UI-friendly format.
     Examples: "65" -> "1m 5s", "45" -> "45s", "120.5" -> "2m"
+    Missing/N/A/zero durations fall back to DEFAULT_DURATION_DISPLAY.
     """
     try:
         total_seconds = float(duration_str)
         total_seconds = int(round(total_seconds))  # Round to nearest second
-        
+
+        if total_seconds <= 0:
+            return DEFAULT_DURATION_DISPLAY
+
         if total_seconds < 60:
             return f"{total_seconds}s"
-        
+
         minutes = total_seconds // 60
         seconds = total_seconds % 60
-        
+
         if seconds == 0:
             return f"{minutes}m"
         else:
             return f"{minutes}m {seconds}s"
     except (ValueError, TypeError):
-        # If conversion fails, return as-is
-        return duration_str
+        # Unparseable (e.g. "N/A", empty, None) - use default
+        return DEFAULT_DURATION_DISPLAY
 
 
 def filter_credits(titles: List[Optional[str]]) -> List[int]:
@@ -509,7 +516,7 @@ def render_display():
     for idx in display_indices:
         english = english_titles[idx] if idx < len(english_titles) else "Unknown"
         spanish = spanish_titles[idx] if idx < len(spanish_titles) else "Desconocido"
-        duration = durations[idx] if idx < len(durations) else "0m"
+        duration = durations[idx] if idx < len(durations) and durations[idx] else DEFAULT_DURATION_DISPLAY
         is_current = (idx == current_clip_number)
         
         # Draw the item and update Y position

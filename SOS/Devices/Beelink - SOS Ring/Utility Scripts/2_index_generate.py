@@ -1,5 +1,5 @@
 """
-Executes on the B-link device in the SOS network.
+Executes on the B-link or Pi  device in the SOS network.
 """
 
 import subprocess
