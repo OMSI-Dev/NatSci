@@ -20,9 +20,18 @@ Sets pin modes and their default states.
 #define TPI3 4 //House & Group
 
 #define BTN_1_PWM 1
+#define langPin 0
 
-#define debugPin 11
-#define writePin 12
+#define debugPin 22
+#define writePin 23
+
+Bounce2::Button langButton = Bounce2::Button();
+
+void setModePins()
+{
+    pinMode(debugPin,INPUT_PULLUP);
+    pinMode(writePin,INPUT_PULLUP);
+}
 
 void setPins()
 {
@@ -59,12 +68,13 @@ void setPins()
     pinMode(TPI1, INPUT);
     pinMode(TPI2, INPUT);
     pinMode(TPI3, INPUT);
-
-    // Set pins for buttons
-    pinMode(debugPin,INPUT_PULLDOWN);
-    pinMode(writePin, INPUT_PULLDOWN);
     
     pinMode(BTN_1_PWM, OUTPUT);
+
+    langButton.attach(langPin, INPUT_PULLUP);
+    langButton.setPressedState(LOW);
+    langButton.interval(5);
+
     #ifdef DEBUG    
     Serial.println("Set BTN Pins");
     Serial.println("*****************************");
