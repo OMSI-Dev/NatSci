@@ -17,8 +17,20 @@ public partial class QRGenerator : Node2D
 	public override void _Ready()
 	{
 		qrTextureNational = GetNodeOrNull<TextureRect>("QRTextureNational");
-		qrTextureLocal = GetNodeOrNull<TextureRect>("QRTextureLocal");
+		qrTextureLocal = GetNodeOrNull<TextureRect>("QRTextureLocal")
+			?? GetNodeOrNull<TextureRect>("QRTextureLocal2");
 		qrHelper = GetNodeOrNull("QRCodeHelper");
+
+		// Dense QR codes produce images larger than the boxes laid out in the
+		// scene; by default a TextureRect grows to the texture's size. Scale
+		// the image into the box instead, and keep the modules crisp.
+		foreach (TextureRect rect in new[] { qrTextureNational, qrTextureLocal }) {
+			if (rect != null) {
+				rect.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+				rect.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+				rect.TextureFilter = TextureFilterEnum.Nearest;
+			}
+		}
 
 		if (qrHelper == null) {
 			GD.PrintErr("[QRGenerator] QRCodeHelper child node not found.");

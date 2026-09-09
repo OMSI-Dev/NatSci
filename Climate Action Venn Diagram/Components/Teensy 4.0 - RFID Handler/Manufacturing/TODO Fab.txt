@@ -1,0 +1,2 @@
+- upload pdf of schematic
+- upload pdf of pcb design
