@@ -4,14 +4,20 @@ import sys
 import subprocess
 import os
 import atexit
+import threading
+import time
+import re
 import pygame
 from typing import Optional, List
 
 # Socket Configuration
 PI_PORT = 4096
 BUFFER_SIZE = 8192
-ENGINE_IP = "10.10.51.98"  # Beelink/Engine IP NETWORK d
+ENGINE_IP = "10.0.0.17"  # Beelink/Engine IP NETWORK d
 ENGINE_QUERY_PORT = 4097  # Port to query engine for state
+ENGINE_CONNECT_TIMEOUT = 10.0  # Seconds to wait for connection to engine
+ENGINE_RECV_TIMEOUT = 5.0  # Seconds to wait for each chunk of state data
+ENGINE_RETRY_INTERVAL = 5.0  # Seconds between state request retries
 
 # Display Configuration
 # Physical screen: 1920×1080 rotated 90° to portrait orientation
@@ -446,32 +452,57 @@ def draw_playlist_item(x: int, y: int, english: str, spanish: str,
 DEFAULT_DURATION_DISPLAY = "3m 0s"  # Fallback when duration is missing, N/A, or 0
 
 
-def format_duration(duration_str: str) -> str:
+def format_duration(duration_str) -> str:
     """
-    Convert duration in seconds to UI-friendly format.
-    Examples: "65" -> "1m 5s", "45" -> "45s", "120.5" -> "2m"
-    Missing/N/A/zero durations fall back to DEFAULT_DURATION_DISPLAY.
+    Convert duration to UI-friendly format.
+    Examples: "65" -> "1m 5s", "45" -> "45s", "2:30" -> "2m 30s", "0m 0s" -> default
+    Missing/N/A/zero durations (in any format) fall back to DEFAULT_DURATION_DISPLAY;
+    unrecognized non-empty values are shown as-is.
     """
-    try:
-        total_seconds = float(duration_str)
-        total_seconds = int(round(total_seconds))  # Round to nearest second
-
-        if total_seconds <= 0:
-            return DEFAULT_DURATION_DISPLAY
-
-        if total_seconds < 60:
-            return f"{total_seconds}s"
-
-        minutes = total_seconds // 60
-        seconds = total_seconds % 60
-
-        if seconds == 0:
-            return f"{minutes}m"
-        else:
-            return f"{minutes}m {seconds}s"
-    except (ValueError, TypeError):
-        # Unparseable (e.g. "N/A", empty, None) - use default
+    if duration_str is None:
         return DEFAULT_DURATION_DISPLAY
+
+    text = str(duration_str).strip()
+    if not text or text.lower() in ('n/a', 'na', 'none', 'null'):
+        return DEFAULT_DURATION_DISPLAY
+
+    total_seconds = None
+    try:
+        total_seconds = int(round(float(text)))  # Plain seconds, e.g. "65" or "120.5"
+    except (ValueError, TypeError):
+        parts = text.split(':')
+        if 2 <= len(parts) <= 3 and all(p.strip().isdigit() for p in parts):
+            # Colon-separated, e.g. "2:30" or "1:02:30"
+            total_seconds = 0
+            for part in parts:
+                total_seconds = total_seconds * 60 + int(part)
+        else:
+            # Unit-formatted, e.g. "0m 0s", "2m 30s", "45s", "1h 2m" (as sent by engine)
+            match = re.fullmatch(
+                r'(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?\s*(?:(\d+)\s*s)?',
+                text, re.IGNORECASE
+            )
+            if match and any(match.groups()):
+                hours, minutes, seconds = (int(g) if g else 0 for g in match.groups())
+                total_seconds = hours * 3600 + minutes * 60 + seconds
+
+    if total_seconds is None:
+        # Unrecognized format but has content - display as-is
+        return text
+
+    if total_seconds <= 0:
+        return DEFAULT_DURATION_DISPLAY
+
+    if total_seconds < 60:
+        return f"{total_seconds}s"
+
+    minutes = total_seconds // 60
+    seconds = total_seconds % 60
+
+    if seconds == 0:
+        return f"{minutes}m"
+    else:
+        return f"{minutes}m {seconds}s"
 
 
 def filter_credits(titles: List[Optional[str]]) -> List[int]:
@@ -672,18 +703,22 @@ def write_pid_file() -> None:
         print(f"[Pi] Warning: Could not create PID file: {e}")
 
 
-def request_state_from_engine() -> None:
-    """Request current state from engine when starting late."""
+def request_state_from_engine() -> bool:
+    """
+    Request current state from engine when starting late.
+    Returns True if state data was received and parsed, False otherwise.
+    """
     print("[Pi] Requesting current state from engine...")
     try:
-        with socket.create_connection((ENGINE_IP, ENGINE_QUERY_PORT), timeout=3.0) as sock:
+        with socket.create_connection((ENGINE_IP, ENGINE_QUERY_PORT),
+                                      timeout=ENGINE_CONNECT_TIMEOUT) as sock:
             # Send request
             sock.sendall(b"REQUEST_STATE\n")
             print("[Pi] Sent REQUEST_STATE to engine")
-            
+
             # Receive response (may be large)
             data = bytearray()
-            sock.settimeout(2.0)
+            sock.settimeout(ENGINE_RECV_TIMEOUT)
             while True:
                 try:
                     chunk = sock.recv(BUFFER_SIZE)
@@ -693,12 +728,12 @@ def request_state_from_engine() -> None:
                     print(f"[Pi] Received chunk: {len(chunk)} bytes")
                 except socket.timeout:
                     break  # No more data
-            
+
             if data:
                 message = data.decode('utf-8', 'ignore').strip()
                 print(f"[Pi] Received state from engine ({len(message)} bytes)")
                 print(f"[Pi] Raw message preview: {message[:200]}..." if len(message) > 200 else f"[Pi] Raw message: {message}")
-                
+
                 # Parse messages - INIT comes first, CLIP (if present) comes after blank line
                 if "CLIP:" in message:
                     # Split INIT and CLIP messages
@@ -727,19 +762,41 @@ def request_state_from_engine() -> None:
                     print(f"[Pi] Found INIT only")
                     if message.startswith("INIT"):
                         _parse_init_message(message)
-                    
+
                 print("[Pi] State successfully loaded from engine")
+                return True
             else:
                 print("[Pi] No state data received from engine")
-                
+
     except socket.timeout:
         print("[Pi] Timeout requesting state from engine")
     except ConnectionRefusedError:
         print(f"[Pi] Engine not responding on {ENGINE_IP}:{ENGINE_QUERY_PORT}")
-        print("[Pi] Will wait for engine to send data...")
     except Exception as e:
         print(f"[Pi] Error requesting state: {e}")
-        print("[Pi] Will wait for engine to send data...")
+    return False
+
+
+def _state_loaded() -> bool:
+    """Check whether playlist state has been received (via request or engine push)."""
+    return len(english_titles) > 1
+
+
+def state_request_loop() -> None:
+    """
+    Background thread: keep requesting state from the engine until it arrives.
+    Stops once state is loaded (by request or by engine push) or on shutdown.
+    """
+    while running and not _state_loaded():
+        if request_state_from_engine():
+            break
+        print(f"[Pi] Will retry state request in {ENGINE_RETRY_INTERVAL:.0f}s...")
+        # Sleep in small increments so shutdown isn't delayed
+        deadline = time.monotonic() + ENGINE_RETRY_INTERVAL
+        while running and not _state_loaded() and time.monotonic() < deadline:
+            time.sleep(0.5)
+    if _state_loaded():
+        print("[Pi] State loaded - stopping state request retries")
 
 
 def pi_socket_server() -> None:
@@ -756,8 +813,10 @@ def pi_socket_server() -> None:
     # Initialize display
     init_display()
     
-    # Request current state from engine (if running)
-    request_state_from_engine()
+    # Request current state from engine in the background,
+    # retrying until it responds (display keeps rendering meanwhile)
+    state_thread = threading.Thread(target=state_request_loop, daemon=True)
+    state_thread.start()
     
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

@@ -95,4 +95,14 @@ last updated 2026-09-01 by autumn
     systemctl status nowplaying.service
     ```
     
+6. **Create a crontab to automate overnight reboot process** 
+
+    a)
+    ``sudo crontab -e``
+    
+    b) select nano 
+    
+    c) add the following entry at the bottom. this schedules a reboot every night at 12am.
+    ``0 0 * * * /sbin/shutdown -r now``
+
 

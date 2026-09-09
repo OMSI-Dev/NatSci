@@ -1,0 +1,25 @@
+Hex,Category,Subcategory,Item
+0x01,Interest,Performing & Creating Art,Art
+0x02,Interest,Performing & Creating Art,Creativity
+0x03,Interest,Innovating & Designing,Problem Solving
+0x04,Interest,Innovating & Designing,Inventing
+0x05,Interest,Being Active & Outdoors,Sports
+0x06,Interest,Being Active & Outdoors,Exploring Outside
+0x07,Interest,Organizing & Leading,Bringing people together
+0x08,Interest,Organizing & Leading,Talking to people
+0x09,Interest,Researching & Learning,Reading
+0x0A,Interest,Researching & Learning,Exploring New Topics
+0x0B,Interest,Teaching & Mentoring,Mentoring
+0x0C,Interest,Teaching & Mentoring,Helping others learn
+0x0D,Topic,,Use Clean Energy
+0x0E,Topic,,Protect and Restore Nature
+0x0F,Topic,,Create Green Transportation
+0x10,Topic,,Grow and Eat Sustainable Food
+0x11,Topic,,"Waste Less, Reuse More"
+0x12,Topic,,Build Green Communities
+0x19,Group,,Sports or Rec Group
+0x1A,Group,,Arts or Hobbies Group
+0x1B,Group,,Family or Household
+0x1C,Group,,Community Group
+0x1D,Group,,Faith-based Group
+0x1E,Group,,School or Career Group

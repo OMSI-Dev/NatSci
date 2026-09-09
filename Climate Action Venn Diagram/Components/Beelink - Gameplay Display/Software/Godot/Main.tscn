@@ -1,0 +1,60 @@
+[gd_scene format=3 uid="uid://covchfpd1gn73"]
+
+[ext_resource type="Script" uid="uid://4tmhalf1orhl" path="res://GameController.cs" id="1_r0du0"]
+[ext_resource type="Script" uid="uid://cc4045a7m6j60" path="res://SheetManager.cs" id="4_cm0pq"]
+[ext_resource type="Texture2D" uid="uid://dp6gxnotc74h0" path="res://Assets/Reference/main.png" id="5_20pc6"]
+[ext_resource type="Texture2D" uid="uid://n5s1mvce0cib" path="res://Assets/cloud.png" id="6_5vvyt"]
+[ext_resource type="Texture2D" uid="uid://bhfvwyx1ut2oj" path="res://Assets/cloud highlight.png" id="7_c6i3y"]
+[ext_resource type="Texture2D" uid="uid://dovm5g2v1ub3j" path="res://Assets/person.png" id="8_c2ibq"]
+[ext_resource type="Texture2D" uid="uid://bdaenus7a3fm1" path="res://Assets/person highlight.png" id="9_j4qnp"]
+[ext_resource type="Texture2D" uid="uid://c3nqed3mbasex" path="res://Assets/house.png" id="10_fpfj3"]
+[ext_resource type="Texture2D" uid="uid://cis0mxh0ak0ld" path="res://Assets/house highlight.png" id="11_sc1dx"]
+
+[node name="Node2D" type="Node2D" unique_id=739999347]
+script = ExtResource("1_r0du0")
+
+[node name="Slideshow" type="Node2D" parent="." unique_id=594792257]
+
+[node name="RichTextLabel" type="RichTextLabel" parent="Slideshow" unique_id=1276421412]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Node" type="Node" parent="." unique_id=831202341]
+script = ExtResource("4_cm0pq")
+
+[node name="Main" type="Node2D" parent="." unique_id=1161549412]
+
+[node name="Background" type="Sprite2D" parent="Main" unique_id=1043260780]
+position = Vector2(577.96533, 326.125)
+scale = Vector2(0.4495142, 0.4495142)
+texture = ExtResource("5_20pc6")
+
+[node name="Cloud" type="Sprite2D" parent="Main" unique_id=1727850011]
+position = Vector2(908.99994, 456)
+scale = Vector2(0.67427135, 0.67427135)
+texture = ExtResource("6_5vvyt")
+
+[node name="CloudHighlight" type="Sprite2D" parent="Main" unique_id=46883502]
+position = Vector2(909, 456)
+scale = Vector2(0.674, 0.674)
+texture = ExtResource("7_c6i3y")
+
+[node name="Person" type="Sprite2D" parent="Main" unique_id=397274579]
+position = Vector2(211, 460)
+scale = Vector2(0.65, 0.65)
+texture = ExtResource("8_c2ibq")
+
+[node name="PersonHighlight" type="Sprite2D" parent="Main" unique_id=1734737149]
+position = Vector2(211, 460)
+scale = Vector2(0.65, 0.65)
+texture = ExtResource("9_j4qnp")
+
+[node name="House" type="Sprite2D" parent="Main" unique_id=1356070076]
+position = Vector2(548.99994, 456.00003)
+scale = Vector2(0.6742714, 0.6742714)
+texture = ExtResource("10_fpfj3")
+
+[node name="HouseHighlight" type="Sprite2D" parent="Main" unique_id=986319190]
+position = Vector2(549, 456)
+scale = Vector2(0.674, 0.674)
+texture = ExtResource("11_sc1dx")
