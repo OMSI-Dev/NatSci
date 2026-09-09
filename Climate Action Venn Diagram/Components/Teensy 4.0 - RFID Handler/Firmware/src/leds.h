@@ -85,7 +85,7 @@ void scanLED(uint8_t RFID_NUM)
 
     if(RFID_NUM == 1) 
     {   
-        uint8_t brightness = beatsin8(16);  // 12 BPM
+        uint8_t brightness = beatsin8(16);  
         fill_solid(person,NUM_LEDS,CRGB::White);
         fadeToBlackBy(person,NUM_LEDS,(255 - brightness));
         
@@ -94,7 +94,7 @@ void scanLED(uint8_t RFID_NUM)
 
     if(RFID_NUM == 2) 
     {   
-        uint8_t brightness = beatsin8(16);  // 12 BPM
+        uint8_t brightness = beatsin8(16);  
         fill_solid(cloud,NUM_LEDS,CRGB::White);
         fadeToBlackBy(cloud,NUM_LEDS,(255 - brightness));
         
@@ -102,7 +102,7 @@ void scanLED(uint8_t RFID_NUM)
 
     if(RFID_NUM == 3) 
     {   
-        uint8_t brightness = beatsin8(16);  // 12 BPM
+        uint8_t brightness = beatsin8(16);  
         // Set all LEDs to color with varying brightness
         fill_solid(house,NUM_LEDS,CRGB::White);
         fadeToBlackBy(house,NUM_LEDS,(255 - brightness));
