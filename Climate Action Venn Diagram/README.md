@@ -43,13 +43,10 @@ Columns: Topic, Group, Interest Subcategory, Interest Item, then National Org / 
 
 - `L` toggles English/Spanish (swaps descriptions only; names have no Spanish variant).
 
-# Important decisions / gotchas — do not undo these
-- Game state (Slots, CurrentOutcome, SelectedLocalOrg, SpanishActive) is STATIC on GameController so it survives the Main↔Results scene change. Fine for a single-process kiosk. If refactoring, move to an autoload — never to instance fields.
+# Rules
 - Do NOT reorder nodes in the scenes; the code raises `Loading.ZIndex = 10` during the transition instead. Removing that z-index breaks the loading animation (it runs invisibly behind results).
 
-- Do NOT restyle scenes in code (font/color/design are preconfigured). Exceptions already in code: descs get word-wrap; title labels shrink-to-fit ONLY on overflow (from scene size 25 down to floor 10, then ellipsis) via `FitLabelText`; QR TextureRects get ExpandMode=IgnoreSize + KeepAspectCentered + Nearest filter (dense QRs otherwise overflow their boxes).
-
-- Sound players (Assets/Sounds/*.wav) are created in code and parented to `/root`, not the scene — Reset.wav starts exactly as the Results scene is freed and would be cut off otherwise.
+- Do NOT restyle scenes in code (font/color/design are preconfigured). Exceptions already in code: descs get word-wrap; title labels shrink-to-fit ONLY on overflow. QR TextureRects get ExpandMode=IgnoreSize + KeepAspectCentered + Nearest filter.
 
 - CSV `.import` files use `importer="keep"` — the CSVs are game data, not Godot translations. Don't let the editor re-import them as translations.
 

@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 /*
 * Game state machine + frontend driver. Attached to the root of both
@@ -61,6 +62,32 @@ public partial class GameController : Node2D
 	// Scene-configured font sizes of the org name labels, captured before
 	// any shrink-to-fit override is applied.
 	private int nationalTitleBaseSize, localTitleBaseSize;
+
+	// Static UI text (English-Spanish.csv): node path -> "Godot Label" key.
+	// NOTE: the CSV rows FinaleSubheader/LocalHeader are keyed by CONTENT,
+	// which is crossed relative to the scene node names — the node named
+	// FinaleSubheader shows the "LOCAL OREGON" tag and the node named
+	// LocalHeader shows the long prompt paragraph. Mapped accordingly.
+	private static readonly (string Path, string Key)[] MainUiText = {
+		("Main/UI/MainHeader", "MainHeader"),
+		("Main/UI/MainSubheader", "MainSubheader"),
+		("Main/UI/Prompt1", "Prompt1"),
+		("Main/UI/Prompt2", "Prompt2"),
+		("Main/UI/Prompt3", "Prompt3"),
+	};
+	private static readonly (string Path, string Key)[] ResultsUiText = {
+		("Loading/Loading", "LoadingLabel"),
+		("Results/QRNode/UI/FinaleSubheader", "LocalHeader"),
+		("Results/QRNode/UI/LocalHeader", "FinaleSubheader"),
+		("Results/QRNode/UI/NationalHeader", "NationalHeader"),
+		("Results/QRNode/UI/QRinfo", "QRInfo"),
+		("Results/QRNode/UI/QRinfo2", "QRInfo"),
+	};
+	private const string FinaleHeaderPath = "Results/QRNode/UI/FinaleHeader";
+	private const string FinaleHighlightColor = "#47c1bb";
+
+	// Scene-configured font sizes of the static UI labels (per label).
+	private readonly Dictionary<Control, int> uiTextBaseSizes = new();
 
 	public override void _Ready()
 	{
@@ -178,6 +205,7 @@ public partial class GameController : Node2D
 	{
 		SpanishActive = !SpanishActive;
 		GD.Print($"[GameController] Language: {(SpanishActive ? "Spanish" : "English")}");
+		ApplyUiText();
 		if (isResultsScene) {
 			resultsIdleTimer = ResultsTimeoutSeconds;
 			ApplyLanguage();
@@ -188,6 +216,7 @@ public partial class GameController : Node2D
 
 	private void SetupMain()
 	{
+		ApplyUiText();
 		// Hide all highlights, then restore any for pieces still on the
 		// readers (e.g. after returning from Results with two pieces left).
 		foreach (string category in new[] { "Interest", "Topic", "Group" }) {
@@ -270,11 +299,20 @@ public partial class GameController : Node2D
 		nationalTitleBaseSize = nationalLabel.GetThemeFontSize("font_size");
 		localTitleBaseSize = localLabel.GetThemeFontSize("font_size");
 
+		ApplyUiText();
+
 		if (CurrentOutcome == null) {
 			// Scene launched directly (F6) with no game in progress.
 			GD.PrintErr("[GameController] Results scene opened with no outcome set.");
 			return;
 		}
+
+		// The Results layer, QRNode, and its UI are hidden in the scene so
+		// nothing flashes before the transition; show them now — the Loading
+		// layer (z-raised) covers them until the wipe-out reveals them.
+		GetNode<Node2D>("Results").Visible = true;
+		GetNode<Node2D>("Results/QRNode").Visible = true;
+		GetNode<Node2D>("Results/QRNode/UI").Visible = true;
 
 		ApplyLanguage();
 
@@ -315,11 +353,90 @@ public partial class GameController : Node2D
 		label.AddThemeFontSizeOverride("font_size", size);
 	}
 
+	// ------------------------------------------------------- static UI text
+
+	// Applies the current language's strings (English-Spanish.csv) to the
+	// static UI labels of the active scene.
+	private void ApplyUiText()
+	{
+		if (SheetManager.Instance == null || !SheetManager.Instance.IsReady) {
+			return;
+		}
+
+		foreach ((string path, string key) in isResultsScene ? ResultsUiText : MainUiText) {
+			var label = GetNodeOrNull<Label>(path);
+			string text = SheetManager.Instance.GetUiText(key, SpanishActive);
+			if (label == null || text == null) {
+				GD.PrintErr($"[GameController] UI text missing: node '{path}' / key '{key}'.");
+				continue;
+			}
+			FitUiLabel(label, text);
+		}
+
+		if (isResultsScene) {
+			ApplyFinaleHeader();
+		}
+	}
+
+	// Word-wraps within the label's box at its scene-configured font size,
+	// shrinking only if the wrapped text is taller than the box.
+	private void FitUiLabel(Label label, string text)
+	{
+		const int MinFontSize = 10;
+
+		if (!uiTextBaseSizes.TryGetValue(label, out int baseSize)) {
+			baseSize = label.GetThemeFontSize("font_size");
+			uiTextBaseSizes[label] = baseSize;
+			label.AutowrapMode = TextServer.AutowrapMode.Word;
+		}
+
+		label.Text = text;
+		Font font = label.GetThemeFont("font");
+		int size = baseSize;
+		while (size > MinFontSize
+			&& font.GetMultilineStringSize(text, HorizontalAlignment.Left, label.Size.X, size).Y
+				> label.Size.Y) {
+			size--;
+		}
+		label.AddThemeFontSizeOverride("font_size", size);
+	}
+
+	// FinaleHeader is a RichTextLabel: the words 'YOUR' / 'TU' are shown in
+	// the highlight color, the rest keeps the theme's default color.
+	private void ApplyFinaleHeader()
+	{
+		const int MinFontSize = 10;
+
+		var header = GetNodeOrNull<RichTextLabel>(FinaleHeaderPath);
+		string text = SheetManager.Instance.GetUiText("FinaleHeader", SpanishActive);
+		if (header == null || text == null) {
+			GD.PrintErr("[GameController] FinaleHeader node or CSV row missing.");
+			return;
+		}
+
+		if (!uiTextBaseSizes.TryGetValue(header, out int baseSize)) {
+			baseSize = header.GetThemeFontSize("normal_font_size");
+			uiTextBaseSizes[header] = baseSize;
+		}
+
+		// Shrink-to-fit measured on the plain text, before BBCode is added.
+		Font font = header.GetThemeFont("normal_font");
+		int size = baseSize;
+		while (size > MinFontSize
+			&& font.GetMultilineStringSize(text, HorizontalAlignment.Left, header.Size.X, size).Y
+				> header.Size.Y) {
+			size--;
+		}
+		header.AddThemeFontSizeOverride("normal_font_size", size);
+
+		header.Text = Regex.Replace(text, @"\b(YOUR|TU)\b",
+			$"[color={FinaleHighlightColor}]$1[/color]");
+	}
+
 	private void PlayLoadingTransition()
 	{
 		var loading = GetNode<Node2D>("Loading");
 		var pill = GetNode<Sprite2D>("Loading/LoadingPill");
-		var background = GetNode<Sprite2D>("Loading/LoadingBackground");
 		loading.Visible = true;
 		// The Results layer is a later sibling in the scene, so it draws on
 		// top of Loading. Raise Loading above it for the transition.
@@ -337,7 +454,8 @@ public partial class GameController : Node2D
 		pillMat.SetShaderParameter("progress", 0.0f);
 		pill.Material = pillMat;
 
-		// Stage 2: wipe the whole Loading layer out, left to right.
+		// Stage 2: wipe the whole Loading layer out, left to right. Applied
+		// to every child (background, pill, and the loading label).
 		var wipeMat = new ShaderMaterial { Shader = shader };
 		wipeMat.SetShaderParameter("reveal", false);
 		wipeMat.SetShaderParameter("progress", 0.0f);
@@ -346,8 +464,11 @@ public partial class GameController : Node2D
 		tween.TweenMethod(Callable.From((float p) => pillMat.SetShaderParameter("progress", p)),
 			0.0f, 1.0f, LoadingSeconds);
 		tween.TweenCallback(Callable.From(() => {
-			pill.Material = wipeMat;
-			background.Material = wipeMat;
+			foreach (Node child in loading.GetChildren()) {
+				if (child is CanvasItem item) {
+					item.Material = wipeMat;
+				}
+			}
 		}));
 		tween.TweenMethod(Callable.From((float p) => wipeMat.SetShaderParameter("progress", p)),
 			0.0f, 1.0f, WipeOutSeconds);
@@ -373,7 +494,8 @@ public partial class GameController : Node2D
 	{
 		CurrentOutcome = null;
 		SelectedLocalOrg = null;
-		SpanishActive = false;
+		// SpanishActive is intentionally kept — language persists across
+		// games and only changes on 'L' / the physical language button.
 		ResetSound?.Play();
 		ChangeScene(MainScenePath);
 	}

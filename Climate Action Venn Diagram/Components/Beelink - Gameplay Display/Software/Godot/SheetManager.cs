@@ -47,6 +47,7 @@ public partial class SheetManager : Node
 {
 	private const string HexKeyPath = "res://docs/Hex Codes.csv";
 	private const string TruthTablePath = "res://docs/Truth Table.csv";
+	private const string UiTextPath = "res://docs/English-Spanish.csv";
 
 	public static SheetManager Instance { get; private set; }
 
@@ -57,6 +58,8 @@ public partial class SheetManager : Node
 
 	private readonly Dictionary<int, PieceInfo> _hexKey = new();
 	private readonly List<Outcome> _truthTable = new();
+	private readonly Dictionary<string, (string En, string Es)> _uiText =
+		new(StringComparer.OrdinalIgnoreCase);
 
 	public override void _Ready() {
 		// Guard against a second instance (e.g. the script also attached in a scene).
@@ -69,6 +72,7 @@ public partial class SheetManager : Node
 		try {
 			LoadHexKey();
 			LoadTruthTable();
+			LoadUiText();
 		}
 		catch (Exception e) {
 			GD.PrintErr($"[SheetManager] Failed to load data: {e.Message}");
@@ -102,6 +106,15 @@ public partial class SheetManager : Node
 
 	private static bool Matches(string a, string b) {
 		return string.Equals(a?.Trim(), b?.Trim(), StringComparison.OrdinalIgnoreCase);
+	}
+
+	// Returns the English or Spanish string for a UI element key from
+	// English-Spanish.csv, or null if the key is unknown.
+	public string GetUiText(string key, bool spanish) {
+		if (_uiText.TryGetValue(key, out (string En, string Es) t)) {
+			return spanish ? t.Es : t.En;
+		}
+		return null;
 	}
 
 	// -------------------------------------------------------------- loading
@@ -163,6 +176,21 @@ public partial class SheetManager : Node
 				}
 			}
 			_truthTable.Add(outcome);
+		}
+	}
+
+	// Loads English-Spanish.csv: "Godot Label", "English", "Spanish".
+	// Duplicate keys keep the first row (the sheet has QRInfo/Qrinfo).
+	private void LoadUiText() {
+		var rows = SplitCsvRows(ReadFileText(UiTextPath));
+		var cols = HeaderIndex(rows, UiTextPath);
+		for (int r = 1; r < rows.Count; r++) {
+			string key = Cell(rows[r], cols, "Godot Label").Trim();
+			if (key.Length == 0) {
+				continue;
+			}
+			_uiText.TryAdd(key,
+				(Cell(rows[r], cols, "English").Trim(), Cell(rows[r], cols, "Spanish").Trim()));
 		}
 	}
 

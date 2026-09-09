@@ -1,13 +1,15 @@
 [gd_scene format=3 uid="uid://covchfpd1gn73"]
 
 [ext_resource type="Script" uid="uid://4tmhalf1orhl" path="res://GameController.cs" id="1_r0du0"]
+[ext_resource type="Texture2D" uid="uid://cji3mtjwaje75" path="res://Assets/Background.png" id="3_20pc6"]
 [ext_resource type="Script" uid="uid://cc4045a7m6j60" path="res://SheetManager.cs" id="4_cm0pq"]
-[ext_resource type="Texture2D" uid="uid://dp6gxnotc74h0" path="res://Assets/Reference/main.png" id="5_20pc6"]
 [ext_resource type="Texture2D" uid="uid://n5s1mvce0cib" path="res://Assets/cloud.png" id="6_5vvyt"]
 [ext_resource type="Texture2D" uid="uid://bhfvwyx1ut2oj" path="res://Assets/cloud highlight.png" id="7_c6i3y"]
 [ext_resource type="Texture2D" uid="uid://dovm5g2v1ub3j" path="res://Assets/person.png" id="8_c2ibq"]
 [ext_resource type="Texture2D" uid="uid://bdaenus7a3fm1" path="res://Assets/person highlight.png" id="9_j4qnp"]
+[ext_resource type="FontFile" uid="uid://ctcedn1h1su2j" path="res://Assets/Inter/static/Inter_18pt-Bold.ttf" id="10_5vvyt"]
 [ext_resource type="Texture2D" uid="uid://c3nqed3mbasex" path="res://Assets/house.png" id="10_fpfj3"]
+[ext_resource type="FontFile" uid="uid://6x0by2frqtfr" path="res://Assets/Inter/static/Inter_18pt-Medium.ttf" id="11_c6i3y"]
 [ext_resource type="Texture2D" uid="uid://cis0mxh0ak0ld" path="res://Assets/house highlight.png" id="11_sc1dx"]
 
 [node name="Node2D" type="Node2D" unique_id=739999347]
@@ -15,19 +17,15 @@ script = ExtResource("1_r0du0")
 
 [node name="Slideshow" type="Node2D" parent="." unique_id=594792257]
 
-[node name="RichTextLabel" type="RichTextLabel" parent="Slideshow" unique_id=1276421412]
-offset_right = 40.0
-offset_bottom = 40.0
-
 [node name="Node" type="Node" parent="." unique_id=831202341]
 script = ExtResource("4_cm0pq")
 
 [node name="Main" type="Node2D" parent="." unique_id=1161549412]
 
-[node name="Background" type="Sprite2D" parent="Main" unique_id=1043260780]
+[node name="Background" type="Sprite2D" parent="Main" unique_id=1571758078]
 position = Vector2(577.96533, 326.125)
-scale = Vector2(0.4495142, 0.4495142)
-texture = ExtResource("5_20pc6")
+scale = Vector2(0.44951418, 0.44951418)
+texture = ExtResource("3_20pc6")
 
 [node name="Cloud" type="Sprite2D" parent="Main" unique_id=1727850011]
 position = Vector2(908.99994, 456)
@@ -58,3 +56,61 @@ texture = ExtResource("10_fpfj3")
 position = Vector2(549, 456)
 scale = Vector2(0.674, 0.674)
 texture = ExtResource("11_sc1dx")
+
+[node name="UI" type="Node2D" parent="Main" unique_id=1531619452]
+
+[node name="MainHeader" type="Label" parent="Main/UI" unique_id=325983914]
+offset_left = 207.0
+offset_top = 79.0
+offset_right = 951.0
+offset_bottom = 146.0
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("10_5vvyt")
+theme_override_font_sizes/font_size = 40
+text = "Find Your Community Climate Action"
+horizontal_alignment = 1
+
+[node name="MainSubheader" type="Label" parent="Main/UI" unique_id=1756230093]
+offset_left = 331.0
+offset_top = 152.0
+offset_right = 824.0
+offset_bottom = 219.0
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("11_c6i3y")
+theme_override_font_sizes/font_size = 24
+text = "Pick puzzle pieces that feel like they fit you.
+Use tem to complete te Venn Diagram."
+horizontal_alignment = 1
+
+[node name="Prompt1" type="Label" parent="Main/UI" unique_id=1179862798]
+offset_left = 121.0
+offset_top = 274.0
+offset_right = 345.0
+offset_bottom = 341.0
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("11_c6i3y")
+theme_override_font_sizes/font_size = 24
+text = "What am I good at 
+that brings me joy?"
+
+[node name="Prompt2" type="Label" parent="Main/UI" unique_id=684897065]
+offset_left = 449.0
+offset_top = 274.0
+offset_right = 706.0
+offset_bottom = 341.0
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("11_c6i3y")
+theme_override_font_sizes/font_size = 24
+text = "What groups am I a 
+part of or could I join?"
+
+[node name="Prompt3" type="Label" parent="Main/UI" unique_id=245994461]
+offset_left = 803.0
+offset_top = 273.0
+offset_right = 1060.0
+offset_bottom = 340.0
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("11_c6i3y")
+theme_override_font_sizes/font_size = 24
+text = "What needs to happen
+in our communities?"
