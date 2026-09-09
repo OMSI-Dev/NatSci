@@ -4,11 +4,15 @@ last updated 2026-09-01 by autumn
 
 *If re-installing a RPi from scratch for the SOS system, follow the steps below:*
 
-1. **Flash RPi with latest (Linux) distribution** 
+# Operating System 
 
-    a) user: omsiadmin
+**Flash RPi with latest (Linux) distribution** 
+
+    1) user: omsiadmin
     
-2. **Configure ConnectPi**
+# Remote Access
+    
+**Configure ConnectPi**
 
     ```
     sudo apt update && sudo apt upgrade -y
@@ -20,46 +24,51 @@ last updated 2026-09-01 by autumn
     sudo systemctl start rpi-connect
     sudo reboot   
     ```
-3. **Configure python and venv environment**
 
-    a)
+# Python Configuration
+    
+**Configure python and venv environment**
+
+1)
     ```
     sudo apt install python3 python3-pip -y
     ```
-    b)
+2)
     ```
     cd Documents
     mkdir SOS
     ```
     
-    c) 
+3) 
     ```
     python3 -m venv --system-site-packages myenv
     ```
     
-4. **Create nowPlaying.py script** 
+# Scripts
+**Create nowPlaying.py script** 
 
-    a)
+1)
     ```
     cd Documents
     mkdir SOS
     cd SOS
     ```
     
-    b) 
+2) 
     ```
     Refer to Github NatSci/SOS/Devices/RPi5 - Now Playing/Scripts/nowPlaying.py
     ```
     
-    c) 
+3) 
     ```
     Import assets from Github NatSci/SOS/Devices/RPi5 - Now playing/Assets/ into local /SOS/ directory
     ```
     
 
-5. **Create OS startup script service** 
+# System Service Automation
+**Create OS startup script service** 
 
-    a) Create bash script
+1) Create bash script
     ```
     cd Documents/SOS/
     sudo nano service.sh
@@ -68,7 +77,7 @@ last updated 2026-09-01 by autumn
     ```Refer to NatSci/SOS/Devices/RPi5 - Now Playing/Scripts/service.sh
     ```
     
-    b) Create systemd service 
+2) Create systemd service 
     ```
     sudo nano /etc/systemd/system/nowplaying.service
     ```
@@ -77,14 +86,14 @@ last updated 2026-09-01 by autumn
     Refer to /SOS/Devices/RPi5 - Now Playing/Script/nowplaying.service
     ```
     
-    c) Start service
+3) Start service
     ```
     sudo systemctl daemon-reload
     sudo systemctl enable nowplaying.service
     sudo systemctl start nowplaying.service
     ```
     
-    d) Reboot and monitor for errors
+4) Reboot and monitor for errors
     ```
     sudo reboot
     ```
@@ -95,14 +104,14 @@ last updated 2026-09-01 by autumn
     systemctl status nowplaying.service
     ```
     
-6. **Create a crontab to automate overnight reboot process** 
+**Create a crontab to automate overnight reboot process** 
 
-    a)
+1)
     ``sudo crontab -e``
     
-    b) select nano 
+2) select nano 
     
-    c) add the following entry at the bottom. this schedules a reboot every night at 12am.
+3) add the following entry at the bottom. this schedules a reboot every night at 12am.
     ``0 0 * * * /sbin/shutdown -r now``
 
 
