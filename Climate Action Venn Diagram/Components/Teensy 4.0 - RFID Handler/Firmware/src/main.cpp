@@ -7,13 +7,14 @@ It will continuously scan all three RFID readers and display results.
 */
 
 #include <Arduino.h>
+#include <Bounce2.h>
 #include "pins.h"
 #include "tests.h"
 #include <FastLED.h>
 #include <leds.h>
 #include "serialHandler.h"
 #include "rfidHandler.h"
-#include "write.h"
+// #include "write.h"
 
 #include <Timer.h>
 
@@ -26,22 +27,29 @@ MoToTimer rescanTopicTimer, emptySlotTopicTimer;
 
 MoToTimer rescanInterestTimer, emptySlotInterestTimer;
 
+
+
 bool groupPresence = 0, groupDetected = 0,groupTPI=0;
 bool topicPresence = 0, topicDetected = 0,topicTPI=0;
 bool interestPresence = 0, interestDetected = 0,interestTPI=0;
 
+// abritrary assignment
 uint8_t previousGroupID=200, currentGroupID = 201;
 uint8_t previousTopicID=202, currentTopicID = 203;
 uint8_t previousInterestID=204, currentInterestID = 205;
 
 uint16_t emptySlotTime = 350, rescanTime = 10000;
 
+void buttonCheck();
 void groupCheck(); //House
-void groupCheckSet(); //House
-void groupCheckScan(); //House
+
+//I have no idea why these are here. Leaving for now.
+//void groupCheckSet(); //House
+//void groupCheckScan(); //House
 
 void topicCheck(); //Cloud
 void interestCheck(); //person
+
 
 void setup()
 {
@@ -53,12 +61,18 @@ void setup()
     }
     
 
-
-    // Setup pin modes
-    setPins();
-
+    //set only mode pins
+    setModePins();
+    delay(50);
     //check for special hardware pins
     checkModePins();
+    if(debugMode){Serial.print("DM: "); Serial.println(debugMode);}
+    if(writeMode){Serial.print("WM: "); Serial.println(writeMode);}
+
+
+    setPins();
+
+
 
     if(debugMode){    
     Serial.println("!!! Pins configured");
@@ -78,6 +92,7 @@ void setup()
     // Set LEDS
     setLED();
 
+    //Set off incase of reset
     groupRFID.stopPolling();
     topicRFID.stopPolling();
     interestRFID.stopPolling();
@@ -86,26 +101,26 @@ void setup()
     groupPresence = resumeGroupPresenceWatch();
     topicPresence = resumeTopicPresenceWatch();
     interestPresence = resumeInterestPresenceWatch();
-    //writeMode = 1;
-    //debugMode = 1;
 }
 
 void loop()
 {
-    if(writeMode) {
+    if(writeMode) 
+    {
         if(!debugTimer.running())
         {
             Serial.println("Press 'w' to continue...");
             debugTimer.setTime(5000);
         }
-        writeTag();
+        // writeTag();
     }else
     {
+        buttonCheck();
         groupCheck();
         topicCheck();
         interestCheck();
         //single update for all LEDs
-        FastLED.show();
+        FastLED.show();delay(50);
     }
 
 
@@ -165,6 +180,7 @@ void groupCheck()
         groupDetected = false;
         previousGroupID = 0;
         emptySlotGroupTimer.setTime(emptySlotTime);
+        sendTag(0,3);
     }
 
 }
@@ -221,6 +237,7 @@ void topicCheck()
         topicDetected = false;
         previousTopicID = 0;
         emptySlotTopicTimer.setTime(emptySlotTime);
+        sendTag(0,2);
     }    
 
 }
@@ -278,6 +295,18 @@ void interestCheck()
         interestDetected = false;
         previousInterestID = 0;
         emptySlotInterestTimer.setTime(emptySlotTime);
+        sendTag(0,1);
     }   
 
+}
+
+
+void buttonCheck()
+{
+    langButton.update();
+
+    if(langButton.pressed())
+    {
+        Serial.println("L");
+    }
 }

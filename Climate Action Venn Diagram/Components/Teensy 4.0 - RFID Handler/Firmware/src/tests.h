@@ -3,8 +3,9 @@ bool debugMode, writeMode;
 
 void checkModePins()
 {
-    debugMode = digitalRead(debugPin);
-    delay(50);
-    writeMode = digitalRead(writePin);
+        delay(50);
+        debugMode = !digitalRead(debugPin);
+        delay(50);
+        writeMode = !digitalRead(writePin);
 
 }

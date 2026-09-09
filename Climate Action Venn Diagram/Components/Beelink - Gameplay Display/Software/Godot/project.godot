@@ -30,4 +30,4 @@ project/assembly_name="Custom QR Code Test"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/qr_code/plugin.cfg", "res://addons/sync_spreadsheets/plugin.cfg")
+enabled=PackedStringArray("res://addons/qr_code/plugin.cfg")

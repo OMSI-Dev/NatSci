@@ -3,140 +3,198 @@ using System;
 using System.Collections.Generic;
 
 /* * * * * * * * * * *
-* Fetches data from a publicly published Google Sheet (CSV export) on startup.
-* Google Sheet needs to be PUBLISHED TO WEB as a CSV.
-* This script has to be autoloaded. Project > Project Settings > Autoload.
-* Access from any script via: SheetManager.Instance.GetCell(row, "ColumnName").
-* As of 2026-08-25, both CSV files have 217 rows of data
+* Loads the local game data CSVs on startup (no network access):
+*   - docs/Hex Codes.csv    : maps RFID tag hex IDs -> game piece info
+*   - docs/Truth Table.csv  : maps (Topic, Group, Interest Item) -> org outcome
+*
+* This script is autoloaded (Project > Project Settings > Autoload).
+* Access from any script via:
+*   SheetManager.Instance.LookupHex(hexId)
+*   SheetManager.Instance.FindOutcome(topic, group, interestItem)
 * * * * * * * * * * */
+
+// A game piece as described by a row of the Hex Code key.
+public class PieceInfo
+{
+	public int Hex;
+	public string Category;     // "Interest" | "Topic" | "Group"
+	public string Subcategory;  // only set for Interest pieces
+	public string Item;
+}
+
+// One organization from the Truth Table.
+public class OrgInfo
+{
+	public string Name = "";
+	public string Description = "";
+	public string DescriptionSpanish = "";
+	public string Link = "";
+}
+
+// The full outcome for a matched Truth Table row.
+public class Outcome
+{
+	public string Topic;
+	public string Group;
+	public string InterestSubcategory;
+	public string InterestItem;
+	public OrgInfo NationalOrg;
+	// Up to 3 options; pick one at random. Some rows only have 2 local orgs.
+	public List<OrgInfo> LocalOrgs = new();
+}
 
 public partial class SheetManager : Node
 {
-	// Replace this URL with the published CSV URL.
-	private const string SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT0Yr6AIij3GnBDkB-eJlz5aTuLJIelGDH9JTGNqVwmND9SnghV9E47ZUZZzD0rWmseccNJLxzKnqd3/pub?gid=1578975206&single=true&output=csv";
+	private const string HexKeyPath = "res://docs/Hex Codes.csv";
+	private const string TruthTablePath = "res://docs/Truth Table.csv";
 
 	public static SheetManager Instance { get; private set; }
-
-	// All sheet data: _data[row][col]. Row 0 is the header row.
-	private List<List<string>> _data = new();
-
-	// Enum / column lookup index.
-	private Dictionary<string, int> _enums = new();
 
 	[Signal] public delegate void DataLoadedEventHandler();
 	[Signal] public delegate void DataFailedEventHandler(string error);
 
 	public bool IsReady { get; private set; } = false;
 
+	private readonly Dictionary<int, PieceInfo> _hexKey = new();
+	private readonly List<Outcome> _truthTable = new();
+
 	public override void _Ready() {
+		// Guard against a second instance (e.g. the script also attached in a scene).
+		if (Instance != null && Instance != this) {
+			GD.Print("[SheetManager] Duplicate instance ignored; using autoload.");
+			return;
+		}
 		Instance = this;
-		FetchSheet();
-	}
 
-	private async void FetchSheet() {
-		var http = new HttpRequest();
-		AddChild(http);
-
-		string urlToFetch = SHEET_CSV_URL;
-		int maxRedirects = 5;
-		int redirectCount = 0;
-
-		while (redirectCount < maxRedirects) {
-			var tcs = new System.Threading.Tasks.TaskCompletionSource<Godot.Collections.Array>();
-			
-			void OnCompleted(long result, long responseCode, string[] headers, byte[] body) {
-				tcs.TrySetResult(new Godot.Collections.Array { result, responseCode, headers, body });
-			}
-			
-			http.RequestCompleted += OnCompleted;
-
-			Error err = http.Request(urlToFetch);
-			if (err != Error.Ok) {
-				GD.PrintErr($"[SheetManager] HTTP request failed to start: {err}");
-				EmitSignal(SignalName.DataFailed, err.ToString());
-				http.QueueFree();
-				return;
-			}
-
-			var response = await tcs.Task;
-			http.RequestCompleted -= OnCompleted;
-
-			long responseCode = response[1].AsInt64();
-			string[] headers = response[2].AsStringArray();
-			byte[] body = (byte[])response[3];
-
-			// Handle redirects
-			if (responseCode == 307 || responseCode == 302 || responseCode == 301) {
-				string redirectUrl = null;
-				foreach (string header in headers) {
-					if (header.StartsWith("Location:", StringComparison.OrdinalIgnoreCase)) {
-						redirectUrl = header.Substring("Location:".Length).Trim();
-						break;
-					}
-				}
-
-				if (!string.IsNullOrEmpty(redirectUrl)) {
-					GD.Print($"[SheetManager] Redirecting to: {redirectUrl}");
-					urlToFetch = redirectUrl;
-					redirectCount++;
-					continue;
-				} else {
-					GD.PrintErr("[SheetManager] Redirect received but no Location header found.");
-					EmitSignal(SignalName.DataFailed, "Redirect without Location header");
-					http.QueueFree();
-					return;
-				}
-			}
-
-			// Success
-			if (responseCode == 200) {
-				ParseCsv(System.Text.Encoding.UTF8.GetString(body));
-				http.QueueFree();
-				return;
-			}
-
-			// Other error
-			string errMsg = $"HTTP {responseCode}: {System.Text.Encoding.UTF8.GetString(body)}";
-			GD.PrintErr($"[SheetManager] {errMsg}");
-			EmitSignal(SignalName.DataFailed, errMsg);
-			http.QueueFree();
+		try {
+			LoadHexKey();
+			LoadTruthTable();
+		}
+		catch (Exception e) {
+			GD.PrintErr($"[SheetManager] Failed to load data: {e.Message}");
+			EmitSignal(SignalName.DataFailed, e.Message);
 			return;
 		}
 
-		// Max redirects exceeded
-		GD.PrintErr("[SheetManager] Too many redirects");
-		EmitSignal(SignalName.DataFailed, "Too many redirects");
-		http.QueueFree();
-	}
-
-	private void ParseCsv(string csv) {
-		_data.Clear();
-		_enums.Clear();
-
-		var rows = SplitCsvRows(csv);
-		bool firstRow = true;
-
-		foreach (var row in rows) {
-			if (row.Count == 0) {
-				continue;
-			}
-			_data.Add(row);
-
-			if (firstRow) {
-				for (int i = 0; i < row.Count; i++) {
-					_enums[row[i].Trim()] = i;
-				}
-				firstRow = false;
-			}
-		}
-
 		IsReady = true;
-		GD.Print($"[SheetManager] Loaded {_data.Count} rows, {_enums.Count} columns.");
+		GD.Print($"[SheetManager] Loaded {_hexKey.Count} hex codes, {_truthTable.Count} truth table rows.");
 		EmitSignal(SignalName.DataLoaded);
 	}
 
+	// ------------------------------------------------------------------ API
+
+	// Returns the game piece for a tag ID, or null if the ID is unknown.
+	public PieceInfo LookupHex(int hexId) {
+		return _hexKey.TryGetValue(hexId, out PieceInfo info) ? info : null;
+	}
+
+	// Finds the Truth Table row matching the three registered pieces.
+	// Matching is case-insensitive (the sheets are inconsistent about
+	// casing, e.g. "Faith-based Group" vs "Faith-Based Group").
+	public Outcome FindOutcome(string topic, string group, string interestItem) {
+		foreach (Outcome o in _truthTable) {
+			if (Matches(o.Topic, topic) && Matches(o.Group, group) && Matches(o.InterestItem, interestItem)) {
+				return o;
+			}
+		}
+		return null;
+	}
+
+	private static bool Matches(string a, string b) {
+		return string.Equals(a?.Trim(), b?.Trim(), StringComparison.OrdinalIgnoreCase);
+	}
+
+	// -------------------------------------------------------------- loading
+
+	private string ReadFileText(string resPath) {
+		using var file = FileAccess.Open(resPath, FileAccess.ModeFlags.Read);
+		if (file == null) {
+			throw new Exception($"Cannot open '{resPath}': {FileAccess.GetOpenError()}");
+		}
+		return file.GetAsText();
+	}
+
+	private void LoadHexKey() {
+		var rows = SplitCsvRows(ReadFileText(HexKeyPath));
+		var cols = HeaderIndex(rows, HexKeyPath);
+
+		for (int r = 1; r < rows.Count; r++) {
+			string hexText = Cell(rows[r], cols, "Hex").Trim();
+			if (hexText.Length == 0) {
+				continue;
+			}
+			if (hexText.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
+				hexText = hexText.Substring(2);
+			}
+
+			var piece = new PieceInfo {
+				Hex = Convert.ToInt32(hexText, 16),
+				Category = Cell(rows[r], cols, "Category").Trim(),
+				Subcategory = Cell(rows[r], cols, "Subcategory").Trim(),
+				Item = Cell(rows[r], cols, "Item").Trim()
+			};
+			_hexKey[piece.Hex] = piece;
+		}
+	}
+
+	private void LoadTruthTable() {
+		var rows = SplitCsvRows(ReadFileText(TruthTablePath));
+		var cols = HeaderIndex(rows, TruthTablePath);
+
+		for (int r = 1; r < rows.Count; r++) {
+			var row = rows[r];
+			if (Cell(row, cols, "Topic").Trim().Length == 0) {
+				continue;
+			}
+
+			var outcome = new Outcome {
+				Topic = Cell(row, cols, "Topic").Trim(),
+				Group = Cell(row, cols, "Group").Trim(),
+				InterestSubcategory = Cell(row, cols, "Interest Subcategory").Trim(),
+				InterestItem = Cell(row, cols, "Interest Item").Trim(),
+				NationalOrg = ReadOrg(row, cols, "National Org")
+			};
+			// Not every row has all 3 local orgs filled in; skip empty ones
+			// so the random pick never lands on a blank entry.
+			foreach (string prefix in new[] { "Local Org", "Local Org 2", "Local Org 3" }) {
+				OrgInfo org = ReadOrg(row, cols, prefix);
+				if (org.Name.Length > 0) {
+					outcome.LocalOrgs.Add(org);
+				}
+			}
+			_truthTable.Add(outcome);
+		}
+	}
+
+	private OrgInfo ReadOrg(List<string> row, Dictionary<string, int> cols, string prefix) {
+		return new OrgInfo {
+			Name = Cell(row, cols, prefix).Trim(),
+			Description = Cell(row, cols, $"{prefix} Description").Trim(),
+			DescriptionSpanish = Cell(row, cols, $"{prefix} Description Spanish").Trim(),
+			Link = Cell(row, cols, $"{prefix} Link").Trim()
+		};
+	}
+
+	private Dictionary<string, int> HeaderIndex(List<List<string>> rows, string path) {
+		if (rows.Count < 2) {
+			throw new Exception($"'{path}' has no data rows.");
+		}
+		var cols = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+		for (int i = 0; i < rows[0].Count; i++) {
+			cols[rows[0][i].Trim()] = i;
+		}
+		return cols;
+	}
+
+	private string Cell(List<string> row, Dictionary<string, int> cols, string colName) {
+		if (!cols.TryGetValue(colName, out int col) || col >= row.Count) {
+			return "";
+		}
+		return row[col];
+	}
+
 	// CSV parser. Handles quoted fields containing commas, quotes, and newlines.
-	private List<List<string>> SplitCsvRows(string csv) {
+	private static List<List<string>> SplitCsvRows(string csv) {
 		var rows = new List<List<string>>();
 		var row = new List<string>();
 		var field = new System.Text.StringBuilder();
@@ -162,7 +220,7 @@ public partial class SheetManager : Node
 				} else if (c == ',') {
 					row.Add(field.ToString());
 					field.Clear();
-				} if (c == '\n') {
+				} else if (c == '\n') {
 					row.Add(field.ToString());
 					field.Clear();
 					rows.Add(row);
@@ -179,63 +237,5 @@ public partial class SheetManager : Node
 		}
 
 		return rows;
-	}
-
-	public int RowCount => _data.Count;
-	public int ColCount => _enums.Count;
-
-	public string GetCell(int row, int col) {
-		if (row < 0 || row >= _data.Count) {
-			return "";
-		}
-		if (col < 0 || col >= _data[row].Count) {
-			return "";
-		}
-		return _data[row][col];
-	}
-
-	public string GetCell(int row, string colName) {
-		if (!_enums.TryGetValue(colName, out int col)) {
-			return "";
-		}
-		return GetCell(row, col);
-	}
-
-	public List<string> GetRow(int row) {
-		if (row < 0 || row >= _data.Count) {
-			return new List<string>();
-		}
-		return new List<string>(_data[row]);
-	}
-
-	public List<string> GetColumn(string colName) {
-		var result = new List<string>();
-		if (!_enums.TryGetValue(colName, out int col)) {
-			return result;
-		}
-		for (int r = 1; r < _data.Count; r++) {
-			result.Add(GetCell(r, col));
-		}
-		return result;
-	}
-
-	public int FindRow(string colName, string searchValue) {
-		if (!_enums.TryGetValue(colName, out int col)) {
-			return -1;
-		}
-		for (int r = 1; r < _data.Count; r++) {
-			if (GetCell(r, col) == searchValue) {
-				return r;
-			}
-		}
-		return -1;
-	}
-
-	public List<string> GetHeaders() {
-		var headers = new List<string>(new string[_enums.Count]);
-		foreach (var kv in _enums) {
-			headers[kv.Value] = kv.Key;
-		}
-		return headers;
 	}
 }

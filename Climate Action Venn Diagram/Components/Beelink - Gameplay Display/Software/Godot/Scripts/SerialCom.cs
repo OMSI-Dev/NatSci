@@ -1,122 +1,212 @@
 /*
-* This script should be autoloaded into the scene.
-* It needs to be used by everything throughout the game.
-* Set this in Project Settings, Global tab and add this script
-* to the global path. Then it can be called as a variable just
-* like any object.
+* Autoloaded (Project Settings > Globals > Autoload).
+* Reads the Teensy 4.0 RFID handler over USB serial at 115200 baud.
+*
+* Protocol (see "Firmware Structure.md"):
+*   "<slot>:0x<ID>"  - tag placed on reader <slot> (1|2|3), e.g. "3:0x19".
+*                      "<slot>:0x0" means the slot was emptied.
+*   "L"              - language button pressed.
+*
+* Emits:
+*   PiecePlaced(slot, hexId)  - a tag was placed on a reader
+*   PieceRemoved(slot)        - a reader slot was emptied
+*   LanguagePressed()         - language button pressed
+*
+* Reading happens on a background thread; lines are queued and
+* dispatched from _Process so signals fire on the main thread.
 */
 
 using Godot;
 using System;
+using System.Collections.Concurrent;
 using System.IO.Ports;
-using System.Threading.Tasks;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
 
-public partial class SerialCom : Node2D
+public partial class SerialCom : Node
 {
-	SerialPort serialPort;
-	string data;
-	bool received = false;
-	bool delayFinished = false;
-	string[] dataSplit;
-	
-	// Called when the node enters the scene tree for the first time.
+	[Signal] public delegate void PiecePlacedEventHandler(int slot, int hexId);
+	[Signal] public delegate void PieceRemovedEventHandler(int slot);
+	[Signal] public delegate void LanguagePressedEventHandler();
+	[Signal] public delegate void ConnectionChangedEventHandler(bool connected);
+
+	// Leave empty to auto-detect. Set to e.g. "/dev/ttyACM0" to force a port.
+	[Export] public string PortOverride { get; set; } = "";
+
+	private const int BaudRate = 115200;
+	private const double ReconnectIntervalSec = 2.0;
+
+	private static readonly Regex LineFormat =
+		new Regex(@"^([1-3]):0x([0-9A-Fa-f]{1,4})$", RegexOptions.Compiled);
+
+	private SerialPort serialPort;
+	private Thread readThread;
+	private volatile bool runReadThread;
+	private readonly ConcurrentQueue<string> lineQueue = new();
+
+	private bool connected = false;
+	private double reconnectTimer = 0;
+
+	public bool PortConnected => connected;
+
 	public override void _Ready()
 	{
-		string portName = "";
-		string[] comList = System.IO.Ports.SerialPort.GetPortNames();
-		
-		// print out connected ports (for testing)
-		/* for(int n = 0; n < comList.Length; n++) {
-			GD.Print(comList[n]);
-		} */
-		
-		//pick port based on amount of connected devices, 
-		//assume it is last in line
-		if(comList.Length >= 1) {
-			portName = comList[comList.Length - 1];
-		} else {
-			portName = comList[0];
-		}
-		
-		GD.Print("Port selected: " + portName);
-		
-		// Set port properties.
-		serialPort = new SerialPort {
-			PortName = portName,
-			BaudRate = 9600,
-			ReadTimeout = 5,
-			DiscardNull = true
-		};
-		
-		// Try to open serial.
-		try {
-			serialPort.Open();
-		}
-		catch(System.Exception) {
-			serialPort.Close();
-			throw;
-		}
-		finally {
-			if(serialPort.IsOpen) {
-				GD.Print("Connected to port.");
-			} else {
-				GD.Print("Could not connect to port.");
-			}
-		
-			GD.Print("Setup finished.");
-		}
-		// Once this is called, it exists the function
-		// So any prints must happen before it
-		//serialPort.Open();
+		TryConnect();
 	}
 
-	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
-		if(!serialPort.IsOpen) {
-			GD.Print("Serial port not open.");
+		// The read thread flags a dead connection by clearing runReadThread.
+		if (connected && !runReadThread) {
+			Disconnect();
+		}
+
+		if (!connected) {
+			reconnectTimer -= delta;
+			if (reconnectTimer <= 0) {
+				reconnectTimer = ReconnectIntervalSec;
+				TryConnect();
+			}
+		}
+
+		while (lineQueue.TryDequeue(out string line)) {
+			ParseLine(line);
+		}
+	}
+
+	public override void _ExitTree()
+	{
+		Disconnect();
+	}
+
+	private void ParseLine(string line)
+	{
+		line = line.Trim();
+		if (line.Length == 0) {
 			return;
 		}
-		
-		// Try to read, ignore timeout errors to prevent a flood of debug errors
-		try {
-			// ReadLine() will hold the data in the variable
-			// until it is changed. Problems with being able to
-			// equate the string values using readline
-			// ReadExisting() will hold the data in the variable 
-			// only for the moment that it is recieved
-			data = serialPort.ReadExisting();
-		}
-		catch(System.Exception) {
-			// Here to ignore timeout errors.
-		}
-		
-		//dataSplit = data.Split(':');
-		dataSplit = data.Select(c => c.ToString()).ToArray();
 
+		if (line == "L") {
+			GD.Print("[SerialCom] Language button pressed.");
+			EmitSignal(SignalName.LanguagePressed);
+			return;
+		}
+
+		Match m = LineFormat.Match(line);
+		if (!m.Success) {
+			GD.Print($"[SerialCom] Ignoring unrecognized line: '{line}'");
+			return;
+		}
+
+		int slot = int.Parse(m.Groups[1].Value);
+		int hexId = Convert.ToInt32(m.Groups[2].Value, 16);
+
+		if (hexId == 0) {
+			GD.Print($"[SerialCom] Slot {slot} emptied.");
+			EmitSignal(SignalName.PieceRemoved, slot);
+		} else {
+			GD.Print($"[SerialCom] Slot {slot} placed 0x{hexId:X2}.");
+			EmitSignal(SignalName.PiecePlaced, slot, hexId);
+		}
 	}
-	
-	public void sendData(string data) {
-		// By default, NewLine is "\r\n". Set to "\n".
-		serialPort.NewLine = "\n";
-		serialPort.WriteLine(data);
+
+	private string PickPort()
+	{
+		if (!string.IsNullOrEmpty(PortOverride)) {
+			return PortOverride;
+		}
+
+		string[] ports = SerialPort.GetPortNames();
+		if (ports.Length == 0) {
+			return null;
+		}
+
+		// The Teensy 4.0 enumerates as a USB CDC-ACM device:
+		// /dev/ttyACM* on Linux, usbmodem* on macOS.
+		string preferred = ports.LastOrDefault(p => p.Contains("ttyACM"))
+			?? ports.LastOrDefault(p => p.Contains("usbmodem"));
+		return preferred ?? ports[ports.Length - 1];
 	}
-	
-	public string getRawData() {
-		return data;
+
+	private void TryConnect()
+	{
+		string portName = PickPort();
+		if (portName == null) {
+			return;
+		}
+
+		try {
+			serialPort = new SerialPort {
+				PortName = portName,
+				BaudRate = BaudRate,
+				ReadTimeout = 500,
+				NewLine = "\n",
+				DiscardNull = true,
+				DtrEnable = true
+			};
+			serialPort.Open();
+			serialPort.DiscardInBuffer();
+		}
+		catch (Exception e) {
+			GD.Print($"[SerialCom] Could not open {portName}: {e.Message}");
+			serialPort?.Dispose();
+			serialPort = null;
+			return;
+		}
+
+		GD.Print($"[SerialCom] Connected to {portName} @ {BaudRate}.");
+		connected = true;
+		runReadThread = true;
+		readThread = new Thread(ReadLoop) { IsBackground = true };
+		readThread.Start();
+		EmitSignal(SignalName.ConnectionChanged, true);
 	}
-	
-	public string[] getSplit() {
-		return dataSplit;
+
+	private void Disconnect()
+	{
+		runReadThread = false;
+		try { serialPort?.Close(); } catch (Exception) { }
+		readThread?.Join(1000);
+		readThread = null;
+		serialPort?.Dispose();
+		serialPort = null;
+
+		if (connected) {
+			connected = false;
+			GD.Print("[SerialCom] Disconnected. Will retry...");
+			EmitSignal(SignalName.ConnectionChanged, false);
+		}
 	}
-	
-	private async void DelayCall(float sec) {
-		GD.Print("Delay starting...");
-		await ToSignal(GetTree().CreateTimer(sec), SceneTreeTimer.SignalName.Timeout);
-		GD.Print("Delay finished.");
-		if(!delayFinished) {
-			delayFinished = true;
+
+	private void ReadLoop()
+	{
+		while (runReadThread) {
+			try {
+				string line = serialPort.ReadLine();
+				lineQueue.Enqueue(line);
+			}
+			catch (TimeoutException) {
+				// No data this interval; keep polling.
+			}
+			catch (Exception) {
+				// Port unplugged or closed; let the main thread reconnect.
+				runReadThread = false;
+			}
+		}
+	}
+
+	public void SendData(string data)
+	{
+		if (!connected || serialPort == null) {
+			GD.Print("[SerialCom] Cannot send, port not open.");
+			return;
+		}
+		try {
+			serialPort.WriteLine(data);
+		}
+		catch (Exception e) {
+			GD.PrintErr($"[SerialCom] Write failed: {e.Message}");
 		}
 	}
 }
