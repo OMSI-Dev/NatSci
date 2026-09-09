@@ -162,6 +162,8 @@ void writeGroup()
                         if (readBack[3] == tagID)
                         {
                             Serial.println("✓ Verification passed!");
+                            groupRFID.lock();
+    
                         }
                         else
                         {
@@ -277,6 +279,7 @@ void writeTopic()
                         if (readBack[3] == tagID)
                         {
                             Serial.println("✓ Verification passed!");
+                            topicRFID.lock();
                         }
                         else
                         {
@@ -391,6 +394,7 @@ void writeInterest()
                         if (readBack[3] == tagID)
                         {
                             Serial.println("✓ Verification passed!");
+                            interestRFID.lock();
                         }
                         else
                         {

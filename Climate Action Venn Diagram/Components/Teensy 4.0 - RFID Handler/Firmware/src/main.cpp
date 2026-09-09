@@ -14,7 +14,7 @@ It will continuously scan all three RFID readers and display results.
 #include <leds.h>
 #include "serialHandler.h"
 #include "rfidHandler.h"
-// #include "write.h"
+#include "write.h"
 
 #include <Timer.h>
 
@@ -55,10 +55,10 @@ void setup()
 {
     // Initialize serial communication
     Serial.begin(115200);
-    // while (!Serial)
-    // {
-    //     ; // Wait for serial port to connect
-    // }
+    while (!Serial)
+    {
+        ; // Wait for serial port to connect
+    }
     
 
     //set only mode pins
@@ -112,7 +112,7 @@ void loop()
             Serial.println("Press 'w' to continue...");
             debugTimer.setTime(5000);
         }
-        // writeTag();
+         writeTag();
     }else
     {
         buttonCheck();
@@ -120,7 +120,7 @@ void loop()
         topicCheck();
         interestCheck();
         //single update for all LEDs
-        FastLED.show();delay(50);
+        FastLED.show();
     }
 
 
