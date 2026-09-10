@@ -114,7 +114,12 @@ X-GNOME-Autostart-enabled=true
 3. Reboot and test
 
 # Disable administrative privledges for 'game'
-1. In the `omsiadmin` account, go to `Groups and People`
+1. In the `omsiadmin` account, go to `Groups and People` in `Settings` using the Start menu
+2. Select `game`
+3. Change `Account Type` from `Administrator` to `Desktop User`
+
+# TODO (...?)
+1. Disable GUI access of `game` user 
 
 
 created 2026-09-10 by autumn

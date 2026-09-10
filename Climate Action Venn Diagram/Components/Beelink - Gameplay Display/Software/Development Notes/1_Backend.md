@@ -37,7 +37,7 @@ Reference the Truth Table, identify the  matching combination of 'Interest Item'
 
     National Org name, description, spanish description, URL link
   
-    Local org: Choose 1 of 3 randomly (There are 3 local orgs for each outcome in the truth table) name, description, spanish description, URL link
+    Local org... Choose 1 of 3 randomly (There are 3 local orgs for each outcome in the truth table) name, description, spanish description, URL link
 
 # Serial connection 
 This is not configured and has not been tested. This needs to be reworked to read serial messages from a Teensy 4.0, with Serial baud rate of 115200.
