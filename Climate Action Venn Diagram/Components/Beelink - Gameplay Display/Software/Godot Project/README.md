@@ -79,7 +79,7 @@ sudo nano /etc/lightdm/lightdm.conf.d/70-autologin.conf
 
 ```
 [Seat:*]
-autologin-user=yourusername
+autologin-user=game
 autologin-user-timeout=0
 ```
 
@@ -94,7 +94,7 @@ sudo gpasswd -a yourusername autologin
 # Configure Auto-launch for game
 1. Create autostart directory structure 
 ```
-mkdir -p ~./config/autostart
+mkdir -p ~/.config/autostart
 ```
 
 2. Create the auto-launch automation
@@ -120,6 +120,8 @@ X-GNOME-Autostart-enabled=true
 
 # TODO (...?)
 1. Disable GUI access of `game` user 
+2. Install RustDesk on both machines
+3. Create a reboot cron job after 12am 
 
 
 created 2026-09-10 by autumn
