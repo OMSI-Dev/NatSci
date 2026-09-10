@@ -17,12 +17,12 @@ Godot Version : v4.6
 # Linux (Ubuntu) Setup & System Service Automations
 
 ## Welcome
-  - System Snapshots: 
-  - Driver Manager: Launch and follow prompts to install reccommended drivers. 
-  - Update Manager: Launch and follow prompts to install available updates.
+  - System Snapshots: Ignore, not needed
+  - Driver Manager: Launch and follow prompts to install reccommended drivers
+  - Update Manager: Launch and follow prompts to install available updates
     - **NOTE:** At this step, there may be errors for outdated mirrors. In the error panel: 'more details' reveals the problematic update. Deselect it in the update manager and continue to install updates. 
-  - System Settings: TODO configure as needed
-  - Firewall: TODO configure as needed
+  - System Settings: Configured in later steps
+  - Firewall: Ignore, not needed
 
 ## BIOS power settings: Boot on power
 
@@ -89,7 +89,7 @@ sudo groupadd -f autologin
 sudo gpasswd -a yourusername autologin
 ```
 
-3. Reboot to test
+3. Reboot and test
 
 # Configure Auto-launch for game
 1. Create autostart directory structure 
