@@ -10,11 +10,12 @@ Godot Version : v4.6
 1. Install Linux Mint Xcef on USB drive
 2. Create a bootable drive via utility tool (i.e. Fedora Media Writer)
 3. Plug into target machine and restart
-4. Press 'F7' or system equivalent during reboot and follow BIOS prompts
+4. Press **'F7'** or system equivalent during reboot and follow BIOS prompts
 5. Install Linux Mint once launched to Desktop
 6. Restart
 
 # Linux (Ubuntu) Setup & System Service Automations
+
 ## Welcome
   - System Snapshots: 
   - Driver Manager: Launch and follow prompts to install reccommended drivers. 
@@ -28,7 +29,7 @@ Godot Version : v4.6
 ```
 sudo systemctl reboot --frmware-setup
 ```
-1. Advanced Tab > AMD CBS > FCH Common Options > AC Power Loss Options > Ac Loss Control 
+1. Advanced Tab > AMD CBS > FCH Common Options > AC Power Loss Options > AC Loss Control 
 2. Set to > Always On 
 3. Esc to main menu
 4. F4 to Save and Exit
@@ -40,43 +41,38 @@ sudo adduser game
 ```
 2. Password stored in Drive 'Passwords'
 
-3. ENTER for all default values 
+3. **ENTER** for all default values 
 
 # Disable admin privledges for 'game'
-1. Find 'Users and Groups' in Settings
-2. Select 'game' 
+1. Find **'Users and Groups'** in Settings
+2. Select **'game'**
 3. Change User Account Type > Desktop User
 4. Password > Not asked on login
 
-## Setup for 'game' Account 
-1. Login to 'game' account
-2. Create a new folder for scripts
-```
-cd Documents
-mkdir Scripts
-cd Scripts 
-mkdir Startup
-cd Startup
-
-```
-
-3. Install Godot 
-
-4. Install Venn Diagram Godot build 
-
-2. 
-
-
-1) Startup 
-
-2) Overnight Reboot
 
 # Godot Build
-1. In your Godot project file, find 'Manage Export Templates' in the Editor Tab
+1. In your (remote) Godot project file, find **'Manage Export Templates'** in the Editor tab
 2. Download and Install 
+3. Find **'Export'** in the Project tab
+4. Click **'Add...'** and select Linux
+5. Give your game file a name
+6. Turn Embedding PCK **On** 
+7. Click **Export Project**
+8. Name your file `Venn_Diagram.x86_64`
+
+# Export and Configure Build 
+1. Transfer the executable file to the target computer
+2. Store the file in an accessible location in 'game'
+3. Navigate to the build directory in terminal 
+4. Run the **chmod** command:
+```
+chmod +x Venn Diagram.x86_64
+```
+
+# Enable group policy 
 
 
-(TODO) Build Godot project for Linux 
+3. (TODO) Build Godot project for Linux 
 
 Compile in Godot, copy eveything to /USR/BIN?
 
