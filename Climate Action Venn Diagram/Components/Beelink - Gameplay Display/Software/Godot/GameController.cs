@@ -91,6 +91,8 @@ public partial class GameController : Node2D
 
 	public override void _Ready()
 	{
+		Input.MouseMode = Input.MouseModeEnum.Hidden;
+
 		isResultsScene = GetNodeOrNull("Results") != null;
 		EnsureSoundPlayers();
 

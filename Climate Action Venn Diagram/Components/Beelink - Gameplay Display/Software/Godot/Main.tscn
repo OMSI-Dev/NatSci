@@ -28,8 +28,8 @@ scale = Vector2(0.44951418, 0.44951418)
 texture = ExtResource("3_20pc6")
 
 [node name="Cloud" type="Sprite2D" parent="Main" unique_id=1727850011]
-position = Vector2(908.99994, 456)
-scale = Vector2(0.67427135, 0.67427135)
+position = Vector2(908.9999, 453.99994)
+scale = Vector2(0.65, 0.65)
 texture = ExtResource("6_5vvyt")
 
 [node name="CloudHighlight" type="Sprite2D" parent="Main" unique_id=46883502]
@@ -49,7 +49,7 @@ texture = ExtResource("9_j4qnp")
 
 [node name="House" type="Sprite2D" parent="Main" unique_id=1356070076]
 position = Vector2(548.99994, 456.00003)
-scale = Vector2(0.6742714, 0.6742714)
+scale = Vector2(0.65, 0.65)
 texture = ExtResource("10_fpfj3")
 
 [node name="HouseHighlight" type="Sprite2D" parent="Main" unique_id=986319190]
