@@ -50,7 +50,7 @@ sudo adduser game
 4. Password > Not asked on login
 
 
-# Godot Build
+# Build Godot project file for Linux 
 1. In your (remote) Godot project file, find **'Manage Export Templates'** in the Editor tab
 2. Download and Install 
 3. Find **'Export'** in the Project tab
@@ -60,13 +60,13 @@ sudo adduser game
 7. Click **Export Project**
 8. Name your file `Venn_Diagram.x86_64`
 
-# Export and Configure Build 
-1. Transfer the executable file to the target computer
-2. Store the file in an accessible location in 'game'
-3. Navigate to the build directory in terminal 
+# Import build onto computer and configure
+1. Download the [Godot Executable folder]()from Github to the target computer
+2. Store the folder in Documents > Scripts
+3. Navigate to the build directory `Godot Executable` in terminal 
 4. Run the **chmod** command:
 ```
-chmod +x Venn Diagram.x86_64
+chmod +x Venn_Diagram.x86_64
 ```
 
 # Enable group policy 
