@@ -55,10 +55,10 @@ void setup()
 {
     // Initialize serial communication
     Serial.begin(115200);
-    while (!Serial)
-    {
-        ; // Wait for serial port to connect
-    }
+    // while (!Serial)
+    // {
+    //     ; // Wait for serial port to connect
+    // }
     
 
     //set only mode pins
