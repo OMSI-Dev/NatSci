@@ -250,8 +250,8 @@ void interestCheck()
     {
         interestTPI = !digitalRead(TPI1);
         if(debugMode){
-        Serial.print("Interest: ");
-        Serial.println(interestTPI);
+        // Serial.print("Interest: ");
+        // Serial.println(interestTPI);
         }
         if(interestTPI)
         {

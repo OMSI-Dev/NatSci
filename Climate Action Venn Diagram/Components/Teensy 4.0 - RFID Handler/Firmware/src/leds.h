@@ -19,6 +19,7 @@ void setLED()
     FastLED.addLeds<WS2812, ledData2,GRB>(cloud, NUM_LEDS);
     FastLED.addLeds<WS2812, ledData3,GRB>(house, NUM_LEDS);
 
+    FastLED.setBrightness(75);
     // Test RGB
     ledTest();
 

@@ -1,0 +1,28 @@
+Int	Category	Subcategory	Item
+1	Interest	Performing & Creating Art	Art
+2	Interest	Performing & Creating Art	Creativity
+3	Interest	Innovating & Designing	Problem Solving
+4	Interest	Innovating & Designing	Inventing
+5	Interest	Being Active & Outdoors	Sports
+6	Interest	Being Active & Outdoors	Exploring Outside
+7	Interest	Organizing & Leading	Bringing people together
+8	Interest	Organizing & Leading	Talking to people
+9	Interest	Researching & Learning	Reading
+10	Interest	Researching & Learning	Exploring New Topics
+11	Interest	Teaching & Mentoring	Mentoring
+12	Interest	Teaching & Mentoring	Helping others learn
+
+13	Topic		Use Clean Energy
+14	Topic		Protect and Restore Nature
+15	Topic		Create Green Transportation
+16	Topic		Grow and Eat Sustainable Food
+17	Topic		Waste Less, Reuse More
+18	Topic		Build Green Communities
+
+
+25	Group		Sports or Rec Group
+26	Group		Arts or Hobbies Group
+27	Group		Family or Household
+28	Group		Community Group
+29	Group		Faith-based Group
+30	Group		School or Career Group
