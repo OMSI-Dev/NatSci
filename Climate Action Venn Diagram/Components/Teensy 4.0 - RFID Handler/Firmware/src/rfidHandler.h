@@ -48,6 +48,7 @@ void startRfidSerial()
     Serial.println("\n=== Initializing RFID Readers ===");
     }
     groupRFID.begin(9600);
+    groupRFID.setDebug(true);
     groupRFID.waitForReady();
 
     if(debugMode){ 
@@ -68,6 +69,7 @@ void startRfidSerial()
     }
     
     interestRFID.begin(9600);
+    interestRFID.setDebug(true);
     interestRFID.waitForReady();
     if(debugMode){ 
     Serial.print("Initializing Interest RFID on Serial4 (pins 16/17)... ");
@@ -87,6 +89,7 @@ void startRfidSerial()
     }
     
     topicRFID.begin(9600);
+    topicRFID.setDebug(true);
     topicRFID.waitForReady();
 
     if(debugMode){ 
@@ -291,4 +294,19 @@ void powerRFID(uint8_t RFID_NUM, bool ON)
     default:
         break;
     }
+}
+
+void diagnosePresence(RFID_B1 &rfid, const char* name) {
+    Serial.print("=== Diagnosing ");
+    Serial.print(name);
+    Serial.println(" ===");
+
+    rfid.stopPolling();
+    if (rfid.getUIDandType()) {
+        Serial.println("Direct read SUCCEEDED - tag is readable, Polling is the problem");
+    } else {
+        Serial.print("Direct read FAILED, result: ");
+        Serial.println(rfid.getResultName(rfid.getLastResult()));
+    }
+    rfid.startPresenceWatch(1);
 }

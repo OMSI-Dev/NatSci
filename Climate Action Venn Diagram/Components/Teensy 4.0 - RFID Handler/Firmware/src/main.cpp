@@ -72,7 +72,8 @@ void setup()
 
     setPins();
 
-
+    // Set LEDS
+    setLED();
 
     if(debugMode){    
     Serial.println("!!! Pins configured");
@@ -87,13 +88,12 @@ void setup()
     Serial.println("-----------------------------------------------\n");
     }
 
-    // Set LEDS
-    setLED();
 
     delay(50);
     interestPresence = resumeInterestPresenceWatch();    
     groupPresence = resumeGroupPresenceWatch();
     topicPresence = resumeTopicPresenceWatch();
+
 
 
 }
@@ -152,9 +152,9 @@ void groupCheck()
         groupDetected = true;
         groupRFID.stopPolling();
         currentGroupID = getGroupData();
-        powerRFID(3,0);
+        //RFID(3,0);
         if(debugMode){
-        Serial.println("Shutting down power");
+        Serial.println("Shutting down //");
         }
         if(currentGroupID != previousGroupID && currentGroupID != 0)
         {
@@ -166,9 +166,9 @@ void groupCheck()
             rescanGroupTimer.setTime(rescanTime);
         }
         if(debugMode){
-        Serial.println("Turning on power");
+        Serial.println("Turning on //");
         }
-        powerRFID(3,1);
+        //RFID(3,1);
         groupPresence = resumeGroupPresenceWatch();
         emptySlotGroupTimer.setTime(emptySlotTime);
     }
@@ -216,7 +216,7 @@ void topicCheck()
         topicDetected = true;
         topicRFID.stopPolling();
         currentTopicID = getTopicData();
-        powerRFID(2,0);
+        //RFID(2,0);
         if(currentTopicID != previousTopicID)
         {
             previousTopicID = currentTopicID;
@@ -226,7 +226,7 @@ void topicCheck()
             confirmLED(2);
             rescanTopicTimer.setTime(rescanTime);
         }
-        powerRFID(2,1);
+        //RFID(2,1);
         topicPresence = resumeTopicPresenceWatch();
         emptySlotTopicTimer.setTime(emptySlotTime);
     }
@@ -275,10 +275,10 @@ void interestCheck()
         interestDetected = true;
         interestRFID.stopPolling();
         currentInterestID = getInterestData();
-        powerRFID(1,0);
+        //RFID(1,0);
 
         if(debugMode){
-        Serial.println("Shutting down power");
+        Serial.println("Shutting down //");
         }
 
         if(currentInterestID != previousInterestID)
@@ -290,9 +290,9 @@ void interestCheck()
             confirmLED(1);
             rescanInterestTimer.setTime(rescanTime);
         }
-        powerRFID(1,1);
+        //RFID(1,1);
         if(debugMode){
-        Serial.println("Starting power");
+        Serial.println("Starting //");
         }        
         interestPresence = resumeInterestPresenceWatch();
         emptySlotInterestTimer.setTime(emptySlotTime);
@@ -320,5 +320,17 @@ void buttonCheck()
     if(langButton.pressed())
     {
         Serial.println("L");
+    }
+
+
+        if (Serial.available())
+    {
+        char c = Serial.read();
+        if (c == 'd' || c == 'D')
+        {
+            diagnosePresence(groupRFID, "Group");
+            diagnosePresence(topicRFID, "Topic");
+            diagnosePresence(interestRFID, "Interest");
+        }
     }
 }

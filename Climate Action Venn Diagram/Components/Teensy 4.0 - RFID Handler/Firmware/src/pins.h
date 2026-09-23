@@ -11,9 +11,9 @@ Sets pin modes and their default states.
 #define ledData2 9
 #define ledData3 10
 
-#define NPWNDN1 7 //interest
-#define NPWNDN2 5
-#define NPWNDN3 6
+#define NPWNDN1 7 //Interest
+#define NPWNDN2 5 //Topic
+#define NPWNDN3 6 //Group
 
 #define TPI1 3 //Cloud & Topic
 #define TPI2 2 //Person & Interest
