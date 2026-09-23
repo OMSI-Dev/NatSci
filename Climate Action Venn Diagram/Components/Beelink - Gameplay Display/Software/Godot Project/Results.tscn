@@ -1,0 +1,177 @@
+[gd_scene format=3 uid="uid://cggdrb07cimty"]
+
+[ext_resource type="Script" uid="uid://4tmhalf1orhl" path="res://GameController.cs" id="1_10ida"]
+[ext_resource type="Script" uid="uid://snqqeo2bblct" path="res://Scripts/QRGenerator.cs" id="2_11usd"]
+[ext_resource type="Texture2D" uid="uid://0l8uyy5u8oo4" path="res://Assets/Loading.png" id="3_2c7lb"]
+[ext_resource type="Script" uid="uid://ce8psjdrd0yr6" path="res://Scripts/QRCodeHelper.gd" id="3_jw2km"]
+[ext_resource type="Script" uid="uid://cc4045a7m6j60" path="res://SheetManager.cs" id="4_3rjyw"]
+[ext_resource type="Texture2D" uid="uid://cpfig256vc7n5" path="res://Assets/results pill.png" id="6_3rjyw"]
+[ext_resource type="Texture2D" uid="uid://b42oyn8o7r08f" path="res://Assets/results.png" id="7_blqi3"]
+[ext_resource type="FontFile" uid="uid://cn52cydm82mg7" path="res://Assets/Inter/static/Inter_24pt-Bold.ttf" id="9_oyik4"]
+[ext_resource type="FontFile" uid="uid://bb72w8lpbnanc" path="res://Assets/Inter/static/Inter_18pt-Regular.ttf" id="10_2c7lb"]
+[ext_resource type="FontFile" uid="uid://6x0by2frqtfr" path="res://Assets/Inter/static/Inter_18pt-Medium.ttf" id="10_uhu2u"]
+
+[node name="Node2D" type="Node2D" unique_id=739999347]
+script = ExtResource("1_10ida")
+
+[node name="Node" type="Node" parent="." unique_id=831202341]
+script = ExtResource("4_3rjyw")
+
+[node name="Loading" type="Node2D" parent="." unique_id=1039771918]
+
+[node name="LoadingBackground" type="Sprite2D" parent="Loading" unique_id=1460961734]
+position = Vector2(577, 326)
+scale = Vector2(0.45249072, 0.45249078)
+texture = ExtResource("3_2c7lb")
+
+[node name="LoadingPill" type="Sprite2D" parent="Loading" unique_id=730803065]
+position = Vector2(577, 326)
+scale = Vector2(0.452, 0.452)
+texture = ExtResource("6_3rjyw")
+
+[node name="Loading" type="Label" parent="Loading" unique_id=2014964126]
+offset_left = 377.0
+offset_top = 176.0
+offset_right = 764.0
+offset_bottom = 233.0
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("9_oyik4")
+theme_override_font_sizes/font_size = 46
+text = "Results Loading..."
+
+[node name="Results" type="Node2D" parent="." unique_id=1034625072]
+
+[node name="ResultsBackground" type="Sprite2D" parent="Results" unique_id=1600604675]
+position = Vector2(577, 326)
+scale = Vector2(0.45249072, 0.45249078)
+texture = ExtResource("7_blqi3")
+
+[node name="NationalLabel" type="Label" parent="Results" unique_id=1243922897]
+offset_left = 644.0
+offset_top = 413.0
+offset_right = 924.0
+offset_bottom = 445.0
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("9_oyik4")
+theme_override_font_sizes/font_size = 25
+
+[node name="NationalDesc" type="Label" parent="Results" unique_id=812561745]
+offset_left = 642.0
+offset_top = 454.0
+offset_right = 1007.0
+offset_bottom = 556.0
+scale = Vector2(0.79816455, 0.79816455)
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("10_2c7lb")
+theme_override_font_sizes/font_size = 16
+text = "
+"
+
+[node name="LocalDesc" type="Label" parent="Results" unique_id=347810320]
+offset_left = 104.0
+offset_top = 442.0
+offset_right = 469.0
+offset_bottom = 544.0
+scale = Vector2(0.8182519, 0.8182519)
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("10_2c7lb")
+theme_override_font_sizes/font_size = 16
+
+[node name="LocalLabel" type="Label" parent="Results" unique_id=858778172]
+offset_left = 104.0
+offset_top = 401.0
+offset_right = 384.0
+offset_bottom = 433.0
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("9_oyik4")
+theme_override_font_sizes/font_size = 25
+
+[node name="QRNode" type="Node2D" parent="Results" unique_id=1105511294]
+script = ExtResource("2_11usd")
+
+[node name="QRTextureNational" type="TextureRect" parent="Results/QRNode" unique_id=487329397]
+custom_minimum_size = Vector2(100, 100)
+offset_left = 971.99994
+offset_top = 402.0
+offset_right = 1228.0
+offset_bottom = 658.0
+scale = Vector2(0.45872074, 0.45872074)
+
+[node name="QRTextureLocal" type="TextureRect" parent="Results/QRNode" unique_id=1403320015]
+custom_minimum_size = Vector2(100, 100)
+offset_left = 433.0
+offset_top = 403.0
+offset_right = 689.0
+offset_bottom = 659.0
+scale = Vector2(0.45872074, 0.45872074)
+
+[node name="QRCodeHelper" type="Node" parent="Results/QRNode" unique_id=1124186671]
+script = ExtResource("3_jw2km")
+
+[node name="UI" type="Node2D" parent="Results/QRNode" unique_id=795387614]
+
+[node name="FinaleHeader" type="RichTextLabel" parent="Results/QRNode/UI" unique_id=1823819811]
+offset_left = 183.0
+offset_top = 93.0
+offset_right = 971.0
+offset_bottom = 158.0
+theme_override_colors/default_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/normal_font = ExtResource("9_oyik4")
+theme_override_font_sizes/normal_font_size = 53
+bbcode_enabled = true
+text = "YOUR Community Climate Action"
+scroll_active = false
+
+[node name="FinaleSubheader" type="Label" parent="Results/QRNode/UI" unique_id=1617644122]
+offset_left = 106.0
+offset_top = 379.0
+offset_right = 279.0
+offset_bottom = 411.0
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("10_2c7lb")
+theme_override_font_sizes/font_size = 14
+text = "LOCAL OREGON"
+
+[node name="LocalHeader" type="Label" parent="Results/QRNode/UI" unique_id=480379936]
+offset_left = 223.0
+offset_top = 178.0
+offset_right = 972.0
+offset_bottom = 319.0
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("10_2c7lb")
+theme_override_font_sizes/font_size = 25
+text = "How can you use your skills and interests with a group 
+you are a part of to take climate action? Get creative!
+
+Some community-oriented organizations you could check out:"
+horizontal_alignment = 1
+
+[node name="NationalHeader" type="Label" parent="Results/QRNode/UI" unique_id=1569814782]
+offset_left = 644.0
+offset_top = 392.0
+offset_right = 817.0
+offset_bottom = 424.0
+theme_override_colors/font_color = Color(0, 0.22352941, 0.3372549, 1)
+theme_override_fonts/font = ExtResource("10_2c7lb")
+theme_override_font_sizes/font_size = 14
+text = "NATIONWIDE"
+
+[node name="QRinfo" type="Label" parent="Results/QRNode/UI" unique_id=192145834]
+offset_left = 419.0
+offset_top = 529.0
+offset_right = 592.0
+offset_bottom = 561.0
+theme_override_colors/font_color = Color(0.23921569, 0.7176471, 0.70980394, 1)
+theme_override_fonts/font = ExtResource("10_uhu2u")
+theme_override_font_sizes/font_size = 13
+text = "Scan me for more info!"
+
+[node name="QRinfo2" type="Label" parent="Results/QRNode/UI" unique_id=1647956299]
+offset_left = 957.0
+offset_top = 528.0
+offset_right = 1130.0
+offset_bottom = 560.0
+theme_override_colors/font_color = Color(0.23921569, 0.7176471, 0.70980394, 1)
+theme_override_fonts/font = ExtResource("10_uhu2u")
+theme_override_font_sizes/font_size = 13
+text = "Scan me for more info!"
