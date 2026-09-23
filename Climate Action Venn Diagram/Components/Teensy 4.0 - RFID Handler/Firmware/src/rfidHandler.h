@@ -42,11 +42,14 @@ const uint8_t knownTagsGroup[12] =
  * Initialize all RFID serial connections
  */
 void startRfidSerial()
-{           
+{   
+
     if(debugMode){ 
     Serial.println("\n=== Initializing RFID Readers ===");
     }
     groupRFID.begin(9600);
+    groupRFID.waitForReady();
+
     if(debugMode){ 
     Serial.print("Initializing Group RFID on Serial3 (pins 14/15)... ");
     }
@@ -65,7 +68,8 @@ void startRfidSerial()
     }
     
     interestRFID.begin(9600);
-            if(debugMode){ 
+    interestRFID.waitForReady();
+    if(debugMode){ 
     Serial.print("Initializing Interest RFID on Serial4 (pins 16/17)... ");
     }
     delay(200);
@@ -83,7 +87,9 @@ void startRfidSerial()
     }
     
     topicRFID.begin(9600);
-            if(debugMode){ 
+    topicRFID.waitForReady();
+
+    if(debugMode){ 
     Serial.print("Initializing Topic RFID on Serial5 (pins 20/21)... ");
     }
     delay(200);
@@ -229,20 +235,22 @@ bool resumeGroupPresenceWatch() {
 }
 
 bool resumeTopicPresenceWatch() {
-    for (uint8_t attempt = 0; attempt < 3; attempt++) {
+
+    for (uint8_t attempt = 0; attempt < 3; attempt++) 
+    {
         if (topicRFID.startPresenceWatch(1)) {
-                    if(debugMode){ 
+            if(debugMode){ 
             Serial.println("Started Topic Presence Watch.");
             }
             return true;
-        }
-                if(debugMode){ 
-        Serial.println("startPresenceWatch for Topic failed, retrying...");
-        }
+        }   
+            if(debugMode){ 
+            Serial.println("startPresenceWatch for Topic failed, retrying...");
+            }
     }
             if(debugMode){ 
-    Serial.println("!!! startPresenceWatch for Topic failed after 3 attempts - presence sensing is down");
-    }
+            Serial.println("!!! startPresenceWatch for Topic failed after 3 attempts - presence sensing is down");
+            }
     return false;
 }
 
@@ -262,4 +270,25 @@ bool resumeInterestPresenceWatch() {
     Serial.println("!!! startPresenceWatch for Interest failed after 3 attempts - presence sensing is down");
     }
     return false;
+}
+
+
+//** @brief Toggle the power of the called RFID*/
+void powerRFID(uint8_t RFID_NUM, bool ON)
+{
+
+    switch (RFID_NUM)
+    {
+    case 1:
+        digitalWrite(NPWNDN1, ON);
+        break;
+    case 2:
+        digitalWrite(NPWNDN2, ON);
+        break;
+    case 3:
+        digitalWrite(NPWNDN3, ON);
+        break;            
+    default:
+        break;
+    }
 }

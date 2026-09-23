@@ -227,12 +227,18 @@ public:
     void printUID(uint8_t* uid, uint8_t size);
     void printBuffer(uint8_t* data, uint16_t size);
 
+    // Diagnostics: when enabled, prints byte-level detail (ACK/timeout,
+    // raw response bytes) for every write/read exchange to Serial. Use
+    // temporarily to track down intermittent comms failures.
+    void setDebug(bool enable);
+
 private:
     HardwareSerial *_serial;
     uint8_t _lastResult;
     uint8_t _tagType;
     uint8_t _tagUID[10];
     uint8_t _tagUIDSize;
+    bool _debug;
     
     // Packet handling
     bool sendCommand(uint8_t cmd, const uint8_t* params, uint8_t paramSize);

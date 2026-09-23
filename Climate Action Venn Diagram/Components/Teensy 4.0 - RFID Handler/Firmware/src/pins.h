@@ -11,9 +11,9 @@ Sets pin modes and their default states.
 #define ledData2 9
 #define ledData3 10
 
-#define NPWNDN1 5
-#define NPWNDN2 6
-#define NPWNDN3 7
+#define NPWNDN1 7 //interest
+#define NPWNDN2 5
+#define NPWNDN3 6
 
 #define TPI1 3 //Cloud & Topic
 #define TPI2 2 //Person & Interest
@@ -55,6 +55,12 @@ void setPins()
     #ifdef DEBUG    
     Serial.println("Turn on RFID PWR Pins");
     #endif
+
+    // Turn set power to low incase of reboot
+    digitalWrite(NPWNDN1, LOW);
+    digitalWrite(NPWNDN2, LOW);
+    digitalWrite(NPWNDN3, LOW);
+    delay(500);
     // Turn on all RFID
     digitalWrite(NPWNDN1, HIGH);
     digitalWrite(NPWNDN2, HIGH);

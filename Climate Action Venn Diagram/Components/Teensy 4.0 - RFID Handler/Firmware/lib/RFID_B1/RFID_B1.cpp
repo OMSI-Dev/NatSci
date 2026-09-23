@@ -40,7 +40,12 @@ RFID_B1::RFID_B1(HardwareSerial &serial) : _serial(&serial) {
     _lastResult = RESULT_NO_ERROR;
     _tagType = TAG_NO_TAG;
     _tagUIDSize = 0;
+    _debug = false;
     memset(_tagUID, 0, sizeof(_tagUID));
+}
+
+void RFID_B1::setDebug(bool enable) {
+    _debug = enable;
 }
 
 void RFID_B1::begin(unsigned long baudRate) {
@@ -251,7 +256,15 @@ bool RFID_B1::writeRFIDMemory(uint16_t address, const uint8_t* data, uint16_t da
     // run (e.g. a partial/garbled frame left over from a previous call).
     clearSerialBuffer();
 
+    if (_debug) {
+        Serial.print("[RFID] writeRFIDMemory addr=0x");
+        Serial.print(address, HEX);
+        Serial.print(" size=");
+        Serial.println(dataSize);
+    }
+
     if (!sendCommand(CMD_WRITE_RFID_MEMORY, params, idx)) {
+        if (_debug) Serial.println("[RFID]   sendCommand() failed (packet too large?)");
         return false;
     }
     
@@ -259,9 +272,18 @@ bool RFID_B1::writeRFIDMemory(uint16_t address, const uint8_t* data, uint16_t da
     uint16_t size;
     
     if (receiveResponse(response, size, sizeof(response))) {
-        return (size > 0 && response[0] == RESP_ACK);
+        if (_debug) {
+            Serial.print("[RFID]   response (");
+            Serial.print(size);
+            Serial.print(" bytes): ");
+            printBuffer(response, size);
+        }
+        bool ok = (size > 0 && response[0] == RESP_ACK);
+        if (_debug && !ok) Serial.println("[RFID]   NOT an ACK");
+        return ok;
     }
     
+    if (_debug) Serial.println("[RFID]   TIMEOUT - no response received");
     return false;
 }
 
@@ -436,6 +458,7 @@ bool RFID_B1::startPolling(const PollingConfig &config) {
 
     // Write parameters to the Command Parameters register (0x0002-0x0013)
     if (!writeRFIDMemory(ADDR_COMMAND_PARAMS, params, sizeof(params))) {
+        if (_debug) Serial.println("[RFID] startPolling: PARAMS write failed");
         return false;
     }
     delay(10);
@@ -443,9 +466,19 @@ bool RFID_B1::startPolling(const PollingConfig &config) {
     // Trigger the Polling command
     uint8_t cmd = RFID_CMD_POLLING;
     if (!writeRFIDMemory(ADDR_COMMAND_REG, &cmd, 1)) {
+        if (_debug) Serial.println("[RFID] startPolling: COMMAND REGISTER write failed");
         return false;
     }
 
+    // NOTE: unlike one-shot RFID commands, Polling never "finishes" - the
+    // module loops internally until another RFID command is written to the
+    // Command Register (manual 5.5). It appears the Result Register can be
+    // left at 0xFF (Module Busy) the whole time Polling is running, since
+    // from the module's point of view the command is still executing. So
+    // we deliberately do NOT gate success on Result Register == No Error
+    // here - the ACK'd writeRFIDMemory() calls above are the real
+    // confirmation the module accepted the command. We still read the
+    // Result Register for diagnostics via getLastResult().
     delay(10);
     readRFIDMemory(ADDR_RESULT_REG, &_lastResult, 1);
     return true;

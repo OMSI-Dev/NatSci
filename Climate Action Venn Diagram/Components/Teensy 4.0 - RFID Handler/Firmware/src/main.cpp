@@ -81,26 +81,21 @@ void setup()
     // Initialize RFID readers
     startRfidSerial();
 
-    if(debugMode){ 
+    if(writeMode){ 
     Serial.println("\nCommands:");
-    Serial.println("  T - Test read tag on Reader 1 (shows UID and pages 4-8)");
-    Serial.println("  W - Write tag ID to page 5 of tag on Reader 1");
-    Serial.println("\nPlace RFID tags on readers for automatic scanning...");
+    Serial.println("  W - Write tag ID play pieces");
     Serial.println("-----------------------------------------------\n");
     }
 
     // Set LEDS
     setLED();
 
-    //Set off incase of reset
-    groupRFID.stopPolling();
-    topicRFID.stopPolling();
-    interestRFID.stopPolling();
-
     delay(50);
+    interestPresence = resumeInterestPresenceWatch();    
     groupPresence = resumeGroupPresenceWatch();
     topicPresence = resumeTopicPresenceWatch();
-    interestPresence = resumeInterestPresenceWatch();
+
+
 }
 
 void loop()
@@ -130,14 +125,14 @@ void loop()
 
 void groupCheck()
 {
-        //Group Check
+
     if(groupPresence)
     {
         groupTPI = !digitalRead(TPI3);
-        if(debugMode){
-        //Serial.print("Group: ");
-        //Serial.println(groupTPI);
-        }
+        // if(debugMode){
+        // Serial.print("Group: ");
+        // Serial.println(groupTPI);
+        // }
         if(groupTPI)
         {
             emptySlotGroupTimer.setTime(emptySlotTime);
@@ -157,7 +152,10 @@ void groupCheck()
         groupDetected = true;
         groupRFID.stopPolling();
         currentGroupID = getGroupData();
-        
+        powerRFID(3,0);
+        if(debugMode){
+        Serial.println("Shutting down power");
+        }
         if(currentGroupID != previousGroupID && currentGroupID != 0)
         {
             previousGroupID = currentGroupID;
@@ -167,6 +165,10 @@ void groupCheck()
             confirmLED(3);
             rescanGroupTimer.setTime(rescanTime);
         }
+        if(debugMode){
+        Serial.println("Turning on power");
+        }
+        powerRFID(3,1);
         groupPresence = resumeGroupPresenceWatch();
         emptySlotGroupTimer.setTime(emptySlotTime);
     }
@@ -187,14 +189,14 @@ void groupCheck()
 
 void topicCheck()
 {
-        //Group Check
+
     if(topicPresence)
     {
         topicTPI = !digitalRead(TPI2);
-        if(debugMode){        
-        Serial.print("Topic: ");
-        Serial.println(topicTPI);   
-        }
+        // if(debugMode){        
+        // Serial.print("Topic: ");
+        // Serial.println(topicTPI);   
+        // }
         if(topicTPI)
         {
             emptySlotTopicTimer.setTime(emptySlotTime);
@@ -214,7 +216,7 @@ void topicCheck()
         topicDetected = true;
         topicRFID.stopPolling();
         currentTopicID = getTopicData();
-        
+        powerRFID(2,0);
         if(currentTopicID != previousTopicID)
         {
             previousTopicID = currentTopicID;
@@ -224,6 +226,7 @@ void topicCheck()
             confirmLED(2);
             rescanTopicTimer.setTime(rescanTime);
         }
+        powerRFID(2,1);
         topicPresence = resumeTopicPresenceWatch();
         emptySlotTopicTimer.setTime(emptySlotTime);
     }
@@ -232,7 +235,7 @@ void topicCheck()
     if(!topicTPI && topicDetected && !emptySlotTopicTimer.running())
     {
         if(debugMode){
-        Serial.println("Group Slot is probably empty.");
+        Serial.println("Topic Slot is probably empty.");
         }
         topicDetected = false;
         previousTopicID = 0;
@@ -245,14 +248,14 @@ void topicCheck()
 
 void interestCheck()
 {
-        //Group Check
+
     if(interestPresence)
     {
         interestTPI = !digitalRead(TPI1);
-        if(debugMode){
+        // if(debugMode){
         // Serial.print("Interest: ");
         // Serial.println(interestTPI);
-        }
+        // }
         if(interestTPI)
         {
             emptySlotInterestTimer.setTime(emptySlotTime);
@@ -272,7 +275,12 @@ void interestCheck()
         interestDetected = true;
         interestRFID.stopPolling();
         currentInterestID = getInterestData();
-        
+        powerRFID(1,0);
+
+        if(debugMode){
+        Serial.println("Shutting down power");
+        }
+
         if(currentInterestID != previousInterestID)
         {
             previousInterestID = currentInterestID;
@@ -282,6 +290,10 @@ void interestCheck()
             confirmLED(1);
             rescanInterestTimer.setTime(rescanTime);
         }
+        powerRFID(1,1);
+        if(debugMode){
+        Serial.println("Starting power");
+        }        
         interestPresence = resumeInterestPresenceWatch();
         emptySlotInterestTimer.setTime(emptySlotTime);
     }
