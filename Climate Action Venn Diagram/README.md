@@ -5,7 +5,7 @@ Changes made by autumn as of 2026-09-09.
 
 Godot 4.6 + C# (.NET 8)
 
-*For setup instructions, please see /Components/Beelink/README.md/
+*For setup instructions, please see [/Components/Beelink/README.md/](https://github.com/OMSI-Dev/NatSci/tree/main/Climate%20Action%20Venn%20Diagram/Components/Beelink%20-%20Gameplay%20Display/Software)
 
 # Game summary
 Visitors place 3 RFID pieces (Interest, Topic, Group) on readers. A Teensy 4.0 reports them over USB serial. When all 3 are registered, the game shows a matching national + local climate org with QR codes. All data is local CSV — no network anywhere.
