@@ -22,7 +22,7 @@ The results are lenient, a red cityscape indicates no correct feedback, yellow i
 
 # Hardware Assembly
 ## Magnet Sensor Boards
-<img src = "Documentation/Photos/City Components and Pill Containers.jpeg" width="250" alt="City Components and Pill Containers.jpeg"><img src = "Documentation/Photos/Magnet Sensor PCBs.jpeg" width="250" alt="">
+<img src = "Documentation/Photos/City Components and Pill Containers.jpeg" width="350" alt="City Components and Pill Containers.jpeg"><img src = "Documentation/Photos/Magnet Sensor PCBs.jpeg" width="350" alt="">
 
 These magnet sensor boards have three onboard sensors. These sensors are one of the few components that we configured to be pre-assembled. 
 
@@ -31,7 +31,7 @@ These magnet sensor boards have three onboard sensors. These sensors are one of 
 
 **Header Pins**
 
-<img src = "Documentation/Gameplay Design/Game Piece Polarities and Addresses.png" width="500" alt=""><img src = "Documentation/Gameplay Design/Top-down diagram.png" width="300" alt="">
+<img src = "Documentation/Gameplay Design/Game Piece Polarities and Addresses.png" width="500" alt=""><img src = "Documentation/Gameplay Design/Top-down diagram.png" width="500" alt="">
 
 A four-row column of 2-pin header connectors help uniquely address each board. Bridging a combination of **one** or **two** of these headers will help identify the location of a magnet sensor board in relation to the `gameplay landscape`. 
 
