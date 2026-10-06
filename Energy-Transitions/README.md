@@ -22,6 +22,7 @@ The results are lenient, a red cityscape indicates no correct feedback, yellow i
 
 # Hardware Assembly
 ## Magnet Sensor Boards
+<img src = "Documentation/Photos/City Components and Pill Containers.jpeg" width="300" alt="City Components and Pill Containes.jpeg">
 These sensor boards have 
 
 ## Telegraph Inputs
