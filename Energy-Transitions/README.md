@@ -22,7 +22,8 @@ The results are lenient, a red cityscape indicates no correct feedback, yellow i
 
 # Hardware Assembly
 ## Magnet Sensor Boards
-<img src = "Documentation/Photos/City Components and Pill Containers.jpeg" width="350" alt="City Components and Pill Containers.jpeg"><img src = "Documentation/Photos/Magnet Sensor PCBs.jpeg" width="350" alt="">
+<img src = "Documentation/Photos/City Components and Pill Containers.jpeg" width="500" alt="City Components and Pill Containers.jpeg">
+<img src = "Documentation/Photos/Magnet Sensor PCBs.jpeg" width="350" alt="">
 
 These magnet sensor boards have three onboard sensors. These sensors are one of the few components that we configured to be pre-assembled. 
 
