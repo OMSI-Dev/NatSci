@@ -257,6 +257,8 @@ class SimplePPEngine:
         self.deferred_operations_done = True
         self.deferred_operations_countdown = 0  # Delay operations by N iterations
         self.deferred_operations_thread = None  # Background thread for slow operations
+        self.clip_generation = 0  # Incremented on every clip change; lets stale audio threads abort
+        self._audio_lock = threading.Lock()  # Serializes manage_audio across deferred threads
         
         # Start query server thread
         self.query_server_thread = threading.Thread(target=self._run_query_server, daemon=True)
@@ -730,57 +732,76 @@ class SimplePPEngine:
             self.pp.goto(target_slide)
             self.current_slide = target_slide
     
-    def _execute_deferred_operations_background(self):
-        """Execute slow operations in background thread so they don't block progress bar animation."""
+    def _execute_deferred_operations_background(self, generation, clip_number, clip_name,
+                                                metadata, is_credits, is_translated):
+        """Execute slow operations in background thread so they don't block progress bar animation.
+
+        All clip data is passed in (snapshotted at launch) rather than read from
+        self.pending_*, which the main loop overwrites on the next clip change.
+        """
         try:
             print(f"[Engine] [Background Thread] Starting deferred operations")
-            
+
             # NowPlaying update
-            if self.pending_clip_number is not None:
+            if clip_number is not None:
                 nowplaying_start = time.time()
-                self.update_nowPlaying(self.pending_clip_number)
+                self.update_nowPlaying(clip_number)
                 print(f"[Engine] [Background] NowPlaying update took {time.time() - nowplaying_start:.3f}s")
 
             # Audio management
-            if self.pending_clip_name is not None:
+            if clip_name is not None:
                 audio_start = time.time()
-                self.manage_audio(self.pending_clip_name, self.pending_is_credits, self.pending_is_translated)
+                self.manage_audio(clip_name, is_credits, is_translated, generation)
                 print(f"[Engine] [Background] Audio management took {time.time() - audio_start:.3f}s")
 
             # Subtitle loading (translated movies only)
-            if self.pending_is_translated and not self.pending_is_credits and self.pending_metadata:
+            if is_translated and not is_credits and metadata:
                 subtitle_start = time.time()
-                local_meta = self.pending_metadata.copy()
-                if self.pending_metadata.get('caption'):
-                    path1 = self.cache_manager.fetch_subtitle_file(self.pending_metadata['caption'])
+                local_meta = metadata.copy()
+                if metadata.get('caption'):
+                    path1 = self.cache_manager.fetch_subtitle_file(metadata['caption'])
                     if path1: local_meta['caption'] = path1
-                if self.pending_metadata.get('caption2'):
-                    path2 = self.cache_manager.fetch_subtitle_file(self.pending_metadata['caption2'])
+                if metadata.get('caption2'):
+                    path2 = self.cache_manager.fetch_subtitle_file(metadata['caption2'])
                     if path2: local_meta['caption2'] = path2
 
                 self.subtitle_manager.load_subtitles_for_clip(local_meta)
                 print(f"[Engine] [Background] Subtitle loading took {time.time() - subtitle_start:.3f}s")
-            
+
             print("[Engine] [Background Thread] All deferred operations complete")
-                
+
         except Exception as e:
             print(f"[Engine] [Background Thread] Error in deferred operations: {e}")
             import traceback
             traceback.print_exc()
-    
-    def manage_audio(self, clip_name, is_credits, is_translated):
+
+    def manage_audio(self, clip_name, is_credits, is_translated, generation=None):
         """
         Manage audio playback based on clip metadata.
         Plays ambient audio for non-subtitle, non-credits datasets.
-        
+
         Args:
             clip_name: Name of the current clip
             is_credits: Whether this is a credits clip
             is_translated: Whether this is a translated movie with subtitles
+            generation: clip_generation this call was launched for. If the clip
+                has since changed, the call is stale and does nothing.
         """
         if not self.audio_enabled or not self.audio_controller:
             return
-        
+
+        # Serialize whole audio transitions so an older clip's fade/loadfile can't
+        # interleave with (and start ambient audio after) a newer clip's stop.
+        with self._audio_lock:
+            if generation is not None and generation != self.clip_generation:
+                print(f"[Audio] Skipping stale audio update for '{clip_name}'")
+                return
+            self._manage_audio_locked(clip_name, is_credits, is_translated, generation)
+
+    def _is_stale(self, generation):
+        return generation is not None and generation != self.clip_generation
+
+    def _manage_audio_locked(self, clip_name, is_credits, is_translated, generation):
         # Check facilitation mode - fade out and don't start new audio
         with self.state_lock:
             if self.facilitation_mode:
@@ -788,13 +809,17 @@ class SimplePPEngine:
                     self.audio_controller.fade_out()
                     self.current_audio_category = None
                 return
-        
+
         # Don't play audio for credits or translated movies with subtitles
         if is_credits or is_translated:
             if self.audio_controller.is_playing():
                 print("[Audio] Fading out audio for credits/subtitle clip")
                 self.audio_controller.fade_out()
-                self.current_audio_category = None
+            # Never trust is_playing() alone here: confirm with MPV that it is
+            # actually idle, and force a stop if not.
+            if not self.audio_controller.ensure_stopped():
+                print("[Audio] ERROR: Could not confirm MPV stopped for credits/subtitle clip")
+            self.current_audio_category = None
             return
         
         # Get the major category for this clip
@@ -825,6 +850,13 @@ class SimplePPEngine:
         if self.audio_controller.is_playing():
             self.audio_controller.fade_out()
             time.sleep(AUDIO_TRACK_PAUSE)  # Brief pause between tracks
+
+        # The fade above takes seconds; if the clip changed meanwhile, don't start
+        # ambient audio for a clip that is no longer current.
+        if self._is_stale(generation):
+            print(f"[Audio] Clip changed during fade; not starting audio for '{clip_name}'")
+            self.current_audio_category = None
+            return
         
         # Get the next track for this category
         next_track = self.cache_manager.get_next_audio_track(major_category)
@@ -876,6 +908,7 @@ class SimplePPEngine:
                 if clip_number and clip_name != self.last_clip_name:
                     print(f"\n[Clip {clip_number}] {clip_name}")
                     self.last_clip_name = clip_name
+                    self.clip_generation += 1
                     
                     # Resolve metadata and clip type BEFORE navigation so transitions are concurrent
                     metadata = self.cache_manager.get(clip_name) if clip_name else {}
@@ -978,6 +1011,8 @@ class SimplePPEngine:
                         # Launch operations in background thread so they don't block progress animation
                         self.deferred_operations_thread = threading.Thread(
                             target=self._execute_deferred_operations_background,
+                            args=(self.clip_generation, self.pending_clip_number, self.pending_clip_name,
+                                  self.pending_metadata, self.pending_is_credits, self.pending_is_translated),
                             daemon=True
                         )
                         self.deferred_operations_thread.start()

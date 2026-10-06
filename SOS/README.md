@@ -1,16 +1,16 @@
 # SOS Control System
 
-**Science on a Sphere Control System** - A Python-based orchestration system for NOAA Science on a Sphere installations.
+**Science on a Sphere Control System** - A Python-based system for the NOAA Science on a Sphere installation at OMSI.
 
 ## Overview
 
 This system provides synchronized control of:
--  **NOAA SOS Server** - Real-time communication with Science on a Sphere
+-  **NOAA SOS Server** - Real-time communication with Science on a Sphere on-site server for front-end visualizations
 -  **LibreOffice Impress** - Automated presentation navigation
 -  **PyQt5 Overlays** - Progress bars and dual-language subtitles
 -  **Remote Audio** - MPV playback with category-based ambient soundscapes
--  **Now Playing Display** - Raspberry Pi-based audience information display
--  **HTTP API** - Web-based facilitation controls
+-  **Now Playing Display** - Raspberry Pi-based  information display for dataset collections
+-  **(Pending) HTTP API** - Web-based facilitation controls
 
 ## Features
 
@@ -261,3 +261,38 @@ All responses return JSON:
   ... // additional response data
 }
 ```
+
+# TODO
+## Power Cycle SOS 
+
+Create cron job + boot up service to run python script (launch SOS, enable auto run)
+1) At 1:00AM shut down
+2) At 8:00 AM boot up, start bootup service
+
+Follow [Venn Diagram's Setup Instructions] (https://github.com/OMSI-Dev/NatSci/tree/main/Climate%20Action%20Venn%20Diagram/Components/Beelink%20-%20Gameplay%20Display/Software) to setup system services. 
+
+### Bootup Service 
+- Start SOS with auto run 
+
+## Facilitation mode
+Create a desktop shortcut on SOS computer that launches python GUI message (SOS MUTED) with volume control, and unmute
+
+## Solve ambient audio issues
+Execute attempted fix 
+
+
+## Move B-link to 'game' account
+Make sure that it launches via 'game' account moving forward 
+
+## Ensure power cycling
+Will power cycling occur to what?
+(YES) Pi
+(?) Bee-link
+(??) SOS server 
+
+## NowPlaying Selector
+Fix the active dataset display
+
+## Change to sos demo account
+
+

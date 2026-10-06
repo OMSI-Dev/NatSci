@@ -30,7 +30,8 @@ class AudioController:
         self.is_initialized = False
         self.current_track = None
         self.fade_duration = 2.0  # Default fade duration in seconds
-        
+        self._volume_needs_reset = False  # True if a failed fade left MPV volume at 0
+
         # Initialize MPV on SOS2
         self._initialize_mpv()
     
@@ -291,12 +292,16 @@ class AudioController:
             "command": ["loadfile", full_path, "replace"]
         }
         
+        if self._volume_needs_reset:
+            if self._send_mpv_command({"command": ["set_property", "volume", 100]}):
+                self._volume_needs_reset = False
+
         success = self._send_mpv_command(command, debug=debug)
-        
+
         if success:
             self.current_track = filename
             print(f"[Audio] ✓ Playing: {filename}")
-            
+
             # Set loop mode if requested
             if loop:
                 time.sleep(0.2)  # Give loadfile time to process
@@ -353,20 +358,99 @@ class AudioController:
                 self._send_mpv_command(cmd)
                 time.sleep(step_duration)
             
-            # Stop after fade
-            self.stop_audio()
-            
+            # Stop after fade; only restore volume once MPV is confirmed idle.
+            # If the stop could not be confirmed, leave volume at 0 so the
+            # still-looping track stays silent instead of snapping back to full.
+            if not self.ensure_stopped():
+                self._volume_needs_reset = True
+                print("[Audio] ✗ Fade finished but MPV could not be confirmed stopped; volume left at 0")
+                return False
+
             # Reset volume
             time.sleep(0.1)
             reset_cmd = {"command": ["set_property", "volume", 100]}
-            self._send_mpv_command(reset_cmd)
-            
+            if not self._send_mpv_command(reset_cmd):
+                self._volume_needs_reset = True
+
             print(f"[Audio] Faded out over {fade_time}s")
             return True
-            
+
         except Exception as e:
             print(f"[Audio] Fade out error: {e}")
             return False
+
+    def _get_property(self, name):
+        """
+        Query an MPV property over the IPC socket.
+
+        Returns:
+            tuple: (ok, value). ok is False if the query itself failed.
+        """
+        if not self.is_initialized:
+            return False, None
+
+        try:
+            json_cmd = json.dumps({"command": ["get_property", name]})
+            json_escaped = json_cmd.replace("'", "'\"'\"'")
+            socket_cmd = f"printf '%s\\n' '{json_escaped}' | socat - UNIX-CONNECT:{self.mpv_socket}"
+            ssh_cmd = self._ssh_base() + [f"{self.sos2_user}@{self.sos2_ip}", socket_cmd]
+
+            result = subprocess.run(
+                ssh_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=5
+            )
+            if result.returncode != 0:
+                return False, None
+
+            # MPV may interleave event lines with the reply; pick the one with "error"
+            for line in result.stdout.decode('utf-8', 'ignore').splitlines():
+                try:
+                    response = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if 'error' in response:
+                    if response['error'] == 'success':
+                        return True, response.get('data')
+                    return False, None
+            return False, None
+
+        except Exception as e:
+            print(f"[Audio] Failed to get property '{name}': {e}")
+            return False, None
+
+    def is_idle(self):
+        """
+        Ask MPV whether it is actually idle (nothing loaded).
+
+        Returns:
+            bool: True if idle, False if playing, None if the query failed.
+        """
+        ok, idle = self._get_property("idle-active")
+        return bool(idle) if ok else None
+
+    def ensure_stopped(self, attempts=3):
+        """
+        Stop MPV and confirm via MPV itself that it is idle. Unlike stop_audio(),
+        this does not trust current_track, so it also recovers from a desynced
+        client state (MPV playing while current_track is None).
+
+        Returns:
+            bool: True only if MPV was confirmed idle.
+        """
+        if not self.is_initialized:
+            return False
+
+        for attempt in range(attempts + 1):
+            if self.is_idle():
+                self.current_track = None
+                return True
+            if attempt < attempts:
+                self._send_mpv_command({"command": ["stop"]})
+
+        print(f"[Audio] ✗ MPV not confirmed idle after {attempts} stop attempts")
+        return False
     
     def set_volume(self, volume_level):
         """
@@ -405,25 +489,8 @@ class AudioController:
             return None
 
         try:
-            json_cmd = json.dumps({"command": ["get_property", "volume"]})
-            json_escaped = json_cmd.replace("'", "'\"'\"'")
-            socket_cmd = f"printf '%s\\n' '{json_escaped}' | socat - UNIX-CONNECT:{self.mpv_socket}"
-            ssh_cmd = self._ssh_base() + [f"{self.sos2_user}@{self.sos2_ip}", socket_cmd]
-
-            result = subprocess.run(
-                ssh_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=5
-            )
-
-            if result.returncode == 0 and result.stdout:
-                response = json.loads(result.stdout.decode('utf-8', 'ignore').strip())
-                volume = response.get('data')
-                if volume is not None:
-                    return int(volume)
-
-            return None
+            ok, volume = self._get_property("volume")
+            return int(volume) if ok and volume is not None else None
 
         except Exception as e:
             print(f"[Audio] Failed to get volume: {e}")
