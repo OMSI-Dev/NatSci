@@ -22,7 +22,7 @@ config = get_config()
 # Get configuration values
 PI_IP = config.get('pi.ip', '10.10.51.111')
 PI_PORT = config.get('pi.port', 4096)
-NOWPLAYING_ENABLED = config.get('pi.enabled', False)
+NOWPLAYING_ENABLED = config.get('pi.enabled', True)
 
 def initialize_cache_and_playlist():
     """

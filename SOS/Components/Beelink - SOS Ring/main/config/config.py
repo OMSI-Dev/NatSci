@@ -121,7 +121,7 @@ class Config:
             
             # Features
             'features': {
-                'nowplaying_enabled': False,
+                'nowplaying_enabled': True,
                 'audio_enabled': True,
                 'subtitles_enabled': True,
                 'http_server_enabled': True

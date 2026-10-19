@@ -2,17 +2,28 @@
 
 last updated 2026-09-01 by autumn 
 
-*If re-installing a RPi from scratch for the SOS system, follow the steps below:*
+# Update modified script
 
-# Operating System 
+1) 
 
-**Flash RPi with latest (Linux) distribution** 
-
-    1) user: omsiadmin
+    `scp /path/to/local/file <username>@<pi_ip_address>:/path/to/destination/`
     
-# Remote Access
+    for example:
     
-**Configure ConnectPi**
+    `scp /NatSci/SOS/Components/RPi5 - Now Playing/Scripts/nowplaying.py <omsiadmin>@<pi_ip_address>:/Documents/SOS/` 
+
+2) 
+
+3) 
+
+# Re-installing a RPi for NowPlaying
+
+**Operating System:** Flash RPi with the latest Linux Debian distribution
+**User:** omsiadmin
+    
+## Remote Access
+    
+**Configuring ConnectPi**
 
     ```
     sudo apt update && sudo apt upgrade -y
@@ -25,9 +36,9 @@ last updated 2026-09-01 by autumn
     sudo reboot   
     ```
 
-# Python Configuration
+## Python 
     
-**Configure python and venv environment**
+**Configuring python and venv**
 
 1)
     ```
@@ -44,8 +55,9 @@ last updated 2026-09-01 by autumn
     python3 -m venv --system-site-packages myenv
     ```
     
-# Scripts
-**Create nowPlaying.py script** 
+## Scripts
+
+**Configuring nowPlaying.py** 
 
 1)
     ```
@@ -65,8 +77,8 @@ last updated 2026-09-01 by autumn
     ```
     
 
-# System Service Automation
-**Create OS startup script service** 
+## System Service Automation
+**Configuring OS startup script service** 
 
 1) Create bash script
     ```
@@ -104,7 +116,7 @@ last updated 2026-09-01 by autumn
     systemctl status nowplaying.service
     ```
     
-**Create a crontab to automate overnight reboot process** 
+**Configuring crontab to automate overnight reboot process** 
 
 1)
     ``sudo crontab -e``

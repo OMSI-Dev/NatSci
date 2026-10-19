@@ -67,7 +67,7 @@
   },
   
   "features": {
-    "nowplaying_enabled": false,
+    "nowplaying_enabled": true,
     "audio_enabled": true,
     "subtitles_enabled": true,
     "http_server_enabled": true
