@@ -17,13 +17,6 @@ SOS_QUERY_TIMEOUT = 8.0  # Alias for SOS_SOCKET_TIMEOUT
 SOS_RECV_IDLE_TIMEOUT = 1.0
 SOS_SOCKET_POLL_TIMEOUT = 0.2  # Non-blocking socket polling
 
-# Raspberry Pi / Now Playing
-PI_CONNECTION_TIMEOUT = 3.0
-PI_QUERY_TIMEOUT = 10.0
-NOWPLAYING_INIT_ATTEMPTS = 3
-NOWPLAYING_INIT_RETRY_DELAY = 2.0  # seconds between initial playlist push attempts
-NOWPLAYING_HEARTBEAT_INTERVAL = 5.0  # seconds between STATE heartbeats to the Pi
-
 # SSH Operations
 SSH_CONNECTION_TIMEOUT = 5.0
 SSH_COMMAND_TIMEOUT = 10.0
@@ -45,13 +38,6 @@ SOCKET_BUFFER_SIZE = 4096  # bytes
 # SOS server port
 SOS_PORT = 2468
 SOS_PORT_DEFAULT = 2468  # Default value
-
-# Raspberry Pi now playing display port
-PI_PORT = 4096
-PI_PORT_DEFAULT = 4096  # Default value
-
-# Engine query server port (for Pi to query engine state)
-ENGINE_QUERY_PORT = 4097
 
 # HTTP facilitation interface port
 HTTP_SERVER_PORT = 5000

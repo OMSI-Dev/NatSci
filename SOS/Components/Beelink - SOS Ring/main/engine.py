@@ -13,7 +13,6 @@ import atexit
 from PyQt5.QtWidgets import QApplication
 from overlay_subtitles import SubtitleManager, SubtitleOverlay
 from overlay_progressBar import ProgressBarOverlay
-from nowplaying_protocol import build_init_message, build_state_line
 from config import get_config
 from config.constants import *
 
@@ -103,9 +102,6 @@ class OverlayManager:
 # Network configuration from config system
 SOS_IP = config.get('sos.ip', '10.0.0.16')
 SOS_PORT = config.get('sos.port', SOS_PORT_DEFAULT)
-PI_IP = config.get('pi.ip', '10.10.51.111')
-PI_PORT = config.get('pi.port', PI_PORT_DEFAULT)
-ENGINE_QUERY_PORT = 4097  # Port for Pi to query engine state
 HTTP_SERVER_PORT = 5000  # Port for HTTP facilitation interface
 
 def recv_data(sock: socket.socket, timeout_idle: float = 1.0) -> bytes:
@@ -197,8 +193,7 @@ class SimplePPEngine:
     - Navigates LibreOffice
     """
     
-    def __init__(self, pp, slide_dictionary, cache_manager, audio_controller=None,
-                 nowplaying_enabled=True):
+    def __init__(self, pp, slide_dictionary, cache_manager, audio_controller=None):
         """
         Initialize the engine.
         
@@ -207,20 +202,17 @@ class SimplePPEngine:
             slide_dictionary: Dict mapping clip names to slide numbers
             cache_manager: Initialized CacheManager instance
             audio_controller: Optional AudioController instance
-            nowplaying_enabled: Set False to skip all Pi nowPlaying socket calls
         """
         self.pp = pp
         self.slide_dictionary = slide_dictionary
         self.cache_manager = cache_manager
         self.audio_controller = audio_controller
-        self.nowplaying_enabled = nowplaying_enabled
         self.running = True
         self.current_slide = -1
         self.sock = None
         
         # State tracking for queries
         self.current_clip_number = None
-        self.playlist_init_data = None  # Stores the INIT message data
         self.state_lock = threading.Lock()
         
         # Audio state tracking
@@ -260,17 +252,6 @@ class SimplePPEngine:
         self.deferred_operations_thread = None  # Background thread for slow operations
         self.clip_generation = 0  # Incremented on every clip change; lets stale audio threads abort
         self._audio_lock = threading.Lock()  # Serializes manage_audio across deferred threads
-        self._nowplaying_lock = threading.RLock()  # Serializes sends so Pi messages arrive in order
-        
-        # Start query server thread
-        self.query_server_thread = threading.Thread(target=self._run_query_server, daemon=True)
-        self.query_server_thread.start()
-        
-        # Start nowPlaying heartbeat so the Pi can detect and repair missed updates
-        if self.nowplaying_enabled:
-            self.nowplaying_heartbeat_thread = threading.Thread(
-                target=self._run_nowplaying_heartbeat, daemon=True)
-            self.nowplaying_heartbeat_thread.start()
         
         # Start HTTP facilitation server thread
         self.http_server_thread = threading.Thread(target=self._run_http_server, daemon=True)
@@ -346,128 +327,14 @@ class SimplePPEngine:
         elapsed = time.time() - self.clip_start_time
         return min(elapsed, self.current_clip_duration)  # Cap at current clip's duration
 
-    def _nowplaying_exchange(self, message: str, expect_reply: bool = False,
-                             timeout: float = 2.0):
-        """Send one message to the Pi.
-
-        Returns (ok, reply). Sends are serialized so messages reach the Pi in the
-        order they were issued.
-        """
-        if not self.nowplaying_enabled:
-            return False, None
-        with self._nowplaying_lock:
-            try:
-                with socket.create_connection((PI_IP, PI_PORT), timeout=timeout) as pi_sock:
-                    pi_sock.sendall(message.encode('utf-8'))
-                    if not expect_reply:
-                        return True, None
-                    pi_sock.shutdown(socket.SHUT_WR)  # Pi reads until EOF before replying
-                    return True, pi_sock.recv(1024).decode('utf-8', 'ignore').strip()
-            except Exception as e:
-                print(f"[Engine] nowPlaying send failed ({message.splitlines()[0][:20]!r}): {e}")
-                return False, None
-
-    def _send_nowplaying_message(self, message: str) -> bool:
-        """Send a nowPlaying socket message to the Pi. Returns True if delivered."""
-        return self._nowplaying_exchange(message)[0]
-
-    def update_nowPlaying(self, clip_number: int, generation=None) -> None:
-        """Send the current clip number to nowPlaying.
-
-        If generation is given and a newer clip has since started, the update is
-        dropped: sending it would overwrite the newer clip on the Pi.
-        """
+    def _record_clip_number(self, clip_number: int, generation=None) -> None:
+        """Remember the current clip for the HTTP interface; skip if a newer clip has started."""
         if clip_number is None:
             return
-        with self._nowplaying_lock:
+        with self.state_lock:
             if generation is not None and generation != self.clip_generation:
-                print(f"[Engine] Dropping stale nowPlaying update for clip {clip_number}")
                 return
-            with self.state_lock:
-                self.current_clip_number = clip_number
-            self._send_nowplaying_message(f"CLIP:{clip_number}\n")
-
-    def _build_init_message(self) -> str:
-        """Build INIT message from current playlist data (shared with sdc.py)."""
-        return build_init_message(self.cache_manager)[0]
-
-    def _run_nowplaying_heartbeat(self):
-        """Periodically tell the Pi our state; the Pi pulls a full resync on mismatch."""
-        last_ok = None
-        while self.running:
-            time.sleep(NOWPLAYING_HEARTBEAT_INTERVAL)
-            if not self.running:
-                break
-            try:
-                _, digest, _ = build_init_message(self.cache_manager)
-                with self.state_lock:
-                    clip_number = self.current_clip_number
-                    paused = self.facilitation_mode
-                ok, reply = self._nowplaying_exchange(
-                    build_state_line(digest, clip_number, paused), expect_reply=True)
-                if ok != last_ok:
-                    print(f"[Engine] nowPlaying link {'UP' if ok else 'DOWN'}")
-                    last_ok = ok
-                if ok and reply and 'MISMATCH' in reply:
-                    print(f"[Engine] nowPlaying reports out-of-sync: {reply}")
-            except Exception as e:
-                print(f"[Engine] nowPlaying heartbeat error: {e}")
-
-    def _run_query_server(self):
-        """Run a server socket to handle state queries from Pi."""
-        try:
-            server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server_sock.bind(('0.0.0.0', ENGINE_QUERY_PORT))
-            server_sock.listen(1)
-            server_sock.settimeout(SERVER_ACCEPT_TIMEOUT)  # Allow periodic checks of self.running
-            
-            print(f"[Engine] Query server listening on port {ENGINE_QUERY_PORT}")
-            
-            while self.running:
-                try:
-                    conn, addr = server_sock.accept()
-                    print(f"[Engine] Query connection from {addr}")
-                    
-                    with conn:
-                        conn.settimeout(CLIENT_CONNECTION_TIMEOUT)
-                        try:
-                            # Receive request
-                            data = conn.recv(1024).decode('utf-8', 'ignore').strip()
-                            print(f"[Engine] Query request: {data}")
-                            
-                            if data == "REQUEST_STATE":
-                                # Build complete response message
-                                init_msg = self._build_init_message()
-                                
-                                # Append facilitation state and current clip
-                                with self.state_lock:
-                                    pause_line = "PAUSE\n" if self.facilitation_mode else "UNPAUSE\n"
-                                    complete_msg = init_msg + pause_line
-                                    if self.current_clip_number is not None:
-                                        complete_msg += f"\nCLIP:{self.current_clip_number}\n"
-                                
-                                # Send as single message
-                                conn.sendall(complete_msg.encode('utf-8'))
-                                print(f"[Engine] Sent state to {addr} ({len(complete_msg)} bytes)")
-                                print(f"[Engine] Preview: {complete_msg[:200]}..." if len(complete_msg) > 200 else f"[Engine] Full message: {complete_msg}")
-                        except socket.timeout:
-                            print(f"[Engine] Query timeout from {addr}")
-                        except Exception as e:
-                            print(f"[Engine] Query handler error: {e}")
-                            
-                except socket.timeout:
-                    continue  # Check self.running and continue
-                except Exception as e:
-                    if self.running:
-                        print(f"[Engine] Query server error: {e}")
-                    break
-            
-            server_sock.close()
-            print("[Engine] Query server stopped")
-            
-        except Exception as e:
-            print(f"[Engine] Failed to start query server: {e}")
+            self.current_clip_number = clip_number
 
     def _run_http_server(self):
         """Run HTTP server for facilitation commands."""
@@ -679,9 +546,6 @@ class SimplePPEngine:
                     print("[Engine] Muting audio")
                     self.audio_controller.mute()
                 
-                # Send PAUSE to nowPlaying
-                self._send_to_nowplaying("PAUSE")
-                
             else:
                 print("[Engine] Facilitation OFF")
                 
@@ -689,9 +553,6 @@ class SimplePPEngine:
                 if self.audio_enabled and self.audio_controller:
                     print("[Engine] Unmuting audio")
                     self.audio_controller.unmute()
-                
-                # Send UNPAUSE to nowPlaying
-                self._send_to_nowplaying("UNPAUSE")
             
             return {"status": "ok", "facilitation_mode": self.facilitation_mode}
             
@@ -721,11 +582,6 @@ class SimplePPEngine:
             print(f"[Engine] Volume control error: {e}")
             return {"status": "error", "message": str(e)}
     
-    def _send_to_nowplaying(self, command: str):
-        """Send command to nowPlaying display (heartbeat repairs it if this is lost)."""
-        if self._send_nowplaying_message(command + "\n"):
-            print(f"[Engine] Sent to nowPlaying: {command}")
-
     def navigate_to_clip(self, clip_name):
         """Navigate to the slide(s) associated with the given clip name."""
         if clip_name not in self.slide_dictionary:
@@ -753,11 +609,7 @@ class SimplePPEngine:
         try:
             print(f"[Engine] [Background Thread] Starting deferred operations")
 
-            # NowPlaying update
-            if clip_number is not None:
-                nowplaying_start = time.time()
-                self.update_nowPlaying(clip_number, generation)
-                print(f"[Engine] [Background] NowPlaying update took {time.time() - nowplaying_start:.3f}s")
+            self._record_clip_number(clip_number, generation)
 
             # Audio management
             if clip_name is not None:

@@ -6,11 +6,9 @@ Initializes CacheManager, synchronizes with SOS, and launches LibreOffice Engine
 import sys
 import os
 import socket
-import time
 
 from cache_manager import CacheManager
 from engine import SimplePPEngine
-from nowplaying_protocol import build_init_message
 from pp_init import initialize_all
 from audio_init import initialize_audio
 from config import get_config
@@ -18,11 +16,6 @@ from config.constants import *
 
 # Load configuration
 config = get_config()
-
-# Get configuration values
-PI_IP = config.get('pi.ip', '10.10.51.111')
-PI_PORT = config.get('pi.port', 4096)
-NOWPLAYING_ENABLED = config.get('pi.enabled', True)
 
 def initialize_cache_and_playlist():
     """
@@ -67,32 +60,6 @@ def initialize_cache_and_playlist():
     finally:
         sock.close()
 
-def initialize_nowplaying(cache_mgr: CacheManager) -> None:
-    """Send the current playlist metadata to nowPlaying on the Pi.
-
-    Best effort: the engine heartbeat and the Pi's own REQUEST_STATE pull
-    repair the Pi if every attempt here fails.
-    """
-    if not cache_mgr or not cache_mgr.current_playlist:
-        print("[nowPlaying] No current playlist available.")
-        return
-
-    payload, digest, count = build_init_message(cache_mgr)
-
-    for attempt in range(1, NOWPLAYING_INIT_ATTEMPTS + 1):
-        try:
-            with socket.create_connection((PI_IP, PI_PORT), timeout=PI_QUERY_TIMEOUT) as pi_sock:
-                pi_sock.sendall(payload.encode('utf-8'))
-                pi_sock.shutdown(socket.SHUT_WR)  # Signal end of data
-                ack = pi_sock.recv(1024).decode('utf-8', 'ignore').strip()
-            print(f"[nowPlaying] Sent {count} playlist items (digest {digest}) to Pi, reply: {ack or 'none'}")
-            return
-        except Exception as e:
-            print(f"[nowPlaying] Playlist send attempt {attempt}/{NOWPLAYING_INIT_ATTEMPTS} failed: {e}")
-            if attempt < NOWPLAYING_INIT_ATTEMPTS:
-                time.sleep(NOWPLAYING_INIT_RETRY_DELAY)
-    print("[nowPlaying] Giving up on initial push; Pi will resync from the engine.")
-
 if __name__ == '__main__':
     print("=" * 60)
     print("SOS2 Controller (/dev/)")
@@ -102,7 +69,6 @@ if __name__ == '__main__':
     print("\nConfiguration:")
     print(f"  SOS Server:     {config.get('sos.ip')}:{config.get('sos.port')}")
     print(f"  Base Share:     {config.get('paths.base_share')}")
-    print(f"  Now Playing:    {'Enabled' if NOWPLAYING_ENABLED else 'Disabled'} ({PI_IP}:{PI_PORT})")
     print(f"  Audio:          {'Enabled' if config.get('features.audio_enabled', True) else 'Disabled'}")
     print()
     
@@ -151,19 +117,11 @@ if __name__ == '__main__':
         else:
             print("[Audio] Audio config up to date, using cache")
         
-    # 4. Initialize nowPlaying
-    if NOWPLAYING_ENABLED:
-        print("\nInitializing nowPlaying...")
-        initialize_nowplaying(cache_mgr)
-    else:
-        print("\n[nowPlaying] Disabled (NOWPLAYING_ENABLED=False) - skipping init")
-
-    # 5. Start Engine
+    # 4. Start Engine
     print("\nStarting Optimized Engine...")
     print("=" * 60)
     
-    engine = SimplePPEngine(pp, slide_dictionary, cache_mgr, audio_controller,
-                             nowplaying_enabled=NOWPLAYING_ENABLED)
+    engine = SimplePPEngine(pp, slide_dictionary, cache_mgr, audio_controller)
     
     try:
         engine.run()

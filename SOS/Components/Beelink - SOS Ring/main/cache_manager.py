@@ -474,8 +474,15 @@ class CacheManager:
             return
             
         import csv
+        import io
         try:
-            with open(csv_path, 'r', encoding='latin-1') as f:
+            with open(csv_path, 'rb') as raw:
+                raw_bytes = raw.read()
+            try:
+                text = raw_bytes.decode('utf-8-sig')
+            except UnicodeDecodeError:
+                text = raw_bytes.decode('cp1252', errors='replace')
+            with io.StringIO(text, newline='') as f:
                 # Use DictReader to be robust to column order
                 reader = csv.DictReader(f)
                 count = 0

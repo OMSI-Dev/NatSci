@@ -18,12 +18,7 @@
            └─▶ Launch MPV with IPC socket
                └─▶ Verify socket is responding
 
-4. Initialize Now Playing (if enabled)
-   └─▶ Build INIT message with all clips
-       └─▶ Send to Pi via socket
-
-5. Start Engine
-   └─▶ Launch query server thread (port 4097)
+4. Start Engine
    └─▶ Launch HTTP server thread (port 5000)
    └─▶ Create PyQt5 overlays (hidden initially)
    └─▶ Enter main event loop
@@ -79,7 +74,7 @@ audio_access.py:
 4. Show progress bar (instant)
 
 # Phase 2: Deferred (background thread, +0.5s)
-5. Update Now Playing display
+5. Record current clip number
 6. Start ambient audio
 7. Load subtitle files
 ```
@@ -112,12 +107,7 @@ class OverlayManager:
 
 ### 5. Background Server Threads
 
-Three concurrent server threads handle external queries:
-
-**Query Server** (Port 4097)
-- Listens for state requests from Raspberry Pi
-- Returns: Playlist + current clip number
-- Used when Pi reconnects after failure
+Concurrent server threads handle external queries:
 
 **HTTP Server** (Port 5000)
 - Handles facilitation control requests
@@ -149,7 +139,7 @@ HTTP Server Thread (daemon):
 
 Deferred Operations Thread (spawned on clip change):
 └─▶ Execute slow operations:
-    ├─▶ Update Now Playing
+    ├─▶ Record current clip number
     ├─▶ Audio management  
     └─▶ Subtitle loading
     (Thread exits when done)
@@ -289,27 +279,25 @@ echo '{"command":["loadfile","/path/audio.mp3"]}' | socat - UNIX-CONNECT:/tmp/mp
 {"error":"success","data":null}
 ```
 
-### Now Playing Protocol (TCP Socket)
+### Now Playing (Raspberry Pi, standalone)
 
-Beelink engine → Raspberry Pi on port 4096 (one or more newline-delimited messages per connection, sender half-closes). The playlist is always built by `nowplaying_protocol.build_init_message()`, used by both the startup push (`sdc.py`) and the pull response (`engine.py`), so both paths give the Pi identical data.
+The Pi display (`Components/RPi5 - Now Playing/Scripts/nowPlaying.py`) does not talk to the Beelink. It reads everything from the SOS server itself, using read-only commands only (`enable`, `get_playlist_name`, `get_clip_count`, `get_clip_number`, `get_all_name_value_pairs <n>`); it never sends `open_playlist`, `load`, `play`, `next_clip` or `prev_clip`.
 
 ```
-Engine → Pi (INIT):
-  "INIT <digest> <count>\n"          digest = sha1 of the entry lines, first 8 hex chars
-  "1|English Title 1|Spanish Title 1|90\n"   duration in seconds, 0 = unknown
-  "2|English Title 2|Spanish Title 2|120\n"
-  ...
-
-Engine → Pi: "CLIP:5\n"  |  "PAUSE\n"  |  "UNPAUSE\n"
-
-Engine → Pi (heartbeat, every NOWPLAYING_HEARTBEAT_INTERVAL s):
-  "STATE <digest> <clip|-> <0|1>\n"   Pi replies "ACK OK ..." or "ACK MISMATCH ..."
-
-Anyone → Pi (diagnostics):  "STATUS"   Pi replies with one JSON line
-Pi → Engine (port 4097):    "REQUEST_STATE\n"   engine replies INIT + PAUSE/UNPAUSE [+ CLIP:n]
+Playlist:  fetched from SOS (clip names, metadata durations). Identity (name + clip count) re-checked
+           every IDENTITY_CHECK_INTERVAL s; full refetch on change and every FULL_REFRESH_INTERVAL s.
+Titles:    SOS_datasets.csv copied from the SOS server over SSH (sos@10.0.0.16, key auth), decoded as
+           UTF-8 (BOM tolerated, cp1252 fallback), cached locally (TITLES_CACHE_PATH) and reused if
+           SSH is down. Per clip: CSV title, then SOS movie-title / spanish-translation, then clip name.
+Clip:      polled with get_clip_number (SOS has no change notification).
 ```
 
-Pi self-healing: the Pi compares each heartbeat to its own state; two consecutive mismatches (or a damaged INIT, or a CLIP outside the playlist) trigger a REQUEST_STATE pull. If heartbeats stop, it pulls every 30 s. A pull never overwrites a part (INIT/CLIP/PAUSE) that a newer push already updated. `STATUS` reports `in_sync` (true/false/null if no recent heartbeat), digest, clip, paused, message ages, counters, and recent problems; the Pi also logs a summary line every 60 s.
+Adaptive polling (`PollScheduler`):
+- Starts at `BASE_POLL_INTERVAL` (20 s). Each observed clip change is timed (start = midpoint of the two polls around the change), so the Pi learns per-clip durations; SOS metadata durations are used as hints until then.
+- With a known duration it sleeps until shortly before the predicted end (`EARLY_MARGIN`, `MAX_LEAD`), then polls every `CATCH_POLL_INTERVAL` (2 s) until the change lands. A safety poll runs at most every `SAFETY_POLL_INTERVAL` (60 s).
+- A miss (clip skipped, paused, or longer than predicted) falls back to the 20 s cadence and re-learns. Shorter-than-learned samples (manual skips) are held back until they repeat.
+
+Diagnostics: `STATUS` on port 4096 (local to the Pi, e.g. `127.0.0.1`) returns one JSON line with `in_sync`, playlist/clip, polling mode and next poll, learned durations, title source/age, counters and recent errors; a summary line is logged every 60 s. Facilitation pause is not shown on the Pi.
 
 ### HTTP API Protocol
 

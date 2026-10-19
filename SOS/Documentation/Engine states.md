@@ -24,16 +24,12 @@ if enable:
         audio_controller.fade_out()  # Smooth fadeout
         time.sleep(SUBTITLE_FADE_WAIT)  # Wait for completion
     audio_controller.mute()  # Prevent new audio
-    
-    # External Display
-    send_to_nowplaying("PAUSE")  # Pause Pi display
 ```
 
 ### Behavior When Disabled
 ```python
 else:
     audio_controller.unmute()  # Re-enable audio
-    send_to_nowplaying("UNPAUSE")  # Resume Pi display
 ```
 
 ### Impact on Other Systems
@@ -41,7 +37,7 @@ else:
 | System | Behavior in Facilitation Mode |
 |--------|------------------------------|
 | **Audio** | Fades out, mutes, blocks new tracks |
-| **NowPlaying Display** | Shows "PAUSE" status |
+| **NowPlaying Display** | Unaffected (Pi runs standalone from SOS) |
 | **Overlays** | Continue updating (progress bar still visible) |
 | **Clip Detection** | Still active (clips can change) |
 | **Audio Start** | Blocked via `manage_audio()` check |
@@ -157,8 +153,8 @@ threading.Thread(target=self._execute_deferred_operations_background).start()
 
 # Background thread executes:
 def _execute_deferred_operations_background(self):
-    # 1. Update nowPlaying Pi display (~50-200ms)
-    self.update_nowPlaying(clip_number)
+    # 1. Record current clip number for the HTTP interface
+    self._record_clip_number(clip_number, generation)
     
     # 2. Audio management (~100-500ms)
     self.manage_audio(clip_name, is_credits, is_translated)
@@ -472,40 +468,11 @@ if method == "OPTIONS":
 
 ---
 
-## 9. State Query INIT Message
+## 9. Now Playing Sync (removed)
 
-### Purpose
-When the Raspberry Pi "Now Playing" display boots or reconnects, it needs the full playlist state.
+The Beelink no longer talks to the Raspberry Pi. The former INIT / CLIP / PAUSE / STATE push, the heartbeat, and the port-4097 `REQUEST_STATE` query server were removed (`nowplaying_protocol.py` deleted). The Pi reads the playlist and current clip straight from the SOS server and fetches titles from `SOS_datasets.csv` over SSH; see "Now Playing (Raspberry Pi, standalone)" in `Software Architecture.md`.
 
-### Query Protocol
-Pi sends: `REQUEST_STATE`  
-Engine responds with the **INIT message**, the current pause state, and the current clip (if any):
-
-```
-INIT 1c6566b4 3
-1|Ocean Life|Vida Oceánica|150
-2|Coral Reefs|Arrecifes de Coral|105
-3|Deep Sea|Mar Profundo|195
-UNPAUSE
-
-CLIP:2
-```
-
-### Format Specification
-
-- Header: `INIT <digest> <count>`; digest = first 8 hex chars of sha1 over the entry lines joined by `\n`, so the Pi can verify integrity and compare against the `STATE` heartbeat.
-- Entries: `{index}|{english}|{spanish}|{seconds}`. English falls back to `movie-title`, then clip name; Spanish to `spanish-translation`, then clip name. `|` and newlines are replaced by spaces. Duration is whole seconds (`duration`, then `timer`; 0 = unknown, the Pi shows its own default).
-- `PAUSE` / `UNPAUSE`: facilitation state. `CLIP:{n}`: current clip, omitted if none.
-
-### Building the Message
-
-Single implementation in `nowplaying_protocol.py` (`build_init_message`), called from both `engine._build_init_message()` (pull) and `sdc.initialize_nowplaying()` (startup push, retried `NOWPLAYING_INIT_ATTEMPTS` times).
-
-### Ordering
-`engine._nowplaying_lock` (RLock) serializes all sends; `update_nowPlaying()` drops a CLIP whose `clip_generation` is stale, so deferred threads cannot deliver clips out of order. `_run_nowplaying_heartbeat` sends `STATE` periodically.
-
-### Thread Safety
-Uses `self.state_lock` to safely read `current_clip_number` from the main loop thread.
+What remains on the engine: `current_clip_number` (guarded by `state_lock`, set by `_record_clip_number()` and skipped when `clip_generation` is stale) is still reported by the HTTP `GET_STATE` / `GET_PLAYLIST` commands.
 
 ---
 
@@ -660,7 +627,7 @@ if not self.audio_enabled or not self.audio_controller:
 
 | Special Case | Purpose | Impact |
 |--------------|---------|--------|
-| **Facilitation Mode** | Pause for presenter | Audio + NowPlaying |
+| **Facilitation Mode** | Pause for presenter | Audio |
 | **Overlay State Machine** | Visual consistency | Progress + Subtitle display |
 | **Deferred Operations** | UI responsiveness | Threading + timing |
 | **Audio Fallback** | Robustness | Silent fallback on errors |
@@ -668,7 +635,6 @@ if not self.audio_enabled or not self.audio_controller:
 | **Duration Capping** | Progress overflow protection | Timer bounds |
 | **Fresh Sockets** | Nav isolation | Connection strategy |
 | **HTTP Commands** | Remote control | Web/tablet interface |
-| **INIT Message** | Pi display sync | State recovery protocol |
 | **Path Resolution** | Subtitle loading | Remote → local conversion |
 | **Transition Delay** | Visual smoothness | Translated movies only |
 
