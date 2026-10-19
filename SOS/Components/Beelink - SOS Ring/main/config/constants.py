@@ -20,6 +20,9 @@ SOS_SOCKET_POLL_TIMEOUT = 0.2  # Non-blocking socket polling
 # Raspberry Pi / Now Playing
 PI_CONNECTION_TIMEOUT = 3.0
 PI_QUERY_TIMEOUT = 10.0
+NOWPLAYING_INIT_ATTEMPTS = 3
+NOWPLAYING_INIT_RETRY_DELAY = 2.0  # seconds between initial playlist push attempts
+NOWPLAYING_HEARTBEAT_INTERVAL = 5.0  # seconds between STATE heartbeats to the Pi
 
 # SSH Operations
 SSH_CONNECTION_TIMEOUT = 5.0

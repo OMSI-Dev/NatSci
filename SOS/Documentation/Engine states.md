@@ -479,64 +479,30 @@ When the Raspberry Pi "Now Playing" display boots or reconnects, it needs the fu
 
 ### Query Protocol
 Pi sends: `REQUEST_STATE`  
-Engine responds with **INIT message**:
+Engine responds with the **INIT message**, the current pause state, and the current clip (if any):
 
 ```
-INIT
-1|Ocean Life|Vida Oceánica|2m 30s
-2|Coral Reefs|Arrecifes de Coral|1m 45s
-3|Deep Sea|Mar Profundo|3m 15s
+INIT 1c6566b4 3
+1|Ocean Life|Vida Oceánica|150
+2|Coral Reefs|Arrecifes de Coral|105
+3|Deep Sea|Mar Profundo|195
+UNPAUSE
 
 CLIP:2
 ```
 
 ### Format Specification
 
-#### Line 1: Header
-```
-INIT
-```
-
-#### Lines 2-N: Clip Entries
-```
-{index}|{english_title}|{spanish_title}|{duration}
-```
-
-**Fields**:
-- `index`: 1-based clip number
-- `english_title`: From metadata `movie-title` or clip name
-- `spanish_title`: From metadata `spanish-translation` or empty
-- `duration`: Formatted as `"Xm Xs"` (e.g., `"2m 30s"`)
-
-#### Last Section: Current Clip
-```
-CLIP:{current_clip_number}
-```
+- Header: `INIT <digest> <count>`; digest = first 8 hex chars of sha1 over the entry lines joined by `\n`, so the Pi can verify integrity and compare against the `STATE` heartbeat.
+- Entries: `{index}|{english}|{spanish}|{seconds}`. English falls back to `movie-title`, then clip name; Spanish to `spanish-translation`, then clip name. `|` and newlines are replaced by spaces. Duration is whole seconds (`duration`, then `timer`; 0 = unknown, the Pi shows its own default).
+- `PAUSE` / `UNPAUSE`: facilitation state. `CLIP:{n}`: current clip, omitted if none.
 
 ### Building the Message
 
-```python
-# Location: engine.py, _build_init_message()
+Single implementation in `nowplaying_protocol.py` (`build_init_message`), called from both `engine._build_init_message()` (pull) and `sdc.initialize_nowplaying()` (startup push, retried `NOWPLAYING_INIT_ATTEMPTS` times).
 
-clips = cache_manager.current_playlist.get('clips', [])
-lines = ["INIT"]
-
-for idx, clip in enumerate(clips, start=1):
-    metadata = cache_manager.get(clip_name) or {}
-    
-    english_title = metadata.get('movie-title', clip_name)
-    spanish_title = metadata.get('spanish-translation', '')
-    duration_sec = float(metadata.get('duration', 0))
-    
-    # Format duration (no decimals)
-    minutes = int(duration_sec) // 60
-    seconds = int(duration_sec) % 60
-    duration_str = f"{minutes}m {seconds}s"
-    
-    lines.append(f"{idx}|{english_title}|{spanish_title}|{duration_str}")
-
-return "\n".join(lines) + "\n"
-```
+### Ordering
+`engine._nowplaying_lock` (RLock) serializes all sends; `update_nowPlaying()` drops a CLIP whose `clip_generation` is stale, so deferred threads cannot deliver clips out of order. `_run_nowplaying_heartbeat` sends `STATE` periodically.
 
 ### Thread Safety
 Uses `self.state_lock` to safely read `current_clip_number` from the main loop thread.

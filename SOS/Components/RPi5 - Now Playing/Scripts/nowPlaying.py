@@ -7,6 +7,9 @@ import atexit
 import threading
 import time
 import re
+import json
+import hashlib
+from collections import deque, namedtuple
 import pygame
 from typing import Optional, List
 
@@ -17,7 +20,15 @@ ENGINE_IP = "10.0.0.17"  # Beelink/Engine IP NETWORK d
 ENGINE_QUERY_PORT = 4097  # Port to query engine for state
 ENGINE_CONNECT_TIMEOUT = 10.0  # Seconds to wait for connection to engine
 ENGINE_RECV_TIMEOUT = 5.0  # Seconds to wait for each chunk of state data
-ENGINE_RETRY_INTERVAL = 5.0  # Seconds between state request retries
+ENGINE_RETRY_INTERVAL = 5.0  # Minimum seconds between state requests (pulls)
+
+# Sync / self-healing
+HEARTBEAT_STALE_AFTER = 20.0  # No engine STATE heartbeat this long -> fall back to periodic pulls
+PERIODIC_RESYNC_INTERVAL = 30.0  # Safety-net pull interval while heartbeats are absent
+MISMATCH_PULL_THRESHOLD = 2  # Consecutive mismatching heartbeats before pulling (ignores transients)
+CONNECTION_TIMEOUT = 3.0  # Seconds to wait on a connected peer
+MAX_MESSAGE_BYTES = 1_000_000  # Hard cap on a single inbound message
+SUMMARY_LOG_INTERVAL = 60.0  # Seconds between sync summary log lines
 
 # Display Configuration
 # Physical screen: 1920×1080 rotated 90° to portrait orientation
@@ -69,12 +80,7 @@ PAUSED_IMAGE_PATH = '/home/omsiadmin/Documents/SOS/nowPlaying_paused.jpg'
 PID_FILE = '/tmp/nowPlaying.pid'
 
 # Global Data
-english_titles = [None]
-spanish_titles = [None]
-durations = [None]
-current_clip_number = None
 running = True
-is_paused = False  # Facilitation pause state
 
 # Pygame Objects
 screen = None
@@ -114,16 +120,16 @@ def init_display():
     global inter_title_font, inter_subtitle_font, duration_font, background, paused_image
     
     pygame.init()
+    screen = None
     for attempt in range(30):  # retry for up to ~30s
         try:
             screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
-        
             break
         except pygame.error as e:
             print(f"[Pi] Display not ready ({e}), retrying...")
-            import time; time.sleep(1)
-        else:
-            raise RuntimeError("Display never became available")
+            time.sleep(1)
+    if screen is None:
+        raise RuntimeError("Display never became available")
     pygame.display.set_caption('Now Playing')
     clock = pygame.time.Clock()
     
@@ -522,8 +528,11 @@ def render_display():
     # Hide mouse
     pygame.mouse.set_visible(False)
 
+    snap = state.snapshot()
+    english_titles, spanish_titles, durations = snap.english, snap.spanish, snap.durations
+
     # Check if in facilitation pause mode
-    if is_paused:
+    if snap.paused:
         if paused_image:
             screen.blit(paused_image, (0, 0))
         else:
@@ -548,7 +557,7 @@ def render_display():
         english = english_titles[idx] if idx < len(english_titles) else "Unknown"
         spanish = spanish_titles[idx] if idx < len(spanish_titles) else "Desconocido"
         duration = durations[idx] if idx < len(durations) and durations[idx] else DEFAULT_DURATION_DISPLAY
-        is_current = (idx == current_clip_number)
+        is_current = (idx == snap.clip)
         
         # Draw the item and update Y position
         item_height = draw_playlist_item(
@@ -564,79 +573,435 @@ def render_display():
     pygame.display.flip()
 
 
-def _parse_init_message(message: str) -> None:
-    """Parse INIT message into numbered lists (index starts at 1)."""
-    global english_titles, spanish_titles, durations
 
-    lines = message.splitlines()
-    if not lines:
-        return
 
-    data_lines = [line.strip() for line in lines[1:] if line.strip()]
-    new_english = [None]
-    new_spanish = [None]
-    new_durations = [None]
+# ---------------------------------------------------------------------------
+# Sync state and protocol
+#
+# Wire protocol (newline-delimited, one or more messages per connection):
+#   INIT [<digest> <count>]       header, then "<n>|<english>|<spanish>|<duration>" lines
+#   CLIP:<n>                      current clip
+#   PAUSE / UNPAUSE               facilitation mode
+#   STATE <digest> <clip|-> <0|1> engine heartbeat (playlist digest, clip, paused)
+#   STATUS                        diagnostic query; replies with one JSON line
+# The engine pushes INIT/CLIP/PAUSE/UNPAUSE/STATE; this Pi pulls with REQUEST_STATE.
+# Check health from any machine with:
+#   python3 -c "import socket;s=socket.create_connection(('<pi-ip>',4096));s.sendall(b'STATUS');s.shutdown(1);print(s.recv(65536).decode())"
+# ---------------------------------------------------------------------------
 
-    for line in data_lines:
-        parts = line.split("|", 3)
-        if len(parts) != 4:
-            print(f"[Pi] Skipping malformed line: {line}")
+def log(message: str) -> None:
+    # flush=True: under systemd stdout is block-buffered, which hides live state in journalctl
+    print(f"[Pi] {time.strftime('%H:%M:%S')} {message}", flush=True)
+
+
+def _is_uint(text: str) -> bool:
+    return text.isascii() and text.isdigit()
+
+
+def _digest(entry_lines) -> str:
+    """Digest of the INIT body; must match nowplaying_protocol.entries_digest on the Beelink."""
+    return hashlib.sha1("\n".join(entry_lines).encode('utf-8')).hexdigest()[:8]
+
+
+INVALID_CLIP = -1
+
+Snapshot = namedtuple('Snapshot', 'english spanish durations clip paused')
+
+
+def parse_payload(text: str) -> dict:
+    """
+    Parse any inbound message (push or pull response) into its parts. Pure function.
+    Keys: init (dict|None), clip (int|None, INVALID_CLIP if unparsable), pause (bool|None),
+    state ((digest, clip, paused)|None), status (bool), unknown (list of lines).
+    """
+    result = {'init': None, 'clip': None, 'pause': None, 'state': None,
+              'status': False, 'unknown': []}
+    header = None
+    entries, entry_lines, malformed = [], [], []
+
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
             continue
-        index_str, english, spanish, duration = [p.strip() for p in parts]
-        if not index_str.isdigit():
-            print(f"[Pi] Skipping non-numeric index: {line}")
+        if line == 'INIT' or line.startswith('INIT '):
+            header = line.split()
+        elif line.startswith('CLIP:'):
+            value = line[5:].strip()
+            result['clip'] = int(value) if _is_uint(value) else INVALID_CLIP
+        elif line == 'PAUSE':
+            result['pause'] = True
+        elif line == 'UNPAUSE':
+            result['pause'] = False
+        elif line == 'STATUS':
+            result['status'] = True
+        elif line.startswith('STATE '):
+            parts = line.split()
+            if len(parts) == 4 and (parts[2] == '-' or _is_uint(parts[2])) and parts[3] in ('0', '1'):
+                result['state'] = (parts[1], None if parts[2] == '-' else int(parts[2]), parts[3] == '1')
+            else:
+                result['unknown'].append(line)
+        elif header is not None:
+            parts = line.split('|', 3)
+            if len(parts) == 4 and _is_uint(parts[0].strip()) and int(parts[0]) > 0 and '|' not in parts[3]:
+                entries.append(tuple(p.strip() for p in parts))
+                entry_lines.append(line)
+            else:
+                malformed.append(line)
+        else:
+            result['unknown'].append(line)
+
+    if header is not None:
+        result['init'] = {
+            'header_digest': header[1] if len(header) > 1 else None,
+            'header_count': int(header[2]) if len(header) > 2 and _is_uint(header[2]) else None,
+            'entries': entries,
+            'malformed': malformed,
+            'digest': _digest(entry_lines),
+        }
+    return result
+
+
+class SyncState:
+    """
+    All playlist/sync state, shared by the socket thread, resync thread and renderer.
+    Lists are replaced wholesale (never mutated) so a Snapshot is always consistent.
+    """
+
+    def __init__(self):
+        self.lock = threading.RLock()
+        self.english = [None]
+        self.spanish = [None]
+        self.durations = [None]
+        self.digest = None  # digest of the INIT body currently held (computed locally)
+        self.clip = None
+        self.paused = False
+
+        self.push_seq = {'init': 0, 'clip': 0, 'pause': 0}  # bumped by every engine push
+        self.resync_requested = threading.Event()
+        self.mismatch_streak = 0
+        self.last_state_result = None  # result of the latest engine heartbeat comparison
+        self.last_sender = None
+        self.problems = deque(maxlen=20)
+        self.stats = {k: 0 for k in (
+            'init_applied', 'init_rejected', 'clip_applied', 'pause_applied', 'heartbeats',
+            'heartbeat_mismatches', 'pulls_ok', 'pulls_failed', 'pull_parts_skipped_stale',
+            'unknown_messages')}
+        self.times = {k: None for k in ('init', 'clip', 'pause', 'heartbeat', 'pull_ok', 'pull_try')}
+        self.started = time.time()
+
+    # -- helpers (call with lock held unless noted)
+    def loaded(self) -> bool:
+        with self.lock:
+            return len(self.english) > 1
+
+    def problem(self, message: str) -> None:
+        self.problems.append(f"{time.strftime('%H:%M:%S')} {message}")
+        log(f"PROBLEM: {message}")
+
+    def snapshot(self) -> Snapshot:
+        with self.lock:
+            return Snapshot(self.english, self.spanish, self.durations, self.clip, self.paused)
+
+    def baseline(self) -> dict:
+        with self.lock:
+            return dict(self.push_seq)
+
+    def _age(self, key):
+        stamp = self.times[key]
+        return None if stamp is None else round(time.time() - stamp, 1)
+
+    # -- appliers
+    def _apply_init(self, init: dict, source: str) -> None:
+        entries = init['entries']
+        if not entries:
+            self.stats['init_rejected'] += 1
+            self.problem(f"INIT from {source} rejected: no valid entries (kept {len(self.english) - 1} existing)")
+            return
+
+        size = max(int(e[0]) for e in entries)
+        english, spanish, durations = [None] * (size + 1), [None] * (size + 1), [None] * (size + 1)
+        for index_str, en, es, dur in entries:
+            index = int(index_str)
+            english[index], spanish[index], durations[index] = en, es, format_duration(dur)
+
+        self.english, self.spanish, self.durations = english, spanish, durations
+        self.digest = init['digest']
+        self.times['init'] = time.time()
+        self.stats['init_applied'] += 1
+        log(f"INIT applied from {source}: {len(entries)} items, digest {self.digest}")
+
+        damaged = False
+        if init['malformed']:
+            damaged = True
+            self.problem(f"INIT had {len(init['malformed'])} malformed line(s), first: {init['malformed'][0][:80]!r}")
+        if init['header_count'] is not None and init['header_count'] != len(entries):
+            damaged = True
+            self.problem(f"INIT announced {init['header_count']} items but {len(entries)} parsed")
+        if init['header_digest'] is not None and init['header_digest'] != init['digest']:
+            self.problem(f"INIT digest mismatch (engine {init['header_digest']}, local {init['digest']}): "
+                         "corrupted in transit or engine/Pi digest code differ")
+        if damaged and source == 'push':
+            self.resync_requested.set()  # ask the engine for a clean copy
+
+    def _apply_clip(self, value: int, source: str) -> None:
+        if value == INVALID_CLIP:
+            self.problem(f"Invalid CLIP message from {source}")
+            return
+        self.clip = value
+        self.times['clip'] = time.time()
+        self.stats['clip_applied'] += 1
+        known = value < len(self.english) and self.english[value] is not None
+        log(f"CLIP {value} applied from {source}"
+            + (f": {self.english[value]!r}" if known else " (not in current playlist)"))
+        if not known and source == 'push':
+            self.problem(f"CLIP {value} is not in the {len(self.english) - 1}-item playlist: menu is stale or empty")
+            self.resync_requested.set()
+
+    def _apply_pause(self, value: bool, source: str) -> None:
+        if value != self.paused:
+            log(f"Facilitation mode {'enabled' if value else 'disabled'} ({source})")
+        self.paused = value
+        self.times['pause'] = time.time()
+        self.stats['pause_applied'] += 1
+
+    def _handle_state(self, digest: str, clip: Optional[int], paused: bool) -> str:
+        """Compare the engine heartbeat against local state. Returns the reply line."""
+        self.stats['heartbeats'] += 1
+        self.times['heartbeat'] = time.time()
+        diffs = []
+        if digest != self.digest:
+            diffs.append(f"playlist(engine {digest}, pi {self.digest})")
+        if clip != self.clip:
+            diffs.append(f"clip(engine {clip}, pi {self.clip})")
+        if paused != self.paused:
+            diffs.append(f"paused(engine {paused}, pi {self.paused})")
+
+        if not diffs:
+            if self.last_state_result != 'OK':
+                log("Heartbeat: in sync with engine")
+            self.mismatch_streak = 0
+            self.last_state_result = 'OK'
+            return f"ACK OK digest={self.digest} clip={self.clip} paused={int(self.paused)}"
+
+        self.stats['heartbeat_mismatches'] += 1
+        self.mismatch_streak += 1
+        self.last_state_result = 'MISMATCH ' + ', '.join(diffs)
+        log(f"Heartbeat MISMATCH #{self.mismatch_streak}: {', '.join(diffs)}")
+        if self.mismatch_streak >= MISMATCH_PULL_THRESHOLD:
+            self.resync_requested.set()
+        return f"ACK MISMATCH {', '.join(diffs)}"
+
+    # -- entry point
+    def apply_payload(self, text: str, source: str, baseline: Optional[dict] = None,
+                      sender: Optional[str] = None):
+        """
+        Apply a parsed message. source is 'push' (from the engine) or 'pull' (our request).
+        A pull applies a part only if no push touched that part since `baseline` was taken,
+        so a slow pull response can never overwrite newer pushed data.
+        Returns (parsed, reply_or_None).
+        """
+        parsed = parse_payload(text)
+        reply = None
+        with self.lock:
+            def fresh(kind: str) -> bool:
+                if source == 'push':
+                    self.push_seq[kind] += 1
+                    return True
+                if baseline is not None and self.push_seq[kind] != baseline[kind]:
+                    self.stats['pull_parts_skipped_stale'] += 1
+                    log(f"Pull response {kind.upper()} skipped: newer push already applied")
+                    return False
+                return True
+
+            if source == 'push' and sender and any(
+                    parsed[k] is not None for k in ('init', 'clip', 'pause', 'state')):
+                if sender != self.last_sender and sender != ENGINE_IP:
+                    self.problem(f"engine messages arrive from {sender} but ENGINE_IP is {ENGINE_IP}: "
+                                 "state requests are going to the wrong host")
+                self.last_sender = sender
+
+            if parsed['init'] is not None and fresh('init'):
+                self._apply_init(parsed['init'], source)
+            if parsed['pause'] is not None and fresh('pause'):
+                self._apply_pause(parsed['pause'], source)
+            if parsed['clip'] is not None and fresh('clip'):
+                self._apply_clip(parsed['clip'], source)
+            if parsed['state'] is not None and source == 'push':
+                reply = self._handle_state(*parsed['state'])
+            if source == 'push':
+                for line in parsed['unknown']:
+                    self.stats['unknown_messages'] += 1
+                    self.problem(f"unrecognized message: {line[:60]!r}")
+        return parsed, reply
+
+    def status(self) -> dict:
+        with self.lock:
+            hb_age = self._age('heartbeat')
+            if hb_age is None or hb_age > HEARTBEAT_STALE_AFTER:
+                in_sync = None  # unknown: no recent heartbeat from the engine
+            else:
+                in_sync = self.last_state_result == 'OK'
+            return {
+                'in_sync': in_sync,
+                'last_heartbeat_result': self.last_state_result,
+                'items': len(self.english) - 1,
+                'digest': self.digest,
+                'clip': self.clip,
+                'paused': self.paused,
+                'ages_s': {k: self._age(k) for k in self.times},
+                'stats': dict(self.stats),
+                'engine_ip': ENGINE_IP,
+                'last_sender': self.last_sender,
+                'recent_problems': list(self.problems),
+                'uptime_s': round(time.time() - self.started, 1),
+            }
+
+
+state = SyncState()
+
+
+def process_message(message: str, sender: Optional[str] = None) -> bytes:
+    """Handle one inbound push message from the engine; returns the reply to send back."""
+    message = message.strip()
+    if message == 'STATUS':
+        return (json.dumps(state.status()) + "\n").encode('utf-8')
+    preview = message[:100].replace("\n", " / ")
+    if not message.startswith('STATE '):  # heartbeats are logged only when they change result
+        log(f"Received from {sender}: {preview}{'...' if len(message) > 100 else ''}")
+    _, reply = state.apply_payload(message, 'push', sender=sender)
+    return ((reply or "ACK") + "\n").encode('utf-8')
+
+
+def read_message(conn: socket.socket) -> bytes:
+    """Read until the peer half-closes, the size cap is hit, or the timeout expires."""
+    data = bytearray()
+    try:
+        while len(data) < MAX_MESSAGE_BYTES:
+            chunk = conn.recv(BUFFER_SIZE)
+            if not chunk:
+                break
+            data.extend(chunk)
+    except socket.timeout:
+        log("Recv timeout - processing partial data")
+    return bytes(data)
+
+
+def request_state_from_engine() -> bool:
+    """
+    Pull the full state (playlist, pause, clip) from the engine query server.
+    Parts that a newer engine push already updated while we were waiting are not overwritten.
+    Returns True if a playlist was received.
+    """
+    baseline = state.baseline()
+    with state.lock:
+        state.times['pull_try'] = time.time()
+    log(f"Requesting state from engine {ENGINE_IP}:{ENGINE_QUERY_PORT}...")
+    try:
+        data = bytearray()
+        with socket.create_connection((ENGINE_IP, ENGINE_QUERY_PORT),
+                                      timeout=ENGINE_CONNECT_TIMEOUT) as sock:
+            sock.sendall(b"REQUEST_STATE\n")
+            sock.settimeout(ENGINE_RECV_TIMEOUT)
+            try:
+                while len(data) < MAX_MESSAGE_BYTES:
+                    chunk = sock.recv(BUFFER_SIZE)
+                    if not chunk:
+                        break
+                    data.extend(chunk)
+            except socket.timeout:
+                pass  # engine didn't close; use what arrived
+        if not data:
+            raise RuntimeError("engine returned no data")
+
+        parsed, _ = state.apply_payload(data.decode('utf-8', 'ignore'), 'pull', baseline=baseline)
+        if parsed['init'] is None or not parsed['init']['entries']:
+            raise RuntimeError("engine response contained no playlist")
+        with state.lock:
+            state.stats['pulls_ok'] += 1
+            state.times['pull_ok'] = time.time()
+            state.mismatch_streak = 0
+        log(f"Pull complete ({len(data)} bytes)")
+        return True
+    except Exception as e:
+        with state.lock:
+            state.stats['pulls_failed'] += 1
+        log(f"Pull from engine failed: {e!r}")
+        return False
+
+
+def resync_loop() -> None:
+    """
+    Background thread that decides when to pull from the engine:
+      - no playlist loaded yet (retry every ENGINE_RETRY_INTERVAL)
+      - a push was damaged / refers to unknown clips / heartbeats keep mismatching
+      - heartbeats absent (old engine, engine down): periodic safety pull
+    """
+    last_try = 0.0
+    last_summary = time.monotonic()
+    while running:
+        time.sleep(0.5)
+        now = time.monotonic()
+        wall = time.time()
+
+        with state.lock:
+            loaded = state.loaded()
+            hb_age = state._age('heartbeat')
+            last_sync = max([t for t in (state.times['pull_ok'], state.times['init'],
+                                         state.times['pull_try']) if t] or [0.0])
+        heartbeat_live = hb_age is not None and hb_age <= HEARTBEAT_STALE_AFTER
+
+        reason, min_gap = None, ENGINE_RETRY_INTERVAL
+        if not loaded:
+            reason = "no playlist loaded"
+        elif state.resync_requested.is_set():
+            reason = "mismatch or damaged message"
+        elif not heartbeat_live and wall - last_sync >= PERIODIC_RESYNC_INTERVAL:
+            reason, min_gap = "periodic check (no engine heartbeats)", PERIODIC_RESYNC_INTERVAL
+
+        if reason and now - last_try >= min_gap:
+            state.resync_requested.clear()
+            last_try = now
+            log(f"Resync: {reason}")
+            request_state_from_engine()
+
+        if now - last_summary >= SUMMARY_LOG_INTERVAL:
+            last_summary = now
+            s = state.status()
+            log(f"Summary: in_sync={s['in_sync']} items={s['items']} clip={s['clip']} "
+                f"paused={s['paused']} digest={s['digest']} heartbeat_age={s['ages_s']['heartbeat']}s "
+                f"problems={len(s['recent_problems'])}")
+
+
+def socket_server_loop(server_sock: socket.socket) -> None:
+    """
+    Accept engine connections one at a time (preserves message order) on a thread
+    separate from rendering, so a slow or stalled peer can never freeze the display.
+    """
+    server_sock.settimeout(0.5)
+    while running:
+        try:
+            conn, addr = server_sock.accept()
+        except socket.timeout:
             continue
-        index = int(index_str)
-        while len(new_english) <= index:
-            new_english.append(None)
-            new_spanish.append(None)
-            new_durations.append(None)
-        new_english[index] = english
-        new_spanish[index] = spanish
-        new_durations[index] = format_duration(duration)
-
-    english_titles = new_english
-    spanish_titles = new_spanish
-    durations = new_durations
-
-    print("[Pi] INIT received.")
-    print(f"[Pi] Loaded {len(english_titles) - 1} items")
-
-
-def _handle_clip_message(message: str) -> None:
-    """Handle CLIP message and map to stored playlist data."""
-    global current_clip_number
-
-    clip_str = message.split(":", 1)[1].strip() if ":" in message else ""
-    if not clip_str.isdigit():
-        print(f"[Pi] Invalid CLIP message: {message}")
-        return
-
-    current_clip_number = int(clip_str)
-    english = english_titles[current_clip_number] if current_clip_number < len(english_titles) else None
-    spanish = spanish_titles[current_clip_number] if current_clip_number < len(spanish_titles) else None
-    duration = durations[current_clip_number] if current_clip_number < len(durations) else None
-
-    print(f"[Pi] Current clip number: {current_clip_number}")
-    print(f"[Pi] Clip English: {english}")
-    print(f"[Pi] Clip Spanish: {spanish}")
-    print(f"[Pi] Clip Duration: {duration}")
-
-
-def _handle_pause_command() -> None:
-    """Handle PAUSE command - enter facilitation mode."""
-    global is_paused
-    if not is_paused:
-        is_paused = True
-        print("[Pi] Facilitation mode enabled - display paused")
-
-
-def _handle_unpause_command() -> None:
-    """Handle UNPAUSE command - exit facilitation mode."""
-    global is_paused
-    if is_paused:
-        is_paused = False
-        print("[Pi] Facilitation mode disabled - display resumed")
+        except OSError:
+            if running:
+                log("Server socket error; stopping accept loop")
+            break
+        try:
+            conn.settimeout(CONNECTION_TIMEOUT)
+            data = read_message(conn)
+            if data:
+                reply = process_message(data.decode('utf-8', 'ignore'), sender=addr[0])
+                try:
+                    conn.sendall(reply)
+                except OSError:
+                    pass
+            else:
+                log(f"Connection from {addr[0]} sent no data")
+        except Exception as e:
+            state.problem(f"error handling connection from {addr[0]}: {e!r}")
+        finally:
+            conn.close()
 
 
 def kill_old_instance() -> None:
@@ -650,20 +1015,19 @@ def kill_old_instance() -> None:
             # Check if process is still running
             try:
                 os.kill(old_pid, 0)  # Signal 0 just checks if process exists
-                print(f"[Pi] Found old instance (PID {old_pid}), terminating...")
+                log(f"Found old instance (PID {old_pid}), terminating...")
                 os.kill(old_pid, signal.SIGTERM)
-                import time
                 time.sleep(0.5)
                 # Force kill if still alive
                 try:
                     os.kill(old_pid, signal.SIGKILL)
                 except OSError:
                     pass  # Already dead
-                print("[Pi] Old instance terminated")
+                log("Old instance terminated")
             except OSError:
-                print(f"[Pi] PID {old_pid} not running, cleaning up stale PID file")
+                log(f"PID {old_pid} not running, cleaning up stale PID file")
         except Exception as e:
-            print(f"[Pi] Warning: Could not read/kill old PID: {e}")
+            log(f"Warning: Could not read/kill old PID: {e}")
         
         # Remove old PID file
         try:
@@ -683,14 +1047,14 @@ def kill_old_instance() -> None:
             pids = result.stdout.strip().split('\n')
             for pid in pids:
                 try:
-                    print(f"[Pi] Killing process {pid} using port {PI_PORT}")
+                    log(f"Killing process {pid} using port {PI_PORT}")
                     os.kill(int(pid), signal.SIGKILL)
                 except Exception as e:
-                    print(f"[Pi] Could not kill PID {pid}: {e}")
+                    log(f"Could not kill PID {pid}: {e}")
     except (subprocess.TimeoutExpired, FileNotFoundError):
         pass  # lsof not available or timed out
     except Exception as e:
-        print(f"[Pi] Warning checking port: {e}")
+        log(f"Warning checking port: {e}")
 
 
 def write_pid_file() -> None:
@@ -698,228 +1062,76 @@ def write_pid_file() -> None:
     try:
         with open(PID_FILE, 'w') as f:
             f.write(str(os.getpid()))
-        print(f"[Pi] PID file created: {PID_FILE}")
+        log(f"PID file created: {PID_FILE}")
     except Exception as e:
-        print(f"[Pi] Warning: Could not create PID file: {e}")
+        log(f"Warning: Could not create PID file: {e}")
 
 
-def request_state_from_engine() -> bool:
-    """
-    Request current state from engine when starting late.
-    Returns True if state data was received and parsed, False otherwise.
-    """
-    print("[Pi] Requesting current state from engine...")
-    try:
-        with socket.create_connection((ENGINE_IP, ENGINE_QUERY_PORT),
-                                      timeout=ENGINE_CONNECT_TIMEOUT) as sock:
-            # Send request
-            sock.sendall(b"REQUEST_STATE\n")
-            print("[Pi] Sent REQUEST_STATE to engine")
-
-            # Receive response (may be large)
-            data = bytearray()
-            sock.settimeout(ENGINE_RECV_TIMEOUT)
-            while True:
-                try:
-                    chunk = sock.recv(BUFFER_SIZE)
-                    if not chunk:
-                        break
-                    data.extend(chunk)
-                    print(f"[Pi] Received chunk: {len(chunk)} bytes")
-                except socket.timeout:
-                    break  # No more data
-
-            if data:
-                message = data.decode('utf-8', 'ignore').strip()
-                print(f"[Pi] Received state from engine ({len(message)} bytes)")
-                print(f"[Pi] Raw message preview: {message[:200]}..." if len(message) > 200 else f"[Pi] Raw message: {message}")
-
-                # Parse messages - INIT comes first, CLIP (if present) comes after blank line
-                if "CLIP:" in message:
-                    # Split INIT and CLIP messages
-                    parts = message.split("\n\n")
-                    if len(parts) >= 2:
-                        # INIT is in first part, CLIP in second
-                        init_part = parts[0]
-                        clip_part = parts[1]
-                        print(f"[Pi] Found INIT and CLIP (split by blank line)")
-                        if init_part.startswith("INIT"):
-                            _parse_init_message(init_part)
-                        if clip_part.startswith("CLIP:"):
-                            _handle_clip_message(clip_part)
-                    else:
-                        # Fallback: manually split by CLIP:
-                        clip_idx = message.find("CLIP:")
-                        if clip_idx > 0:
-                            init_part = message[:clip_idx].strip()
-                            clip_part = message[clip_idx:].strip()
-                            print(f"[Pi] Found INIT and CLIP (manual split)")
-                            if init_part.startswith("INIT"):
-                                _parse_init_message(init_part)
-                            _handle_clip_message(clip_part)
-                else:
-                    # Only INIT message
-                    print(f"[Pi] Found INIT only")
-                    if message.startswith("INIT"):
-                        _parse_init_message(message)
-
-                print("[Pi] State successfully loaded from engine")
-                return True
-            else:
-                print("[Pi] No state data received from engine")
-
-    except socket.timeout:
-        print("[Pi] Timeout requesting state from engine")
-    except ConnectionRefusedError:
-        print(f"[Pi] Engine not responding on {ENGINE_IP}:{ENGINE_QUERY_PORT}")
-    except Exception as e:
-        print(f"[Pi] Error requesting state: {e}")
-    return False
 
 
-def _state_loaded() -> bool:
-    """Check whether playlist state has been received (via request or engine push)."""
-    return len(english_titles) > 1
-
-
-def state_request_loop() -> None:
-    """
-    Background thread: keep requesting state from the engine until it arrives.
-    Stops once state is loaded (by request or by engine push) or on shutdown.
-    """
-    while running and not _state_loaded():
-        if request_state_from_engine():
-            break
-        print(f"[Pi] Will retry state request in {ENGINE_RETRY_INTERVAL:.0f}s...")
-        # Sleep in small increments so shutdown isn't delayed
-        deadline = time.monotonic() + ENGINE_RETRY_INTERVAL
-        while running and not _state_loaded() and time.monotonic() < deadline:
-            time.sleep(0.5)
-    if _state_loaded():
-        print("[Pi] State loaded - stopping state request retries")
+def bind_server_socket() -> socket.socket:
+    """Bind the listening socket, retrying briefly while a killed predecessor releases the port."""
+    last_error = None
+    for _ in range(10):
+        server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # No SO_REUSEPORT: it would let a duplicate instance bind silently and split traffic.
+        server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            server_sock.bind(('0.0.0.0', PI_PORT))
+            server_sock.listen(5)
+            return server_sock
+        except OSError as e:
+            last_error = e
+            server_sock.close()
+            time.sleep(1)
+    log(f"ERROR: Cannot bind to port {PI_PORT}: {last_error}")
+    log(f"Another instance may be running. Try: lsof -ti:{PI_PORT} | xargs kill -9")
+    sys.exit(1)
 
 
 def pi_socket_server() -> None:
-    """Socket server that receives INIT and CLIP data from Beelink."""
+    """Start the sync threads and run the render loop."""
     global running
-    
-    # Kill any old instances before starting
+
     kill_old_instance()
-    
-    # Write PID file and register cleanup
     write_pid_file()
     atexit.register(cleanup_pid_file)
-    
-    # Initialize display
-    init_display()
-    
-    # Request current state from engine in the background,
-    # retrying until it responds (display keeps rendering meanwhile)
-    state_thread = threading.Thread(target=state_request_loop, daemon=True)
-    state_thread.start()
-    
-    server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    
-    # On Linux, also set SO_REUSEPORT if available
-    try:
-        server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-    except (AttributeError, OSError):
-        pass  # SO_REUSEPORT not available on this system
-    
-    server_sock.settimeout(0.1)  # Short timeout to allow display updates
-    
-    try:
-        server_sock.bind(('0.0.0.0', PI_PORT))
-    except OSError as e:
-        print(f"[Pi] ERROR: Cannot bind to port {PI_PORT}")
-        print(f"[Pi] {e}")
-        print(f"[Pi] Another instance may be running. To fix:")
-        print(f"[Pi]   1. Run: lsof -ti:{PI_PORT} | xargs kill -9")
-        print(f"[Pi]   2. Or: pkill -f nowPlaying.py")
-        server_sock.close()
-        sys.exit(1)
-    
-    server_sock.listen(5)
 
-    bound_addr = server_sock.getsockname()
-    print(f"[Pi] Socket server bound to {bound_addr}")
-    print(f"[Pi] Listening on port {PI_PORT}...")
-    print("[Pi] Press Ctrl+C to exit")
-    
+    init_display()
+
+    server_sock = bind_server_socket()
+    log(f"Listening on port {PI_PORT} (engine {ENGINE_IP}:{ENGINE_QUERY_PORT})")
+    log("Press Ctrl+C to exit")
+
+    threading.Thread(target=socket_server_loop, args=(server_sock,), daemon=True).start()
+    threading.Thread(target=resync_loop, daemon=True).start()
+
     pygame.mouse.set_visible(False)
 
     while running:
-        # Handle pygame events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE or event.key == pygame.K_q:
                     running = False
-        
-        # Render display
+
         render_display()
         clock.tick(FPS)
-        
-        # Check for socket connections
-        try:
-            conn, addr = server_sock.accept()
-        except socket.timeout:
-            continue  # No connection, continue display loop
-        except KeyboardInterrupt:
-            break
-            
-        conn.settimeout(5.0)  # Prevent infinite blocking
-        print(f"[Pi] Connection from {addr}")
 
-        data = bytearray()
-        try:
-            while True:
-                chunk = conn.recv(BUFFER_SIZE)
-                if not chunk:
-                    break
-                data.extend(chunk)
-        except socket.timeout:
-            print("[Pi] Recv timeout - processing partial data")
-
-        if data:
-            message = data.decode('utf-8', 'ignore').strip()
-            print(f"[Pi] Received: {message[:100]}...") if len(message) > 100 else print(f"[Pi] Received: {message}")
-
-            if message.startswith("INIT"):
-                _parse_init_message(message)
-            elif message.startswith("CLIP:"):
-                _handle_clip_message(message)
-            elif message == "PAUSE":
-                _handle_pause_command()
-            elif message == "UNPAUSE":
-                _handle_unpause_command()
-            else:
-                print(f"[Pi] Unknown message: {message[:50]}")
-
-            try:
-                conn.sendall(b"ACK\n")
-            except:
-                pass
-        else:
-            print("[Pi] No data received")
-
-        conn.close()
-
-    # Cleanup
     server_sock.close()
     pygame.quit()
     cleanup_pid_file()
-    print("[Pi] Server stopped")
+    log("Server stopped")
 
 
 def main():
     signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     try:
         pi_socket_server()
     except Exception as e:
-        print(f"[Pi] FATAL: {e}")
+        log(f"FATAL: {e}")
         cleanup_pid_file()
         raise
 

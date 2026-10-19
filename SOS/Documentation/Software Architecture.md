@@ -291,22 +291,25 @@ echo '{"command":["loadfile","/path/audio.mp3"]}' | socat - UNIX-CONNECT:/tmp/mp
 
 ### Now Playing Protocol (TCP Socket)
 
+Beelink engine → Raspberry Pi on port 4096 (one or more newline-delimited messages per connection, sender half-closes). The playlist is always built by `nowplaying_protocol.build_init_message()`, used by both the startup push (`sdc.py`) and the pull response (`engine.py`), so both paths give the Pi identical data.
+
 ```
 Engine → Pi (INIT):
-  "INIT\n"
-  "1|English Title 1|Spanish Title 1|1m 30s\n"
-  "2|English Title 2|Spanish Title 2|2m 0s\n"
+  "INIT <digest> <count>\n"          digest = sha1 of the entry lines, first 8 hex chars
+  "1|English Title 1|Spanish Title 1|90\n"   duration in seconds, 0 = unknown
+  "2|English Title 2|Spanish Title 2|120\n"
   ...
 
-Engine → Pi (CLIP):
-  "CLIP:5\n"
+Engine → Pi: "CLIP:5\n"  |  "PAUSE\n"  |  "UNPAUSE\n"
 
-Engine → Pi (PAUSE):
-  "PAUSE\n"
+Engine → Pi (heartbeat, every NOWPLAYING_HEARTBEAT_INTERVAL s):
+  "STATE <digest> <clip|-> <0|1>\n"   Pi replies "ACK OK ..." or "ACK MISMATCH ..."
 
-Engine → Pi (UNPAUSE):
-  "UNPAUSE\n"
+Anyone → Pi (diagnostics):  "STATUS"   Pi replies with one JSON line
+Pi → Engine (port 4097):    "REQUEST_STATE\n"   engine replies INIT + PAUSE/UNPAUSE [+ CLIP:n]
 ```
+
+Pi self-healing: the Pi compares each heartbeat to its own state; two consecutive mismatches (or a damaged INIT, or a CLIP outside the playlist) trigger a REQUEST_STATE pull. If heartbeats stop, it pulls every 30 s. A pull never overwrites a part (INIT/CLIP/PAUSE) that a newer push already updated. `STATUS` reports `in_sync` (true/false/null if no recent heartbeat), digest, clip, paused, message ages, counters, and recent problems; the Pi also logs a summary line every 60 s.
 
 ### HTTP API Protocol
 

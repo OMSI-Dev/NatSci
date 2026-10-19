@@ -13,6 +13,7 @@ import atexit
 from PyQt5.QtWidgets import QApplication
 from overlay_subtitles import SubtitleManager, SubtitleOverlay
 from overlay_progressBar import ProgressBarOverlay
+from nowplaying_protocol import build_init_message, build_state_line
 from config import get_config
 from config.constants import *
 
@@ -259,10 +260,17 @@ class SimplePPEngine:
         self.deferred_operations_thread = None  # Background thread for slow operations
         self.clip_generation = 0  # Incremented on every clip change; lets stale audio threads abort
         self._audio_lock = threading.Lock()  # Serializes manage_audio across deferred threads
+        self._nowplaying_lock = threading.RLock()  # Serializes sends so Pi messages arrive in order
         
         # Start query server thread
         self.query_server_thread = threading.Thread(target=self._run_query_server, daemon=True)
         self.query_server_thread.start()
+        
+        # Start nowPlaying heartbeat so the Pi can detect and repair missed updates
+        if self.nowplaying_enabled:
+            self.nowplaying_heartbeat_thread = threading.Thread(
+                target=self._run_nowplaying_heartbeat, daemon=True)
+            self.nowplaying_heartbeat_thread.start()
         
         # Start HTTP facilitation server thread
         self.http_server_thread = threading.Thread(target=self._run_http_server, daemon=True)
@@ -338,59 +346,73 @@ class SimplePPEngine:
         elapsed = time.time() - self.clip_start_time
         return min(elapsed, self.current_clip_duration)  # Cap at current clip's duration
 
-    def _send_nowplaying_message(self, message: str) -> None:
-        """Send a nowPlaying socket message to the Pi."""
-        if not self.nowplaying_enabled:
-            return
-        try:
-            with socket.create_connection((PI_IP, PI_PORT), timeout=2.0) as pi_sock:
-                pi_sock.sendall(message.encode('utf-8'))
-        except Exception as e:
-            print(f"[Engine] nowPlaying send failed: {e}")
+    def _nowplaying_exchange(self, message: str, expect_reply: bool = False,
+                             timeout: float = 2.0):
+        """Send one message to the Pi.
 
-    def update_nowPlaying(self, clip_number: int) -> None:
-        """Send the current clip number to nowPlaying."""
+        Returns (ok, reply). Sends are serialized so messages reach the Pi in the
+        order they were issued.
+        """
+        if not self.nowplaying_enabled:
+            return False, None
+        with self._nowplaying_lock:
+            try:
+                with socket.create_connection((PI_IP, PI_PORT), timeout=timeout) as pi_sock:
+                    pi_sock.sendall(message.encode('utf-8'))
+                    if not expect_reply:
+                        return True, None
+                    pi_sock.shutdown(socket.SHUT_WR)  # Pi reads until EOF before replying
+                    return True, pi_sock.recv(1024).decode('utf-8', 'ignore').strip()
+            except Exception as e:
+                print(f"[Engine] nowPlaying send failed ({message.splitlines()[0][:20]!r}): {e}")
+                return False, None
+
+    def _send_nowplaying_message(self, message: str) -> bool:
+        """Send a nowPlaying socket message to the Pi. Returns True if delivered."""
+        return self._nowplaying_exchange(message)[0]
+
+    def update_nowPlaying(self, clip_number: int, generation=None) -> None:
+        """Send the current clip number to nowPlaying.
+
+        If generation is given and a newer clip has since started, the update is
+        dropped: sending it would overwrite the newer clip on the Pi.
+        """
         if clip_number is None:
             return
-        with self.state_lock:
-            self.current_clip_number = clip_number
-        self._send_nowplaying_message(f"CLIP:{clip_number}\n")
-    
+        with self._nowplaying_lock:
+            if generation is not None and generation != self.clip_generation:
+                print(f"[Engine] Dropping stale nowPlaying update for clip {clip_number}")
+                return
+            with self.state_lock:
+                self.current_clip_number = clip_number
+            self._send_nowplaying_message(f"CLIP:{clip_number}\n")
+
     def _build_init_message(self) -> str:
-        """Build INIT message from current playlist data."""
-        if not self.cache_manager.current_playlist:
-            return "INIT\n"
-        
-        clips = self.cache_manager.current_playlist.get('clips', [])
-        lines = ["INIT"]
-        
-        for idx, clip in enumerate(clips, start=1):
-            clip_name = clip.get('name', '')
-            metadata = self.cache_manager.get(clip_name) or {}
-            
-            english_title = metadata.get('movie-title', clip_name)
-            spanish_title = metadata.get('spanish-translation', '')
-            duration_raw = metadata.get('duration', 0)
-            
-            # Handle both int and float duration values
-            if isinstance(duration_raw, str):
-                try:
-                    duration_sec = float(duration_raw)
-                except ValueError:
-                    duration_sec = 0
-            else:
-                duration_sec = float(duration_raw)
-            
-            # Format duration as "Xm Xs" (no decimals)
-            total_seconds = int(duration_sec)
-            minutes = total_seconds // 60
-            seconds = total_seconds % 60
-            duration_str = f"{minutes}m {seconds}s"
-            
-            lines.append(f"{idx}|{english_title}|{spanish_title}|{duration_str}")
-        
-        return "\n".join(lines) + "\n"
-    
+        """Build INIT message from current playlist data (shared with sdc.py)."""
+        return build_init_message(self.cache_manager)[0]
+
+    def _run_nowplaying_heartbeat(self):
+        """Periodically tell the Pi our state; the Pi pulls a full resync on mismatch."""
+        last_ok = None
+        while self.running:
+            time.sleep(NOWPLAYING_HEARTBEAT_INTERVAL)
+            if not self.running:
+                break
+            try:
+                _, digest, _ = build_init_message(self.cache_manager)
+                with self.state_lock:
+                    clip_number = self.current_clip_number
+                    paused = self.facilitation_mode
+                ok, reply = self._nowplaying_exchange(
+                    build_state_line(digest, clip_number, paused), expect_reply=True)
+                if ok != last_ok:
+                    print(f"[Engine] nowPlaying link {'UP' if ok else 'DOWN'}")
+                    last_ok = ok
+                if ok and reply and 'MISMATCH' in reply:
+                    print(f"[Engine] nowPlaying reports out-of-sync: {reply}")
+            except Exception as e:
+                print(f"[Engine] nowPlaying heartbeat error: {e}")
+
     def _run_query_server(self):
         """Run a server socket to handle state queries from Pi."""
         try:
@@ -418,13 +440,12 @@ class SimplePPEngine:
                                 # Build complete response message
                                 init_msg = self._build_init_message()
                                 
-                                # Append current clip if available
+                                # Append facilitation state and current clip
                                 with self.state_lock:
+                                    pause_line = "PAUSE\n" if self.facilitation_mode else "UNPAUSE\n"
+                                    complete_msg = init_msg + pause_line
                                     if self.current_clip_number is not None:
-                                        clip_msg = f"CLIP:{self.current_clip_number}\n"
-                                        complete_msg = init_msg + "\n" + clip_msg
-                                    else:
-                                        complete_msg = init_msg
+                                        complete_msg += f"\nCLIP:{self.current_clip_number}\n"
                                 
                                 # Send as single message
                                 conn.sendall(complete_msg.encode('utf-8'))
@@ -701,19 +722,9 @@ class SimplePPEngine:
             return {"status": "error", "message": str(e)}
     
     def _send_to_nowplaying(self, command: str):
-        """Send command to nowPlaying display."""
-        if not self.nowplaying_enabled:
-            return
-        try:
-            with socket.create_connection((PI_IP, PI_PORT), timeout=3.0) as sock:
-                sock.sendall(command.encode('utf-8'))
-                print(f"[Engine] Sent to nowPlaying: {command}")
-        except ConnectionRefusedError:
-            print(f"[Engine] nowPlaying not responding ({PI_IP}:{PI_PORT})")
-        except socket.timeout:
-            print(f"[Engine] nowPlaying timeout ({PI_IP}:{PI_PORT})")
-        except Exception as e:
-            print(f"[Engine] nowPlaying send error: {e}")
+        """Send command to nowPlaying display (heartbeat repairs it if this is lost)."""
+        if self._send_nowplaying_message(command + "\n"):
+            print(f"[Engine] Sent to nowPlaying: {command}")
 
     def navigate_to_clip(self, clip_name):
         """Navigate to the slide(s) associated with the given clip name."""
@@ -745,7 +756,7 @@ class SimplePPEngine:
             # NowPlaying update
             if clip_number is not None:
                 nowplaying_start = time.time()
-                self.update_nowPlaying(clip_number)
+                self.update_nowPlaying(clip_number, generation)
                 print(f"[Engine] [Background] NowPlaying update took {time.time() - nowplaying_start:.3f}s")
 
             # Audio management

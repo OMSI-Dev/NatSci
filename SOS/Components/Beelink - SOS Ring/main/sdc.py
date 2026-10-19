@@ -10,6 +10,7 @@ import time
 
 from cache_manager import CacheManager
 from engine import SimplePPEngine
+from nowplaying_protocol import build_init_message
 from pp_init import initialize_all
 from audio_init import initialize_audio
 from config import get_config
@@ -67,45 +68,30 @@ def initialize_cache_and_playlist():
         sock.close()
 
 def initialize_nowplaying(cache_mgr: CacheManager) -> None:
-    """Send the current playlist metadata to nowPlaying on the Pi."""
+    """Send the current playlist metadata to nowPlaying on the Pi.
+
+    Best effort: the engine heartbeat and the Pi's own REQUEST_STATE pull
+    repair the Pi if every attempt here fails.
+    """
     if not cache_mgr or not cache_mgr.current_playlist:
         print("[nowPlaying] No current playlist available.")
         return
 
-    clips = cache_mgr.current_playlist.get('clips', [])
-    lines = ["INIT"]
+    payload, digest, count = build_init_message(cache_mgr)
 
-    for index, clip in enumerate(clips, start=1):
-        clip_name = clip.get('name', '')
-        spanish_title, english_title = cache_mgr.get_clip_titles(clip_name)
-        if not english_title:
-            english_title = clip_name
-        if not spanish_title:
-            spanish_title = clip_name
-
-        metadata = cache_mgr.get(clip_name)
-        duration = metadata.get('duration') if isinstance(metadata, dict) else None
-        if not duration and isinstance(metadata, dict):
-            duration = metadata.get('timer')
-        if not duration:
-            duration = 90
-
-        lines.append(f"{index}|{english_title}|{spanish_title}|{duration}")
-
-    payload = "\n".join(lines) + "\n"
-
-    try:
-        pi_sock = socket.create_connection((PI_IP, PI_PORT), timeout=PI_QUERY_TIMEOUT)
-        pi_sock.sendall(payload.encode('utf-8'))
-        pi_sock.shutdown(socket.SHUT_WR)  # Signal end of data
-        
-        # Wait for ACK
-        ack = pi_sock.recv(1024)
-        pi_sock.close()
-        
-        print(f"[nowPlaying] Sent {len(clips)} playlist items to Pi.")
-    except Exception as e:
-        print(f"[nowPlaying] Failed to send playlist: {e}")
+    for attempt in range(1, NOWPLAYING_INIT_ATTEMPTS + 1):
+        try:
+            with socket.create_connection((PI_IP, PI_PORT), timeout=PI_QUERY_TIMEOUT) as pi_sock:
+                pi_sock.sendall(payload.encode('utf-8'))
+                pi_sock.shutdown(socket.SHUT_WR)  # Signal end of data
+                ack = pi_sock.recv(1024).decode('utf-8', 'ignore').strip()
+            print(f"[nowPlaying] Sent {count} playlist items (digest {digest}) to Pi, reply: {ack or 'none'}")
+            return
+        except Exception as e:
+            print(f"[nowPlaying] Playlist send attempt {attempt}/{NOWPLAYING_INIT_ATTEMPTS} failed: {e}")
+            if attempt < NOWPLAYING_INIT_ATTEMPTS:
+                time.sleep(NOWPLAYING_INIT_RETRY_DELAY)
+    print("[nowPlaying] Giving up on initial push; Pi will resync from the engine.")
 
 if __name__ == '__main__':
     print("=" * 60)
