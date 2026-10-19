@@ -7,28 +7,51 @@ import atexit
 import threading
 import time
 import re
+import io
+import csv
 import json
-import hashlib
 from collections import deque, namedtuple
 import pygame
 from typing import Optional, List
 
-# Socket Configuration
+# STATUS socket (diagnostics only; the Beelink is not involved in this display)
 PI_PORT = 4096
 BUFFER_SIZE = 8192
-ENGINE_IP = "10.0.0.17"  # Beelink/Engine IP NETWORK d
-ENGINE_QUERY_PORT = 4097  # Port to query engine for state
-ENGINE_CONNECT_TIMEOUT = 10.0  # Seconds to wait for connection to engine
-ENGINE_RECV_TIMEOUT = 5.0  # Seconds to wait for each chunk of state data
-ENGINE_RETRY_INTERVAL = 5.0  # Minimum seconds between state requests (pulls)
+CONNECTION_TIMEOUT = 3.0  # Seconds to wait on a connected STATUS peer
+MAX_MESSAGE_BYTES = 1_000_000  # Hard cap on a single inbound STATUS message
 
-# Sync / self-healing
-HEARTBEAT_STALE_AFTER = 20.0  # No engine STATE heartbeat this long -> fall back to periodic pulls
-PERIODIC_RESYNC_INTERVAL = 30.0  # Safety-net pull interval while heartbeats are absent
-MISMATCH_PULL_THRESHOLD = 2  # Consecutive mismatching heartbeats before pulling (ignores transients)
-CONNECTION_TIMEOUT = 3.0  # Seconds to wait on a connected peer
-MAX_MESSAGE_BYTES = 1_000_000  # Hard cap on a single inbound message
-SUMMARY_LOG_INTERVAL = 60.0  # Seconds between sync summary log lines
+# SOS server (read-only queries)
+SOS_IP = "10.0.0.16"  # NETWORK
+SOS_PORT = 2468
+SOS_CONNECT_TIMEOUT = 5.0  # Seconds to connect
+SOS_FIRST_REPLY_TIMEOUT = 3.0  # Seconds to wait for the first byte of a reply
+SOS_IDLE_TIMEOUT = 0.4  # Seconds of silence that end a reply (SOS has no delimiter)
+MAX_REPLY_BYTES = 1_000_000
+
+# Titles: SOS_datasets.csv fetched from the SOS server over SSH (key auth), cached locally
+SOS_SSH_USER = "sos"
+SSH_KEY_PATH = ""  # Optional private key; empty = ssh defaults / agent
+SSH_CONNECT_TIMEOUT = 5
+SSH_TIMEOUT = 15.0  # Whole-command limit for the CSV fetch
+TITLES_REMOTE_PATH = "/AuxShare/data/SOS_datasets.csv"  # \\10.0.0.16\AuxShare\data on the SOS server
+TITLES_CACHE_PATH = "/home/omsiadmin/Documents/SOS/SOS_datasets.csv"
+TITLES_REFRESH_INTERVAL = 1800.0  # Refetch the CSV this often once fetched over SSH
+TITLES_RETRY_INTERVAL = 300.0  # Retry interval while only a cache (or nothing) is available
+
+# Adaptive polling (see PollScheduler)
+BASE_POLL_INTERVAL = 20.0  # Poll cadence until a clip's duration is known
+CATCH_POLL_INTERVAL = 2.0  # Cadence around a predicted clip change
+SAFETY_POLL_INTERVAL = 60.0  # Longest gap between polls (bounds staleness after a manual skip)
+EARLY_MARGIN = 1.5  # Start catch-polling this long before the predicted change
+MAX_LEAD = 40.0  # Cap on how early catch-polling may start
+MAX_CATCH_WINDOW = 15.0  # Keep catch-polling this long past the predicted change before giving up
+HINT_ERROR = 5.0  # Assumed error of a duration taken from SOS metadata
+DURATION_TOLERANCE = 2.0  # Slack when deciding two duration samples agree
+IDENTITY_CHECK_INTERVAL = 180.0  # Playlist name + clip count check
+FULL_REFRESH_INTERVAL = 1800.0  # Full playlist refetch
+FAILURE_RETRY_DELAY = 5.0  # Retry after a failed SOS call
+HEALTHY_POLL_AGE = 150.0  # STATUS in_sync is false when the last good poll is older than this
+SUMMARY_LOG_INTERVAL = 60.0  # Seconds between summary log lines
 
 # Display Configuration
 # Physical screen: 1920×1080 rotated 90° to portrait orientation
@@ -76,7 +99,6 @@ LIGHT_BLUE = (100, 200, 255)
 MUSEO_FONT_PATH = '/home/omsiadmin/Documents/SOS/Museo_Slab_500.otf'
 INTER_FONT_PATH = '/home/omsiadmin/Documents/SOS/Inter_24pt-Regular.ttf'
 BACKGROUND_PATH = '/home/omsiadmin/Documents/SOS/bkg.jpg'
-PAUSED_IMAGE_PATH = '/home/omsiadmin/Documents/SOS/nowPlaying_paused.jpg'
 PID_FILE = '/tmp/nowPlaying.pid'
 
 # Global Data
@@ -91,7 +113,6 @@ inter_title_font = None
 inter_subtitle_font = None
 duration_font = None
 background = None
-paused_image = None
 
 
 def cleanup_pid_file():
@@ -117,7 +138,7 @@ def signal_handler(sig, frame):
 def init_display():
     """Initialize pygame display and load fonts/images."""
     global screen, clock, museo_title_font, museo_subtitle_font
-    global inter_title_font, inter_subtitle_font, duration_font, background, paused_image
+    global inter_title_font, inter_subtitle_font, duration_font, background
     
     pygame.init()
     screen = None
@@ -159,15 +180,6 @@ def init_display():
     except Exception as e:
         print(f"[Pi] Warning: Could not load background image: {e}")
         background = None
-    
-    # Load paused image for facilitation mode
-    try:
-        paused_image = pygame.image.load(PAUSED_IMAGE_PATH)
-        paused_image = pygame.transform.scale(paused_image, (DISPLAY_WIDTH, DISPLAY_HEIGHT))
-        print("[Pi] Paused image loaded successfully")
-    except Exception as e:
-        print(f"[Pi] Warning: Could not load paused image: {e}")
-        paused_image = None
 
 
 def rotate_and_position(surface: pygame.Surface, design_x: int, design_y: int, 
@@ -531,15 +543,6 @@ def render_display():
     snap = state.snapshot()
     english_titles, spanish_titles, durations = snap.english, snap.spanish, snap.durations
 
-    # Check if in facilitation pause mode
-    if snap.paused:
-        if paused_image:
-            screen.blit(paused_image, (0, 0))
-        else:
-            screen.fill((0, 0, 0))  # Black screen if image fails to load
-        pygame.display.flip()
-        return
-    
     draw_background()
     draw_canvas_background()  # Unified background behind all text
     draw_header()
@@ -573,20 +576,16 @@ def render_display():
     pygame.display.flip()
 
 
-
-
 # ---------------------------------------------------------------------------
-# Sync state and protocol
+# Sync: this Pi talks ONLY to the SOS server (read-only commands) and never to the Beelink.
 #
-# Wire protocol (newline-delimited, one or more messages per connection):
-#   INIT [<digest> <count>]       header, then "<n>|<english>|<spanish>|<duration>" lines
-#   CLIP:<n>                      current clip
-#   PAUSE / UNPAUSE               facilitation mode
-#   STATE <digest> <clip|-> <0|1> engine heartbeat (playlist digest, clip, paused)
-#   STATUS                        diagnostic query; replies with one JSON line
-# The engine pushes INIT/CLIP/PAUSE/UNPAUSE/STATE; this Pi pulls with REQUEST_STATE.
-# Check health from any machine with:
-#   python3 -c "import socket;s=socket.create_connection(('<pi-ip>',4096));s.sendall(b'STATUS');s.shutdown(1);print(s.recv(65536).decode())"
+#   SOS 10.0.0.16:2468 (plain TCP text, '\n'-terminated, replies end on silence)
+#     enable, get_playlist_name, get_clip_count, get_clip_number, get_all_name_value_pairs <n>
+#   Titles: SOS_datasets.csv fetched from the SOS server over SSH (UTF-8), cached locally.
+#
+# Port 4096 only answers STATUS (diagnostics). Check health on the Pi itself with:
+#   python3 -c "import socket;s=socket.create_connection(('127.0.0.1',4096));s.sendall(b'STATUS');s.shutdown(1);print(s.recv(65536).decode())"
+# NEVER add open_playlist / load / play / next_clip / prev_clip here: those change what the sphere shows.
 # ---------------------------------------------------------------------------
 
 def log(message: str) -> None:
@@ -594,102 +593,441 @@ def log(message: str) -> None:
     print(f"[Pi] {time.strftime('%H:%M:%S')} {message}", flush=True)
 
 
-def _is_uint(text: str) -> bool:
-    return text.isascii() and text.isdigit()
+class SosError(Exception):
+    """SOS unreachable, silent, or replied with something unusable."""
 
 
-def _digest(entry_lines) -> str:
-    """Digest of the INIT body; must match nowplaying_protocol.entries_digest on the Beelink."""
-    return hashlib.sha1("\n".join(entry_lines).encode('utf-8')).hexdigest()[:8]
+# -- reply parsing (pure functions) ------------------------------------------
+
+def parse_int(text: str) -> Optional[int]:
+    for line in text.splitlines():
+        line = line.strip()
+        if line.isascii() and line.isdigit():
+            return int(line)
+    match = re.search(r'\d+', text)
+    return int(match.group()) if match else None
 
 
-INVALID_CLIP = -1
+def parse_playlist_name(text: str) -> str:
+    for line in text.splitlines():
+        line = line.strip()
+        if line and line != 'R':  # 'R' is the SOS acknowledgement token
+            return line
+    return ''
 
-Snapshot = namedtuple('Snapshot', 'english spanish durations clip paused')
+
+# Tcl-style "key value key {value with spaces}"; keys may contain '-', "{}" is an empty value.
+_PAIR_RE = re.compile(r'(?<![\w-])([\w-]+)[ \t]+(?:\{([^}]*)\}|(\S+))')
 
 
-def parse_payload(text: str) -> dict:
-    """
-    Parse any inbound message (push or pull response) into its parts. Pure function.
-    Keys: init (dict|None), clip (int|None, INVALID_CLIP if unparsable), pause (bool|None),
-    state ((digest, clip, paused)|None), status (bool), unknown (list of lines).
-    """
-    result = {'init': None, 'clip': None, 'pause': None, 'state': None,
-              'status': False, 'unknown': []}
-    header = None
-    entries, entry_lines, malformed = [], [], []
+def parse_pairs(text: str) -> dict:
+    pairs = {}
+    for match in _PAIR_RE.finditer(text):
+        value = match.group(2) if match.group(2) is not None else match.group(3)
+        pairs.setdefault(match.group(1), value.strip())
+    return pairs
 
-    for raw in text.splitlines():
-        line = raw.strip()
-        if not line:
-            continue
-        if line == 'INIT' or line.startswith('INIT '):
-            header = line.split()
-        elif line.startswith('CLIP:'):
-            value = line[5:].strip()
-            result['clip'] = int(value) if _is_uint(value) else INVALID_CLIP
-        elif line == 'PAUSE':
-            result['pause'] = True
-        elif line == 'UNPAUSE':
-            result['pause'] = False
-        elif line == 'STATUS':
-            result['status'] = True
-        elif line.startswith('STATE '):
-            parts = line.split()
-            if len(parts) == 4 and (parts[2] == '-' or _is_uint(parts[2])) and parts[3] in ('0', '1'):
-                result['state'] = (parts[1], None if parts[2] == '-' else int(parts[2]), parts[3] == '1')
-            else:
-                result['unknown'].append(line)
-        elif header is not None:
-            parts = line.split('|', 3)
-            if len(parts) == 4 and _is_uint(parts[0].strip()) and int(parts[0]) > 0 and '|' not in parts[3]:
-                entries.append(tuple(p.strip() for p in parts))
-                entry_lines.append(line)
-            else:
-                malformed.append(line)
+
+def parse_seconds(value) -> Optional[float]:
+    """Duration text ('65', '2:30', '2m 30s') -> seconds; None when missing/zero/unrecognized."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    seconds = None
+    try:
+        seconds = float(text)
+    except ValueError:
+        parts = text.split(':')
+        if 2 <= len(parts) <= 3 and all(p.strip().isdigit() for p in parts):
+            seconds = 0
+            for part in parts:
+                seconds = seconds * 60 + int(part)
         else:
-            result['unknown'].append(line)
+            match = re.fullmatch(r'(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?\s*(?:(\d+)\s*s)?', text, re.IGNORECASE)
+            if match and any(match.groups()):
+                hours, minutes, secs = (int(g) if g else 0 for g in match.groups())
+                seconds = hours * 3600 + minutes * 60 + secs
+    return float(seconds) if seconds and seconds > 0 else None
 
-    if header is not None:
-        result['init'] = {
-            'header_digest': header[1] if len(header) > 1 else None,
-            'header_count': int(header[2]) if len(header) > 2 and _is_uint(header[2]) else None,
-            'entries': entries,
-            'malformed': malformed,
-            'digest': _digest(entry_lines),
-        }
-    return result
+
+# -- SOS client -----------------------------------------------------------------
+
+Clip = namedtuple('Clip', 'number name duration_text movie_title spanish_translation')
+Playlist = namedtuple('Playlist', 'identity current clips')  # identity = (playlist_name, clip_count)
+
+
+class SosSession:
+    """One short-lived, enabled connection to SOS. Read-only commands only."""
+
+    def __init__(self, host: str, port: int):
+        self.host, self.port = host, port
+        self.sock = None
+
+    def __enter__(self):
+        try:
+            self.sock = socket.create_connection((self.host, self.port), timeout=SOS_CONNECT_TIMEOUT)
+        except OSError as e:
+            raise SosError(f"connect to {self.host}:{self.port} failed: {e}") from e
+        try:
+            self._send('enable')
+            self._read_reply()  # handshake reply; content is not needed
+        except Exception:
+            self.close()
+            raise
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+    def close(self):
+        if self.sock is not None:
+            try:
+                self.sock.close()
+            except OSError:
+                pass
+            self.sock = None
+
+    def _send(self, command: str) -> None:
+        try:
+            self.sock.sendall(command.encode('utf-8') + b'\n')
+        except OSError as e:
+            raise SosError(f"send {command!r} failed: {e}") from e
+
+    def _read_reply(self) -> bytes:
+        """SOS has no reply delimiter: read until the line goes quiet."""
+        data = bytearray()
+        started = time.monotonic()
+        last = None
+        self.sock.settimeout(0.1)
+        while len(data) < MAX_REPLY_BYTES:
+            try:
+                chunk = self.sock.recv(4096)
+            except socket.timeout:
+                now = time.monotonic()
+                if data and now - last >= SOS_IDLE_TIMEOUT:
+                    break
+                if not data and now - started >= SOS_FIRST_REPLY_TIMEOUT:
+                    break
+                continue
+            except OSError as e:
+                raise SosError(f"recv failed: {e}") from e
+            if not chunk:
+                break
+            data.extend(chunk)
+            last = time.monotonic()
+        return bytes(data)
+
+    def command(self, command: str) -> str:
+        self._send(command)
+        data = self._read_reply()
+        if not data:
+            raise SosError(f"no reply to {command!r}")
+        return data.decode('utf-8', 'replace')  # whole buffer at once: never splits a multi-byte char
+
+    def clip_number(self) -> Optional[int]:
+        return parse_int(self.command('get_clip_number'))
+
+    def identity(self):
+        name = parse_playlist_name(self.command('get_playlist_name'))
+        count = parse_int(self.command('get_clip_count'))
+        if count is None:
+            raise SosError("bad get_clip_count reply")
+        return (name, count)
+
+
+class SosClient:
+    def __init__(self, host: str = SOS_IP, port: int = SOS_PORT):
+        self.host, self.port = host, port
+
+    def session(self) -> SosSession:
+        return SosSession(self.host, self.port)
+
+    def fetch_playlist(self) -> Playlist:
+        with self.session() as s:
+            identity = s.identity()
+            current = s.clip_number()
+            clips = []
+            for number in range(1, identity[1] + 1):
+                pairs = parse_pairs(s.command(f'get_all_name_value_pairs {number}'))
+                clips.append(Clip(
+                    number=number,
+                    name=pairs.get('name') or f"Clip {number}",
+                    duration_text=pairs.get('duration') or pairs.get('timer'),
+                    movie_title=pairs.get('movie-title'),
+                    spanish_translation=pairs.get('spanish-translation'),
+                ))
+        return Playlist(identity, current, clips)
+
+
+# -- titles (SOS_datasets.csv) --------------------------------------------------
+
+TITLE_COLUMN_KEY = 'Dataset Name (Auto)'
+
+
+def decode_csv_bytes(data: bytes) -> str:
+    """UTF-8 first (with or without BOM); cp1252 only for files that are not valid UTF-8."""
+    try:
+        return data.decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return data.decode('cp1252', 'replace')
+
+
+def parse_titles_csv(text: str) -> dict:
+    titles = {}
+    for row in csv.DictReader(io.StringIO(text)):
+        key = (row.get(TITLE_COLUMN_KEY) or '').strip()
+        if key:
+            titles[key] = ((row.get('English Title') or '').strip(),
+                           (row.get('Spanish Title') or '').strip())
+    return titles
+
+
+def fetch_titles_bytes() -> bytes:
+    cmd = ['ssh', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=no',
+           '-o', f'ConnectTimeout={SSH_CONNECT_TIMEOUT}']
+    if SSH_KEY_PATH:
+        cmd += ['-i', SSH_KEY_PATH]
+    cmd += [f'{SOS_SSH_USER}@{SOS_IP}', f"cat '{TITLES_REMOTE_PATH}'"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, timeout=SSH_TIMEOUT)
+    except (subprocess.TimeoutExpired, OSError) as e:
+        raise SosError(f"ssh title fetch failed: {e!r}") from e
+    if result.returncode != 0:
+        raise SosError(f"ssh title fetch exit {result.returncode}: "
+                       f"{result.stderr.decode('utf-8', 'replace').strip()[:200]}")
+    return result.stdout
+
+
+class TitleSource:
+    """English/Spanish titles keyed by clip name; SSH fetch, local cache, never raises."""
+
+    def __init__(self, fetch=fetch_titles_bytes, cache_path: str = TITLES_CACHE_PATH):
+        self.fetch, self.cache_path = fetch, cache_path
+        self.titles = {}
+        self._lower = {}
+        self.source = None  # 'ssh' | 'cache' | None
+        self.loaded_at = None
+        self.last_try = None
+        self.last_error = None
+
+    def _set(self, titles: dict, source: str) -> None:
+        self.titles = titles
+        self._lower = {k.lower(): v for k, v in titles.items()}
+        self.source = source
+        self.loaded_at = time.time()
+
+    def load_cache(self) -> bool:
+        try:
+            with open(self.cache_path, 'rb') as f:
+                titles = parse_titles_csv(decode_csv_bytes(f.read()))
+        except OSError:
+            return False
+        if titles:
+            self._set(titles, 'cache')
+            log(f"Titles: {len(titles)} entries loaded from cache {self.cache_path}")
+        return bool(titles)
+
+    def refresh(self, now: float) -> bool:
+        self.last_try = now
+        try:
+            data = self.fetch()
+            titles = parse_titles_csv(decode_csv_bytes(data))
+            if not titles:
+                raise SosError("titles CSV had no usable rows")
+        except Exception as e:
+            self.last_error = f"{time.strftime('%H:%M:%S')} {e}"
+            log(f"Titles: refresh failed ({e}); keeping {len(self.titles)} {self.source or 'no'} entries")
+            return False
+        self._set(titles, 'ssh')
+        self.last_error = None
+        log(f"Titles: {len(titles)} entries fetched from SOS")
+        try:
+            tmp = self.cache_path + '.tmp'
+            with open(tmp, 'wb') as f:
+                f.write(data)
+            os.replace(tmp, self.cache_path)
+        except OSError as e:
+            log(f"Titles: could not write cache: {e}")
+        return True
+
+    def due(self, now: float) -> bool:
+        if self.last_try is None:
+            return True
+        interval = TITLES_RETRY_INTERVAL if self.source != 'ssh' else TITLES_REFRESH_INTERVAL
+        return now - self.last_try >= interval
+
+    def lookup(self, name: str):
+        return self.titles.get(name) or self._lower.get(name.lower())
+
+    def info(self) -> dict:
+        return {'source': self.source, 'entries': len(self.titles),
+                'age_s': None if self.loaded_at is None else round(time.time() - self.loaded_at, 1),
+                'last_error': self.last_error}
+
+
+def build_entries(clips, titles: TitleSource):
+    """Display lists indexed by clip number (index 0 unused). Titles: CSV, then SOS metadata, then name."""
+    size = len(clips) + 1
+    english, spanish, durations = [None] * size, [None] * size, [None] * size
+    for clip in clips:
+        found = titles.lookup(clip.name)
+        csv_english, csv_spanish = found if found else ('', '')
+        english[clip.number] = csv_english or clip.movie_title or clip.name
+        spanish[clip.number] = csv_spanish or clip.spanish_translation or ''
+        durations[clip.number] = format_duration(clip.duration_text)
+    return english, spanish, durations
+
+
+# -- adaptive polling ---------------------------------------------------------------
+
+class PollScheduler:
+    """
+    Decides when to ask SOS for the current clip. Pure: every method takes `now`.
+
+    Start with BASE_POLL_INTERVAL. Each observed clip change gives a start-time estimate
+    (midpoint of the two polls around it, +/- half the gap); the time between two consecutive
+    starts is that clip's duration (+/- the sum of both errors). Once a clip's duration is
+    known, sleep until just before its predicted end and poll every CATCH_POLL_INTERVAL until
+    the change lands. Lower-error samples replace higher-error ones, so predictions tighten.
+    A clip that outlasts its prediction falls back to BASE polling; a safety poll
+    (SAFETY_POLL_INTERVAL) bounds how stale the display can get after a manual skip.
+    """
+
+    def __init__(self):
+        self.count = None
+        self.reset()
+
+    def reset(self) -> None:
+        """New playlist: forget everything learned."""
+        self.learned = {}      # clip -> (seconds, error)
+        self.hints = {}        # clip -> seconds from SOS metadata (trusted less)
+        self.pending_short = {}
+        self.misses = 0
+        self.reset_tracking()
+
+    def reset_tracking(self) -> None:
+        """Lose track of the running clip (e.g. after a long fetch) without forgetting durations."""
+        self.clip = None
+        self.start = None
+        self.start_err = None
+        self.last_poll = None
+        self._miss_counted = False
+
+    def set_hints(self, hints: dict) -> None:
+        self.hints = dict(hints)
+
+    def estimate(self, clip):
+        if clip in self.learned:
+            seconds, err = self.learned[clip]
+            return seconds, err, 'learned'
+        if clip in self.hints:
+            return self.hints[clip], HINT_ERROR, 'hint'
+        return None
+
+    def _is_next(self, previous: int, current: int) -> bool:
+        if current == previous + 1:
+            return True
+        return current == 1 and (self.count is None or previous == self.count)
+
+    def observe(self, clip: int, now: float) -> str:
+        """Record a successful poll. Returns 'joined', 'same' or 'changed'."""
+        previous, last_poll = self.clip, self.last_poll
+        self.last_poll = now
+        if previous is None or last_poll is None:
+            self.clip, self.start, self.start_err = clip, None, None
+            self._miss_counted = False
+            return 'joined'
+
+        if clip == previous:
+            est = self.estimate(clip)
+            if (est and self.start is not None and not self._miss_counted
+                    and now > self.start + est[0] + MAX_CATCH_WINDOW):
+                self._miss_counted = True
+                self.misses += 1
+                if est[2] == 'hint':
+                    self.hints.pop(clip, None)  # metadata duration was wrong for this clip
+            return 'same'
+
+        new_start = (last_poll + now) / 2.0
+        new_err = (now - last_poll) / 2.0
+        if self.start is not None and self._is_next(previous, clip):
+            self._learn(previous, new_start - self.start, new_err + self.start_err)
+        self.clip, self.start, self.start_err = clip, new_start, new_err
+        self._miss_counted = False
+        return 'changed'
+
+    def _learn(self, clip: int, seconds: float, err: float) -> None:
+        if seconds <= 0:
+            return
+        old = self.learned.get(clip)
+        if old is None:
+            self.learned[clip] = (seconds, err)
+            return
+        old_seconds, old_err = old
+        if abs(seconds - old_seconds) <= old_err + err + DURATION_TOLERANCE:
+            if err <= old_err:
+                self.learned[clip] = (seconds, err)  # same duration, better precision
+            self.pending_short.pop(clip, None)
+        elif seconds > old_seconds:
+            self.learned[clip] = (seconds, err)  # clip genuinely ran longer
+            self.pending_short.pop(clip, None)
+        else:
+            pending = self.pending_short.get(clip)  # shorter once could be a manual skip
+            if pending is not None and abs(pending - seconds) <= err + DURATION_TOLERANCE:
+                self.learned[clip] = (seconds, err)
+                self.pending_short.pop(clip, None)
+            else:
+                self.pending_short[clip] = seconds
+
+    def next_delay(self, now: float):
+        """Seconds until the next poll and the mode ('base' | 'predict' | 'catch' | 'lost')."""
+        if self.clip is None or self.start is None:
+            return BASE_POLL_INTERVAL, 'base'
+        est = self.estimate(self.clip)
+        if est is None:
+            return BASE_POLL_INTERVAL, 'base'
+        seconds, err, _ = est
+        end = self.start + seconds
+        lead = min(EARLY_MARGIN + self.start_err + err, MAX_LEAD)
+        window_open = end - lead
+        if now < window_open:
+            return max(min(window_open - now, SAFETY_POLL_INTERVAL), CATCH_POLL_INTERVAL), 'predict'
+        if now <= end + MAX_CATCH_WINDOW:
+            return CATCH_POLL_INTERVAL, 'catch'
+        return BASE_POLL_INTERVAL, 'lost'
+
+    def describe(self, now: float) -> dict:
+        delay, mode = self.next_delay(now)
+        return {'mode': mode, 'next_poll_in_s': round(delay, 1), 'tracking_clip': self.clip,
+                'start_known': self.start is not None, 'misses': self.misses,
+                'learned_s': {str(c): [round(s, 1), round(e, 1)] for c, (s, e) in sorted(self.learned.items())},
+                'hints': len(self.hints)}
+
+
+# -- shared state -------------------------------------------------------------------
+
+Snapshot = namedtuple('Snapshot', 'english spanish durations clip')
 
 
 class SyncState:
-    """
-    All playlist/sync state, shared by the socket thread, resync thread and renderer.
-    Lists are replaced wholesale (never mutated) so a Snapshot is always consistent.
-    """
+    """Playlist/clip state shared by the SOS thread, STATUS thread and renderer."""
 
     def __init__(self):
         self.lock = threading.RLock()
         self.english = [None]
         self.spanish = [None]
         self.durations = [None]
-        self.digest = None  # digest of the INIT body currently held (computed locally)
         self.clip = None
-        self.paused = False
-
-        self.push_seq = {'init': 0, 'clip': 0, 'pause': 0}  # bumped by every engine push
-        self.resync_requested = threading.Event()
-        self.mismatch_streak = 0
-        self.last_state_result = None  # result of the latest engine heartbeat comparison
-        self.last_sender = None
+        self.identity = None
         self.problems = deque(maxlen=20)
-        self.stats = {k: 0 for k in (
-            'init_applied', 'init_rejected', 'clip_applied', 'pause_applied', 'heartbeats',
-            'heartbeat_mismatches', 'pulls_ok', 'pulls_failed', 'pull_parts_skipped_stale',
-            'unknown_messages')}
-        self.times = {k: None for k in ('init', 'clip', 'pause', 'heartbeat', 'pull_ok', 'pull_try')}
+        self.stats = {k: 0 for k in ('full_refreshes', 'full_refresh_failures', 'polls_ok',
+                                     'polls_failed', 'clip_changes', 'playlist_changes')}
+        self.times = {k: None for k in ('playlist', 'poll_ok', 'poll_try', 'clip_change')}
+        self.last_error = None
+        self.poll_info = {}
+        self.titles_info = {}
         self.started = time.time()
 
-    # -- helpers (call with lock held unless noted)
     def loaded(self) -> bool:
         with self.lock:
             return len(self.english) > 1
@@ -700,158 +1038,49 @@ class SyncState:
 
     def snapshot(self) -> Snapshot:
         with self.lock:
-            return Snapshot(self.english, self.spanish, self.durations, self.clip, self.paused)
+            return Snapshot(self.english, self.spanish, self.durations, self.clip)
 
-    def baseline(self) -> dict:
+    def set_playlist(self, identity, english, spanish, durations) -> None:
         with self.lock:
-            return dict(self.push_seq)
+            self.english, self.spanish, self.durations = english, spanish, durations
+            self.identity = identity
+            self.times['playlist'] = time.time()
+
+    def set_clip(self, clip: Optional[int]) -> bool:
+        """Returns True if the clip changed."""
+        with self.lock:
+            changed = clip != self.clip
+            self.clip = clip
+            if changed:
+                self.times['clip_change'] = time.time()
+                self.stats['clip_changes'] += 1
+            return changed
+
+    def title_for(self, clip: Optional[int]) -> str:
+        with self.lock:
+            if clip is not None and 0 < clip < len(self.english):
+                return self.english[clip] or ''
+            return ''
 
     def _age(self, key):
         stamp = self.times[key]
         return None if stamp is None else round(time.time() - stamp, 1)
 
-    # -- appliers
-    def _apply_init(self, init: dict, source: str) -> None:
-        entries = init['entries']
-        if not entries:
-            self.stats['init_rejected'] += 1
-            self.problem(f"INIT from {source} rejected: no valid entries (kept {len(self.english) - 1} existing)")
-            return
-
-        size = max(int(e[0]) for e in entries)
-        english, spanish, durations = [None] * (size + 1), [None] * (size + 1), [None] * (size + 1)
-        for index_str, en, es, dur in entries:
-            index = int(index_str)
-            english[index], spanish[index], durations[index] = en, es, format_duration(dur)
-
-        self.english, self.spanish, self.durations = english, spanish, durations
-        self.digest = init['digest']
-        self.times['init'] = time.time()
-        self.stats['init_applied'] += 1
-        log(f"INIT applied from {source}: {len(entries)} items, digest {self.digest}")
-
-        damaged = False
-        if init['malformed']:
-            damaged = True
-            self.problem(f"INIT had {len(init['malformed'])} malformed line(s), first: {init['malformed'][0][:80]!r}")
-        if init['header_count'] is not None and init['header_count'] != len(entries):
-            damaged = True
-            self.problem(f"INIT announced {init['header_count']} items but {len(entries)} parsed")
-        if init['header_digest'] is not None and init['header_digest'] != init['digest']:
-            self.problem(f"INIT digest mismatch (engine {init['header_digest']}, local {init['digest']}): "
-                         "corrupted in transit or engine/Pi digest code differ")
-        if damaged and source == 'push':
-            self.resync_requested.set()  # ask the engine for a clean copy
-
-    def _apply_clip(self, value: int, source: str) -> None:
-        if value == INVALID_CLIP:
-            self.problem(f"Invalid CLIP message from {source}")
-            return
-        self.clip = value
-        self.times['clip'] = time.time()
-        self.stats['clip_applied'] += 1
-        known = value < len(self.english) and self.english[value] is not None
-        log(f"CLIP {value} applied from {source}"
-            + (f": {self.english[value]!r}" if known else " (not in current playlist)"))
-        if not known and source == 'push':
-            self.problem(f"CLIP {value} is not in the {len(self.english) - 1}-item playlist: menu is stale or empty")
-            self.resync_requested.set()
-
-    def _apply_pause(self, value: bool, source: str) -> None:
-        if value != self.paused:
-            log(f"Facilitation mode {'enabled' if value else 'disabled'} ({source})")
-        self.paused = value
-        self.times['pause'] = time.time()
-        self.stats['pause_applied'] += 1
-
-    def _handle_state(self, digest: str, clip: Optional[int], paused: bool) -> str:
-        """Compare the engine heartbeat against local state. Returns the reply line."""
-        self.stats['heartbeats'] += 1
-        self.times['heartbeat'] = time.time()
-        diffs = []
-        if digest != self.digest:
-            diffs.append(f"playlist(engine {digest}, pi {self.digest})")
-        if clip != self.clip:
-            diffs.append(f"clip(engine {clip}, pi {self.clip})")
-        if paused != self.paused:
-            diffs.append(f"paused(engine {paused}, pi {self.paused})")
-
-        if not diffs:
-            if self.last_state_result != 'OK':
-                log("Heartbeat: in sync with engine")
-            self.mismatch_streak = 0
-            self.last_state_result = 'OK'
-            return f"ACK OK digest={self.digest} clip={self.clip} paused={int(self.paused)}"
-
-        self.stats['heartbeat_mismatches'] += 1
-        self.mismatch_streak += 1
-        self.last_state_result = 'MISMATCH ' + ', '.join(diffs)
-        log(f"Heartbeat MISMATCH #{self.mismatch_streak}: {', '.join(diffs)}")
-        if self.mismatch_streak >= MISMATCH_PULL_THRESHOLD:
-            self.resync_requested.set()
-        return f"ACK MISMATCH {', '.join(diffs)}"
-
-    # -- entry point
-    def apply_payload(self, text: str, source: str, baseline: Optional[dict] = None,
-                      sender: Optional[str] = None):
-        """
-        Apply a parsed message. source is 'push' (from the engine) or 'pull' (our request).
-        A pull applies a part only if no push touched that part since `baseline` was taken,
-        so a slow pull response can never overwrite newer pushed data.
-        Returns (parsed, reply_or_None).
-        """
-        parsed = parse_payload(text)
-        reply = None
-        with self.lock:
-            def fresh(kind: str) -> bool:
-                if source == 'push':
-                    self.push_seq[kind] += 1
-                    return True
-                if baseline is not None and self.push_seq[kind] != baseline[kind]:
-                    self.stats['pull_parts_skipped_stale'] += 1
-                    log(f"Pull response {kind.upper()} skipped: newer push already applied")
-                    return False
-                return True
-
-            if source == 'push' and sender and any(
-                    parsed[k] is not None for k in ('init', 'clip', 'pause', 'state')):
-                if sender != self.last_sender and sender != ENGINE_IP:
-                    self.problem(f"engine messages arrive from {sender} but ENGINE_IP is {ENGINE_IP}: "
-                                 "state requests are going to the wrong host")
-                self.last_sender = sender
-
-            if parsed['init'] is not None and fresh('init'):
-                self._apply_init(parsed['init'], source)
-            if parsed['pause'] is not None and fresh('pause'):
-                self._apply_pause(parsed['pause'], source)
-            if parsed['clip'] is not None and fresh('clip'):
-                self._apply_clip(parsed['clip'], source)
-            if parsed['state'] is not None and source == 'push':
-                reply = self._handle_state(*parsed['state'])
-            if source == 'push':
-                for line in parsed['unknown']:
-                    self.stats['unknown_messages'] += 1
-                    self.problem(f"unrecognized message: {line[:60]!r}")
-        return parsed, reply
-
     def status(self) -> dict:
         with self.lock:
-            hb_age = self._age('heartbeat')
-            if hb_age is None or hb_age > HEARTBEAT_STALE_AFTER:
-                in_sync = None  # unknown: no recent heartbeat from the engine
-            else:
-                in_sync = self.last_state_result == 'OK'
+            poll_age = self._age('poll_ok')
             return {
-                'in_sync': in_sync,
-                'last_heartbeat_result': self.last_state_result,
+                'in_sync': poll_age is not None and poll_age <= HEALTHY_POLL_AGE,
                 'items': len(self.english) - 1,
-                'digest': self.digest,
+                'playlist': None if self.identity is None else {'name': self.identity[0], 'clips': self.identity[1]},
                 'clip': self.clip,
-                'paused': self.paused,
+                'clip_title': self.title_for(self.clip),
                 'ages_s': {k: self._age(k) for k in self.times},
                 'stats': dict(self.stats),
-                'engine_ip': ENGINE_IP,
-                'last_sender': self.last_sender,
+                'last_error': self.last_error,
+                'polling': dict(self.poll_info),
+                'titles': dict(self.titles_info),
+                'sos': f"{SOS_IP}:{SOS_PORT}",
                 'recent_problems': list(self.problems),
                 'uptime_s': round(time.time() - self.started, 1),
             }
@@ -860,16 +1089,171 @@ class SyncState:
 state = SyncState()
 
 
+class SosSync:
+    """Drives SosClient + PollScheduler + TitleSource. step() does one unit of work and returns the sleep."""
+
+    def __init__(self, sync_state: SyncState, client, titles: TitleSource,
+                 scheduler: PollScheduler, clock=time.monotonic):
+        self.state, self.client, self.titles, self.scheduler, self.clock = \
+            sync_state, client, titles, scheduler, clock
+        self.clips = []
+        self.last_full = None
+        self.last_identity = None
+        self.force_full = False
+        self.failures = 0
+        self.last_mode = None
+
+    # -- helpers
+    def _failed(self, what: str, error: Exception) -> None:
+        self.failures += 1
+        with self.state.lock:
+            self.state.stats['polls_failed'] += 1
+            self.state.last_error = f"{time.strftime('%H:%M:%S')} {what}: {error}"
+        if self.failures == 1 or self.failures % 10 == 0:
+            log(f"SOS {what} failed ({self.failures} in a row): {error}")
+
+    def _succeeded(self) -> None:
+        if self.failures:
+            log(f"SOS reachable again after {self.failures} failure(s)")
+        self.failures = 0
+        with self.state.lock:
+            self.state.stats['polls_ok'] += 1
+            self.state.times['poll_ok'] = time.time()
+            self.state.last_error = None
+
+    def _publish_text(self) -> None:
+        english, spanish, durations = build_entries(self.clips, self.titles)
+        self.state.set_playlist(self.state.identity, english, spanish, durations)
+        self.state.titles_info = self.titles.info()
+
+    def _update_clip(self, clip: Optional[int]) -> None:
+        previous = self.state.clip
+        if self.state.set_clip(clip):
+            title = self.state.title_for(clip)
+            log(f"Clip {previous} -> {clip}" + (f": {title!r}" if title else " (not in playlist)"))
+
+    def _refresh_polling_info(self) -> float:
+        now = self.clock()
+        delay, mode = self.scheduler.next_delay(now)
+        self.state.poll_info = self.scheduler.describe(now)
+        if mode != self.last_mode:
+            log(f"Polling mode {self.last_mode} -> {mode} (next poll in {delay:.1f}s)")
+            self.last_mode = mode
+        return delay
+
+    # -- work
+    def full_refresh(self) -> bool:
+        with self.state.lock:
+            self.state.times['poll_try'] = time.time()
+        try:
+            playlist = self.client.fetch_playlist()
+        except SosError as e:
+            with self.state.lock:
+                self.state.stats['full_refresh_failures'] += 1
+            self._failed("playlist fetch", e)
+            return False
+
+        changed = playlist.identity != self.state.identity
+        if changed:
+            if self.state.identity is not None:
+                self.state.stats['playlist_changes'] += 1
+            self.scheduler.reset()
+            log(f"Playlist: {playlist.identity[0]!r} with {playlist.identity[1]} clips")
+        if changed or self.titles.due(self.clock()):
+            self.titles.refresh(self.clock())
+
+        now = self.clock()
+        self.clips = playlist.clips
+        self.state.identity = playlist.identity
+        self._publish_text()
+        hints = {}
+        for clip in playlist.clips:
+            seconds = parse_seconds(clip.duration_text)
+            if seconds:
+                hints[clip.number] = seconds
+        self.scheduler.count = len(playlist.clips)
+        self.scheduler.set_hints(hints)
+        self.scheduler.reset_tracking()
+        if playlist.current is not None:
+            self.scheduler.observe(playlist.current, now)
+        self._update_clip(playlist.current)
+
+        self.last_full = self.last_identity = now
+        self.force_full = False
+        with self.state.lock:
+            self.state.stats['full_refreshes'] += 1
+        self._succeeded()
+        return True
+
+    def step(self) -> float:
+        """One iteration; returns seconds to sleep before the next."""
+        now = self.clock()
+        needs_full = (not self.state.loaded() or self.force_full or
+                      (self.last_full is not None and now - self.last_full >= FULL_REFRESH_INTERVAL))
+        if needs_full:
+            if self.full_refresh():
+                return self._refresh_polling_info()
+            return FAILURE_RETRY_DELAY
+
+        if self.titles.due(now) and self.titles.source != 'ssh':
+            if self.titles.refresh(now):
+                self._publish_text()  # titles arrived after the playlist was loaded
+
+        check_identity = now - self.last_identity >= IDENTITY_CHECK_INTERVAL
+        with self.state.lock:
+            self.state.times['poll_try'] = time.time()
+        try:
+            with self.client.session() as session:
+                clip = session.clip_number()
+                identity = session.identity() if check_identity else None
+        except SosError as e:
+            self._failed("poll", e)
+            return FAILURE_RETRY_DELAY
+        polled_at = self.clock()
+        self._succeeded()
+
+        if identity is not None:
+            self.last_identity = polled_at
+            if identity != self.state.identity:
+                log(f"Playlist identity changed {self.state.identity} -> {identity}")
+                self.force_full = True
+                return 0.0
+
+        if clip is not None:
+            self.scheduler.observe(clip, polled_at)
+        self._update_clip(clip)
+        return self._refresh_polling_info()
+
+
+def sos_loop(sync: SosSync) -> None:
+    next_at = 0.0
+    last_summary = time.monotonic()
+    while running:
+        now = time.monotonic()
+        if now >= next_at:
+            try:
+                delay = sync.step()
+            except Exception as e:  # keep the thread alive no matter what
+                state.problem(f"sync step crashed: {e!r}")
+                delay = FAILURE_RETRY_DELAY
+            next_at = time.monotonic() + delay
+        if now - last_summary >= SUMMARY_LOG_INTERVAL:
+            last_summary = now
+            s = state.status()
+            log(f"Summary: in_sync={s['in_sync']} items={s['items']} clip={s['clip']} "
+                f"mode={s['polling'].get('mode')} learned={len(s['polling'].get('learned_s', {}))} "
+                f"titles={s['titles'].get('source')}/{s['titles'].get('entries')} "
+                f"poll_age={s['ages_s']['poll_ok']}s")
+        time.sleep(0.25)
+
+
+# -- STATUS socket ------------------------------------------------------------------
+
 def process_message(message: str, sender: Optional[str] = None) -> bytes:
-    """Handle one inbound push message from the engine; returns the reply to send back."""
-    message = message.strip()
-    if message == 'STATUS':
+    """Only STATUS is meaningful; anything else (e.g. a legacy engine push) is acknowledged and ignored."""
+    if message.strip() == 'STATUS':
         return (json.dumps(state.status()) + "\n").encode('utf-8')
-    preview = message[:100].replace("\n", " / ")
-    if not message.startswith('STATE '):  # heartbeats are logged only when they change result
-        log(f"Received from {sender}: {preview}{'...' if len(message) > 100 else ''}")
-    _, reply = state.apply_payload(message, 'push', sender=sender)
-    return ((reply or "ACK") + "\n").encode('utf-8')
+    return b"ACK IGNORED\n"
 
 
 def read_message(conn: socket.socket) -> bytes:
@@ -882,101 +1266,11 @@ def read_message(conn: socket.socket) -> bytes:
                 break
             data.extend(chunk)
     except socket.timeout:
-        log("Recv timeout - processing partial data")
+        pass
     return bytes(data)
 
 
-def request_state_from_engine() -> bool:
-    """
-    Pull the full state (playlist, pause, clip) from the engine query server.
-    Parts that a newer engine push already updated while we were waiting are not overwritten.
-    Returns True if a playlist was received.
-    """
-    baseline = state.baseline()
-    with state.lock:
-        state.times['pull_try'] = time.time()
-    log(f"Requesting state from engine {ENGINE_IP}:{ENGINE_QUERY_PORT}...")
-    try:
-        data = bytearray()
-        with socket.create_connection((ENGINE_IP, ENGINE_QUERY_PORT),
-                                      timeout=ENGINE_CONNECT_TIMEOUT) as sock:
-            sock.sendall(b"REQUEST_STATE\n")
-            sock.settimeout(ENGINE_RECV_TIMEOUT)
-            try:
-                while len(data) < MAX_MESSAGE_BYTES:
-                    chunk = sock.recv(BUFFER_SIZE)
-                    if not chunk:
-                        break
-                    data.extend(chunk)
-            except socket.timeout:
-                pass  # engine didn't close; use what arrived
-        if not data:
-            raise RuntimeError("engine returned no data")
-
-        parsed, _ = state.apply_payload(data.decode('utf-8', 'ignore'), 'pull', baseline=baseline)
-        if parsed['init'] is None or not parsed['init']['entries']:
-            raise RuntimeError("engine response contained no playlist")
-        with state.lock:
-            state.stats['pulls_ok'] += 1
-            state.times['pull_ok'] = time.time()
-            state.mismatch_streak = 0
-        log(f"Pull complete ({len(data)} bytes)")
-        return True
-    except Exception as e:
-        with state.lock:
-            state.stats['pulls_failed'] += 1
-        log(f"Pull from engine failed: {e!r}")
-        return False
-
-
-def resync_loop() -> None:
-    """
-    Background thread that decides when to pull from the engine:
-      - no playlist loaded yet (retry every ENGINE_RETRY_INTERVAL)
-      - a push was damaged / refers to unknown clips / heartbeats keep mismatching
-      - heartbeats absent (old engine, engine down): periodic safety pull
-    """
-    last_try = 0.0
-    last_summary = time.monotonic()
-    while running:
-        time.sleep(0.5)
-        now = time.monotonic()
-        wall = time.time()
-
-        with state.lock:
-            loaded = state.loaded()
-            hb_age = state._age('heartbeat')
-            last_sync = max([t for t in (state.times['pull_ok'], state.times['init'],
-                                         state.times['pull_try']) if t] or [0.0])
-        heartbeat_live = hb_age is not None and hb_age <= HEARTBEAT_STALE_AFTER
-
-        reason, min_gap = None, ENGINE_RETRY_INTERVAL
-        if not loaded:
-            reason = "no playlist loaded"
-        elif state.resync_requested.is_set():
-            reason = "mismatch or damaged message"
-        elif not heartbeat_live and wall - last_sync >= PERIODIC_RESYNC_INTERVAL:
-            reason, min_gap = "periodic check (no engine heartbeats)", PERIODIC_RESYNC_INTERVAL
-
-        if reason and now - last_try >= min_gap:
-            state.resync_requested.clear()
-            last_try = now
-            log(f"Resync: {reason}")
-            request_state_from_engine()
-
-        if now - last_summary >= SUMMARY_LOG_INTERVAL:
-            last_summary = now
-            s = state.status()
-            log(f"Summary: in_sync={s['in_sync']} items={s['items']} clip={s['clip']} "
-                f"paused={s['paused']} digest={s['digest']} heartbeat_age={s['ages_s']['heartbeat']}s "
-                f"problems={len(s['recent_problems'])}")
-
-
 def socket_server_loop(server_sock: socket.socket) -> None:
-    """
-    Accept engine connections one at a time (preserves message order) on a thread
-    separate from rendering, so a slow or stalled peer can never freeze the display.
-    """
     server_sock.settimeout(0.5)
     while running:
         try:
@@ -991,34 +1285,29 @@ def socket_server_loop(server_sock: socket.socket) -> None:
             conn.settimeout(CONNECTION_TIMEOUT)
             data = read_message(conn)
             if data:
-                reply = process_message(data.decode('utf-8', 'ignore'), sender=addr[0])
                 try:
-                    conn.sendall(reply)
+                    conn.sendall(process_message(data.decode('utf-8', 'ignore'), sender=addr[0]))
                 except OSError:
                     pass
-            else:
-                log(f"Connection from {addr[0]} sent no data")
         except Exception as e:
             state.problem(f"error handling connection from {addr[0]}: {e!r}")
         finally:
             conn.close()
 
 
+# -- process management --------------------------------------------------------------
+
 def kill_old_instance() -> None:
     """Kill any existing process using the port and clean up old PID file."""
-    # Check if PID file exists
     if os.path.exists(PID_FILE):
         try:
             with open(PID_FILE, 'r') as f:
                 old_pid = int(f.read().strip())
-            
-            # Check if process is still running
             try:
                 os.kill(old_pid, 0)  # Signal 0 just checks if process exists
                 log(f"Found old instance (PID {old_pid}), terminating...")
                 os.kill(old_pid, signal.SIGTERM)
                 time.sleep(0.5)
-                # Force kill if still alive
                 try:
                     os.kill(old_pid, signal.SIGKILL)
                 except OSError:
@@ -1028,24 +1317,15 @@ def kill_old_instance() -> None:
                 log(f"PID {old_pid} not running, cleaning up stale PID file")
         except Exception as e:
             log(f"Warning: Could not read/kill old PID: {e}")
-        
-        # Remove old PID file
         try:
             os.remove(PID_FILE)
-        except:
+        except OSError:
             pass
-    
-    # Try using lsof to find process using the port
+
     try:
-        result = subprocess.run(
-            ['lsof', '-ti', f':{PI_PORT}'],
-            capture_output=True,
-            text=True,
-            timeout=2
-        )
+        result = subprocess.run(['lsof', '-ti', f':{PI_PORT}'], capture_output=True, text=True, timeout=2)
         if result.stdout.strip():
-            pids = result.stdout.strip().split('\n')
-            for pid in pids:
+            for pid in result.stdout.strip().split('\n'):
                 try:
                     log(f"Killing process {pid} using port {PI_PORT}")
                     os.kill(int(pid), signal.SIGKILL)
@@ -1058,7 +1338,6 @@ def kill_old_instance() -> None:
 
 
 def write_pid_file() -> None:
-    """Write current process PID to file."""
     try:
         with open(PID_FILE, 'w') as f:
             f.write(str(os.getpid()))
@@ -1067,14 +1346,12 @@ def write_pid_file() -> None:
         log(f"Warning: Could not create PID file: {e}")
 
 
-
-
 def bind_server_socket() -> socket.socket:
-    """Bind the listening socket, retrying briefly while a killed predecessor releases the port."""
+    """Bind the STATUS socket, retrying briefly while a killed predecessor releases the port."""
     last_error = None
     for _ in range(10):
         server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # No SO_REUSEPORT: it would let a duplicate instance bind silently and split traffic.
+        # No SO_REUSEPORT: it would let a duplicate instance bind silently.
         server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             server_sock.bind(('0.0.0.0', PI_PORT))
@@ -1090,7 +1367,7 @@ def bind_server_socket() -> socket.socket:
 
 
 def pi_socket_server() -> None:
-    """Start the sync threads and run the render loop."""
+    """Start the SOS sync and STATUS threads and run the render loop."""
     global running
 
     kill_old_instance()
@@ -1099,12 +1376,16 @@ def pi_socket_server() -> None:
 
     init_display()
 
+    titles = TitleSource()
+    titles.load_cache()  # show titles immediately even if SSH is slow or down
+    sync = SosSync(state, SosClient(), titles, PollScheduler())
+
     server_sock = bind_server_socket()
-    log(f"Listening on port {PI_PORT} (engine {ENGINE_IP}:{ENGINE_QUERY_PORT})")
+    log(f"STATUS on port {PI_PORT}; syncing from SOS {SOS_IP}:{SOS_PORT}")
     log("Press Ctrl+C to exit")
 
     threading.Thread(target=socket_server_loop, args=(server_sock,), daemon=True).start()
-    threading.Thread(target=resync_loop, daemon=True).start()
+    threading.Thread(target=sos_loop, args=(sync,), daemon=True).start()
 
     pygame.mouse.set_visible(False)
 

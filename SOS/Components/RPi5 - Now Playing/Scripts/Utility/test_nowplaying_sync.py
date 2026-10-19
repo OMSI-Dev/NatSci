@@ -1,5 +1,6 @@
 """
-Tests for the nowPlaying sync logic (no display needed: pygame is stubbed).
+Tests for the SOS-polling nowPlaying logic (no display, no network: pygame is stubbed,
+SOS is a local fake server, the title fetch is injected).
 Run: python3 test_nowplaying_sync.py
 """
 import importlib.util
@@ -7,6 +8,7 @@ import json
 import os
 import socket
 import sys
+import tempfile
 import threading
 import time
 import unittest
@@ -16,155 +18,376 @@ sys.modules.setdefault('pygame', MagicMock())
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS = os.path.dirname(HERE)
-BEELINK_MAIN = os.path.normpath(os.path.join(SCRIPTS, '..', '..', 'Beelink - SOS Ring', 'main'))
+
+spec = importlib.util.spec_from_file_location('nowPlaying', os.path.join(SCRIPTS, 'nowPlaying.py'))
+np = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(np)
+
+CSV_UTF8 = ("Dataset Name (Auto),Spanish Title,English Title\n"
+            "Bee_Movie,Película de abejas ¿Sí?,Bee Movie\n"
+            "Sun,Sol,Sun\n").encode('utf-8')
 
 
-def _load(name, path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+class ParserTests(unittest.TestCase):
+    def test_pairs_braced_and_plain(self):
+        pairs = np.parse_pairs("name {Bee Movie} duration 95 movie-title {The Bee} caption {}")
+        self.assertEqual(pairs['name'], 'Bee Movie')
+        self.assertEqual(pairs['duration'], '95')
+        self.assertEqual(pairs['movie-title'], 'The Bee')
+        self.assertEqual(pairs['caption'], '')
+        self.assertNotIn('title', pairs)  # not split out of 'movie-title'
+
+    def test_pairs_ignores_ack_prefix_and_unicode(self):
+        pairs = np.parse_pairs("R\nname {Sun} spanish-translation {Pingüino ñandú}")
+        self.assertEqual(pairs['name'], 'Sun')
+        self.assertEqual(pairs['spanish-translation'], 'Pingüino ñandú')
+
+    def test_ints_and_names(self):
+        self.assertEqual(np.parse_int("R\n7\n"), 7)
+        self.assertEqual(np.parse_int("12"), 12)
+        self.assertIsNone(np.parse_int("R"))
+        self.assertEqual(np.parse_playlist_name("R\n/home/sos/sosrc/Batch1.sos\n"), "/home/sos/sosrc/Batch1.sos")
+
+    def test_seconds(self):
+        self.assertEqual(np.parse_seconds("65"), 65.0)
+        self.assertEqual(np.parse_seconds("2:30"), 150.0)
+        self.assertEqual(np.parse_seconds("2m 30s"), 150.0)
+        for bad in (None, "", "0", "N/A", "0m 0s"):
+            self.assertIsNone(np.parse_seconds(bad))
 
 
-np = _load('nowPlaying', os.path.join(SCRIPTS, 'nowPlaying.py'))
+class CsvTests(unittest.TestCase):
+    def test_utf8_accents_survive(self):
+        titles = np.parse_titles_csv(np.decode_csv_bytes(CSV_UTF8))
+        self.assertEqual(titles['Bee_Movie'], ('Bee Movie', 'Película de abejas ¿Sí?'))
 
-BODY = ["1|Alpha|Alfa|90", "2|Beta|Beta es|120", "3|Gamma|Gama|0"]
+    def test_utf8_bom(self):
+        titles = np.parse_titles_csv(np.decode_csv_bytes(b'\xef\xbb\xbf' + CSV_UTF8))
+        self.assertIn('Bee_Movie', titles)  # BOM must not corrupt the first column name
 
+    def test_cp1252_fallback(self):
+        data = "Dataset Name (Auto),Spanish Title,English Title\nX,Año,Year\n".encode('cp1252')
+        self.assertEqual(np.parse_titles_csv(np.decode_csv_bytes(data))['X'][1], 'Año')
 
-def init_text(entries=BODY, digest=None, count=None):
-    digest = digest or np._digest(entries)
-    count = len(entries) if count is None else count
-    return "\n".join([f"INIT {digest} {count}"] + entries) + "\n"
-
-
-class FakeCache:
-    current_playlist = {'clips': [{'name': 'a'}, {'name': 'b'}]}
-
-    def get_clip_titles(self, name):
-        return ({'a': 'Alfa'}.get(name), {'a': 'Alpha'}.get(name))
-
-    def get(self, name):
-        return {'a': {'duration': 90.4}, 'b': {'movie-title': 'Bee | Movie', 'timer': '120'}}[name]
+    def test_never_latin1_mojibake(self):
+        self.assertNotIn('Ã', np.decode_csv_bytes(CSV_UTF8))
 
 
-class ParseTests(unittest.TestCase):
-    def test_init_clip_pause_in_one_payload(self):
-        p = np.parse_payload(init_text() + "PAUSE\n\nCLIP:2\n")
-        self.assertEqual(len(p['init']['entries']), 3)
-        self.assertTrue(p['pause'])
-        self.assertEqual(p['clip'], 2)
-
-    def test_legacy_init_without_header(self):
-        p = np.parse_payload("INIT\n" + "\n".join(BODY))
-        self.assertEqual(len(p['init']['entries']), 3)
-        self.assertIsNone(p['init']['header_digest'])
-
-    def test_malformed_lines_counted(self):
-        p = np.parse_payload("INIT\n1|a|b|1\ngarbage\n0|x|y|1\n")
-        self.assertEqual(len(p['init']['entries']), 1)
-        self.assertEqual(len(p['init']['malformed']), 2)
-
-    def test_bad_clip_and_state(self):
-        self.assertEqual(np.parse_payload("CLIP:abc")['clip'], np.INVALID_CLIP)
-        self.assertEqual(np.parse_payload("STATE abcd1234 - 1")['state'], ('abcd1234', None, True))
-        self.assertIsNone(np.parse_payload("STATE abcd1234 x 1")['state'])
-
-    def test_digest_matches_beelink_module(self):
-        proto = _load('nowplaying_protocol', os.path.join(BEELINK_MAIN, 'nowplaying_protocol.py'))
-        message, digest, count = proto.build_init_message(FakeCache())
-        parsed = np.parse_payload(message)
-        self.assertEqual(count, 2)
-        self.assertEqual(parsed['init']['digest'], digest)
-        self.assertEqual(parsed['init']['header_digest'], digest)
-        self.assertEqual(parsed['init']['entries'][1][1].split(), ['Bee', 'Movie'])  # '|' sanitized
-        line = proto.build_state_line(digest, 2, True)
-        self.assertEqual(np.parse_payload(line)['state'], (digest, 2, True))
-
-
-class StateTests(unittest.TestCase):
+class TitleSourceTests(unittest.TestCase):
     def setUp(self):
-        self.s = np.SyncState()
+        self.cache = os.path.join(tempfile.mkdtemp(), 'titles.csv')
 
-    def test_push_applies_and_heartbeat_ok(self):
-        self.s.apply_payload(init_text() + "CLIP:2\n", 'push', sender=np.ENGINE_IP)
-        snap = self.s.snapshot()
-        self.assertEqual(snap.english[2], 'Beta')
-        self.assertEqual(snap.clip, 2)
-        _, reply = self.s.apply_payload(f"STATE {self.s.digest} 2 0", 'push')
-        self.assertTrue(reply.startswith('ACK OK'))
-        self.assertTrue(self.s.status()['in_sync'])
+    def test_fetch_caches_and_falls_back_to_cache(self):
+        good = np.TitleSource(fetch=lambda: CSV_UTF8, cache_path=self.cache)
+        self.assertTrue(good.refresh(0.0))
+        self.assertEqual(good.source, 'ssh')
+        self.assertEqual(good.lookup('bee_movie')[0], 'Bee Movie')  # case-insensitive fallback
 
-    def test_heartbeat_mismatch_debounced(self):
-        self.s.apply_payload(init_text(), 'push')
-        self.s.apply_payload("STATE deadbeef - 0", 'push')
-        self.assertFalse(self.s.resync_requested.is_set())
-        self.s.apply_payload("STATE deadbeef - 0", 'push')
-        self.assertTrue(self.s.resync_requested.is_set())
-        self.assertFalse(self.s.status()['in_sync'])
+        def boom():
+            raise np.SosError("down")
+        offline = np.TitleSource(fetch=boom, cache_path=self.cache)
+        self.assertTrue(offline.load_cache())
+        self.assertFalse(offline.refresh(1.0))
+        self.assertEqual(offline.source, 'cache')
+        self.assertEqual(offline.lookup('Bee_Movie')[1], 'Película de abejas ¿Sí?')
 
-    def test_empty_init_does_not_wipe_playlist(self):
-        self.s.apply_payload(init_text(), 'push')
-        self.s.apply_payload("INIT 00000000 0\n", 'push')
-        self.assertEqual(self.s.status()['items'], 3)
-        self.assertEqual(self.s.stats['init_rejected'], 1)
+    def test_bad_fetch_keeps_old_titles(self):
+        source = np.TitleSource(fetch=lambda: CSV_UTF8, cache_path=self.cache)
+        source.refresh(0.0)
+        source.fetch = lambda: b"<html>nope</html>"
+        self.assertFalse(source.refresh(1.0))
+        self.assertEqual(len(source.titles), 2)
 
-    def test_damaged_init_requests_resync(self):
-        self.s.apply_payload(init_text(digest='00000000', count=5), 'push')
-        self.assertTrue(self.s.resync_requested.is_set())
-
-    def test_clip_outside_playlist_requests_resync(self):
-        self.s.apply_payload("CLIP:7", 'push')
-        self.assertTrue(self.s.resync_requested.is_set())
-
-    def test_stale_pull_never_overwrites_newer_push(self):
-        self.s.apply_payload(init_text(), 'push')
-        baseline = self.s.baseline()
-        self.s.apply_payload("CLIP:3", 'push')  # push lands while the pull is in flight
-        old = init_text(["1|Old|Viejo|5"]) + "UNPAUSE\n\nCLIP:1\n"
-        self.s.apply_payload(old, 'pull', baseline=baseline)
-        snap = self.s.snapshot()
-        self.assertEqual(snap.clip, 3)               # newer push kept
-        self.assertEqual(snap.english[1], 'Old')     # untouched part (init) taken from pull
-        self.assertEqual(self.s.stats['pull_parts_skipped_stale'], 1)
-
-    def test_pause_state(self):
-        self.s.apply_payload("PAUSE", 'push')
-        self.assertTrue(self.s.snapshot().paused)
-        self.s.apply_payload("UNPAUSE", 'push')
-        self.assertFalse(self.s.snapshot().paused)
-
-    def test_unknown_message_recorded(self):
-        self.s.apply_payload("HELLO", 'push')
-        self.assertEqual(self.s.stats['unknown_messages'], 1)
+    def test_build_entries_fallback_order(self):
+        source = np.TitleSource(fetch=lambda: CSV_UTF8, cache_path=self.cache)
+        source.refresh(0.0)
+        clips = [
+            np.Clip(1, 'Bee_Movie', '95', None, None),
+            np.Clip(2, 'Other', None, 'Other Movie', 'Otra película'),
+            np.Clip(3, 'Bare', '0', None, None),
+        ]
+        en, es, du = np.build_entries(clips, source)
+        self.assertEqual((en[1], es[1], du[1]), ('Bee Movie', 'Película de abejas ¿Sí?', '1m 35s'))
+        self.assertEqual((en[2], es[2]), ('Other Movie', 'Otra película'))
+        self.assertEqual((en[3], es[3], du[3]), ('Bare', '', np.DEFAULT_DURATION_DISPLAY))
 
 
-class SocketTests(unittest.TestCase):
-    def test_server_roundtrip_and_status(self):
-        np.state = np.SyncState()
+class SchedulerTests(unittest.TestCase):
+    def simulate(self, sched, clip_count, clip_len, horizon):
+        """Clip advances every clip_len seconds; poll whenever the scheduler says."""
+        now, seen = 0.0, []
+        while now <= horizon:
+            clip = int(now // clip_len) % clip_count + 1
+            sched.observe(clip, now)
+            seen.append((now, clip))
+            now += sched.next_delay(now)[0]
+        return seen
+
+    def test_starts_at_base_interval(self):
+        s = np.PollScheduler()
+        s.count = 5
+        s.observe(1, 0.0)
+        self.assertEqual(s.next_delay(0.0), (np.BASE_POLL_INTERVAL, 'base'))
+
+    def test_learns_duration(self):
+        s = np.PollScheduler()
+        s.count = 5
+        s.observe(1, 0.0)
+        s.observe(2, 20.0)  # clip 2 starts at ~10
+        for t in (40.0, 60.0, 80.0, 100.0):
+            s.observe(2, t)
+        s.observe(3, 120.0)  # clip 3 starts at ~110
+        seconds, err, source = s.estimate(2)
+        self.assertEqual(source, 'learned')
+        self.assertAlmostEqual(seconds, 100.0)
+        self.assertAlmostEqual(err, 20.0)
+
+    def test_converges_to_tight_detection(self):
+        s = np.PollScheduler()
+        s.count = 4
+        seen = self.simulate(s, 4, 100.0, 4000)
+        late = [(t, c) for t, c in seen if t > 2000]
+        detected = 0
+        for (t0, c0), (t1, c1) in zip(late, late[1:]):
+            if c1 != c0:
+                detected += 1
+                self.assertLessEqual(t1 - (t1 // 100) * 100, 3.5, f"late detection at {t1}")
+        self.assertGreater(detected, 5)
+
+    def test_converges_to_fewer_polls_for_long_clips(self):
+        s = np.PollScheduler()
+        s.count = 4
+        seen = self.simulate(s, 4, 300.0, 8000)
+        late = [t for t, _ in seen if t > 4000]
+        self.assertLess(len(late), 0.7 * 4000 / np.BASE_POLL_INTERVAL)
+
+    def test_safety_poll_cap(self):
+        s = np.PollScheduler()
+        s.count = 3
+        s.learned[2] = (600.0, 1.0)
+        s.observe(1, 0.0)
+        s.observe(2, 10.0)
+        delay, mode = s.next_delay(10.0)
+        self.assertEqual(mode, 'predict')
+        self.assertEqual(delay, np.SAFETY_POLL_INTERVAL)
+
+    def test_miss_falls_back_to_base(self):
+        s = np.PollScheduler()
+        s.count = 3
+        s.observe(1, 0.0)
+        s.observe(2, 2.0)  # clip 2 starts at 1
+        s.learned[2] = (30.0, 1.0)
+        self.assertEqual(s.next_delay(20.0)[1], 'predict')
+        self.assertEqual(s.next_delay(30.5)[1], 'catch')
+        self.assertEqual(s.next_delay(60.0)[1], 'lost')
+        s.observe(2, 60.0)
+        self.assertEqual(s.misses, 1)
+
+    def test_manual_skip_does_not_poison_duration(self):
+        s = np.PollScheduler()
+        s.count = 5
+        s.learned[2] = (100.0, 1.0)
+        s.observe(1, 0.0)
+        s.observe(2, 2.0)
+        s.observe(3, 22.0)  # left clip 2 after ~20s: shorter sample is held back
+        self.assertEqual(s.learned[2][0], 100.0)
+        self.assertIn(2, s.pending_short)
+
+    def test_non_sequential_change_not_learned(self):
+        s = np.PollScheduler()
+        s.count = 5
+        s.observe(1, 0.0)
+        s.observe(2, 2.0)
+        s.observe(5, 50.0)
+        self.assertNotIn(2, s.learned)
+
+    def test_hint_used_then_dropped_on_miss(self):
+        s = np.PollScheduler()
+        s.count = 3
+        s.set_hints({2: 10.0})
+        s.observe(1, 0.0)
+        s.observe(2, 2.0)
+        self.assertEqual(s.estimate(2)[2], 'hint')
+        s.observe(2, 100.0)
+        self.assertNotIn(2, s.hints)
+
+    def test_wraparound_is_sequential(self):
+        s = np.PollScheduler()
+        s.count = 3
+        s.observe(2, 0.0)
+        s.observe(3, 2.0)
+        s.observe(1, 102.0)
+        self.assertIn(3, s.learned)
+
+
+class FakeSos:
+    """Minimal SOS: handshake 'R', canned replies, records every command received."""
+
+    def __init__(self):
+        self.playlist_name = "/home/sos/sosrc/Test.sos"
+        self.clips = [
+            "name {Bee_Movie} duration 95 spanish-translation {Pingüino}",
+            "name {Sun} duration 60",
+            "name {Credits: Everyone}",
+        ]
+        self.current = 1
+        self.commands = []
+        self.server = socket.socket()
+        self.server.bind(('127.0.0.1', 0))
+        self.server.listen(5)
+        self.port = self.server.getsockname()[1]
+        self.running = True
+        threading.Thread(target=self._accept, daemon=True).start()
+
+    def _accept(self):
+        self.server.settimeout(0.2)
+        while self.running:
+            try:
+                conn, _ = self.server.accept()
+            except socket.timeout:
+                continue
+            except OSError:
+                return
+            threading.Thread(target=self._serve, args=(conn,), daemon=True).start()
+
+    def _serve(self, conn):
+        buf = b""
+        while self.running:
+            try:
+                chunk = conn.recv(1024)
+            except OSError:
+                return
+            if not chunk:
+                return
+            buf += chunk
+            while b"\n" in buf:
+                line, buf = buf.split(b"\n", 1)
+                cmd = line.decode().strip()
+                self.commands.append(cmd)
+                conn.sendall(self._reply(cmd).encode('utf-8'))
+
+    def _reply(self, cmd):
+        if cmd == 'enable':
+            return "R"
+        if cmd == 'get_playlist_name':
+            return self.playlist_name + "\n"
+        if cmd == 'get_clip_count':
+            return f"{len(self.clips)}\n"
+        if cmd == 'get_clip_number':
+            return f"{self.current}\n"
+        if cmd.startswith('get_all_name_value_pairs'):
+            return self.clips[int(cmd.split()[1]) - 1] + "\n"
+        return ""
+
+    def stop(self):
+        self.running = False
+        self.server.close()
+
+
+class SyncIntegrationTests(unittest.TestCase):
+    def setUp(self):
+        self.sos = FakeSos()
+        np.SOS_IDLE_TIMEOUT = 0.05
+        np.SOS_FIRST_REPLY_TIMEOUT = 1.0
+        self.clock_value = 0.0
+        self.state = np.SyncState()
+        self.titles = np.TitleSource(fetch=lambda: CSV_UTF8,
+                                     cache_path=os.path.join(tempfile.mkdtemp(), 't.csv'))
+        self.sync = np.SosSync(self.state, np.SosClient('127.0.0.1', self.sos.port), self.titles,
+                               np.PollScheduler(), clock=lambda: self.clock_value)
+
+    def tearDown(self):
+        self.sos.stop()
+
+    def test_first_step_loads_playlist_with_correct_accents(self):
+        delay = self.sync.step()
+        snap = self.state.snapshot()
+        self.assertEqual(delay, np.BASE_POLL_INTERVAL)
+        self.assertEqual(snap.english[1], 'Bee Movie')
+        self.assertEqual(snap.spanish[1], 'Película de abejas ¿Sí?')
+        self.assertEqual(snap.spanish[2], 'Sol')
+        self.assertEqual(snap.english[3], 'Credits: Everyone')
+        self.assertEqual(snap.clip, 1)
+        self.assertEqual(self.state.status()['titles']['source'], 'ssh')
+
+    def test_polling_follows_sos_clip(self):
+        self.sync.step()
+        self.sos.current = 2
+        self.clock_value = 20.0
+        self.sync.step()
+        self.assertEqual(self.state.snapshot().clip, 2)
+
+    def test_only_read_only_commands_are_sent(self):
+        self.sync.step()
+        self.clock_value = 20.0
+        self.sync.step()
+        allowed = {'enable', 'get_playlist_name', 'get_clip_count', 'get_clip_number'}
+        for cmd in self.sos.commands:
+            self.assertTrue(cmd in allowed or cmd.startswith('get_all_name_value_pairs'), cmd)
+
+    def test_identity_change_triggers_full_refresh(self):
+        self.sync.step()
+        self.sos.playlist_name = "/home/sos/sosrc/Other.sos"
+        self.sos.clips = ["name {Moon} duration 30"]
+        self.clock_value = np.IDENTITY_CHECK_INTERVAL + 1
+        self.assertEqual(self.sync.step(), 0.0)
+        self.sync.step()
+        self.assertEqual(self.state.status()['items'], 1)
+        self.assertEqual(self.state.snapshot().english[1], 'Moon')
+        self.assertEqual(self.state.stats['playlist_changes'], 1)
+
+    def test_sos_down(self):
+        self.sos.stop()
+        self.assertEqual(self.sync.step(), np.FAILURE_RETRY_DELAY)
+        self.assertFalse(self.state.loaded())
+        self.assertIsNotNone(self.state.status()['last_error'])
+
+    def test_titles_arriving_late_update_menu(self):
+        calls = {'n': 0}
+
+        def flaky():
+            calls['n'] += 1
+            if calls['n'] == 1:
+                raise np.SosError("ssh down")
+            return CSV_UTF8
+        self.titles.fetch = flaky
+        self.sync.step()
+        self.assertEqual(self.state.snapshot().spanish[2], '')  # no titles yet: SOS metadata fallback
+        self.clock_value = np.TITLES_RETRY_INTERVAL + 1
+        self.sync.step()
+        self.assertEqual(self.state.snapshot().spanish[2], 'Sol')
+
+
+class StatusServerTests(unittest.TestCase):
+    def test_status_json_and_legacy_ignored(self):
+        status = json.loads(np.process_message('STATUS').decode())
+        for key in ('in_sync', 'items', 'clip', 'polling', 'titles', 'stats'):
+            self.assertIn(key, status)
+        self.assertEqual(np.process_message('CLIP:3'), b"ACK IGNORED\n")
+
+    def test_socket_round_trip(self):
         server = socket.socket()
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind(('127.0.0.1', 0))
-        server.listen(5)
-        port = server.getsockname()[1]
+        server.listen(1)
         np.running = True
         threading.Thread(target=np.socket_server_loop, args=(server,), daemon=True).start()
-
-        def send(text):
-            with socket.create_connection(('127.0.0.1', port), timeout=3) as c:
-                c.sendall(text.encode())
-                c.shutdown(socket.SHUT_WR)
-                return c.recv(65536).decode()
-
         try:
-            self.assertEqual(send(init_text() + "CLIP:1\n").strip(), 'ACK')
-            status = json.loads(send("STATUS"))
-            self.assertEqual(status['items'], 3)
-            self.assertEqual(status['clip'], 1)
-            self.assertIn('stats', status)
+            c = socket.create_connection(server.getsockname(), timeout=3)
+            c.sendall(b'STATUS')
+            c.shutdown(socket.SHUT_WR)
+            self.assertIn('in_sync', json.loads(c.recv(65536).decode()))
+            c.close()
         finally:
             np.running = False
+            time.sleep(0.6)
             server.close()
 
 
+class FormatTests(unittest.TestCase):
+    def test_format_duration(self):
+        self.assertEqual(np.format_duration("65"), "1m 5s")
+        self.assertEqual(np.format_duration(None), np.DEFAULT_DURATION_DISPLAY)
+
+
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)
