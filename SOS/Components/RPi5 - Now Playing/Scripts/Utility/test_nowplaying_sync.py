@@ -69,6 +69,10 @@ class CsvTests(unittest.TestCase):
         data = "Dataset Name (Auto),Spanish Title,English Title\nX,Año,Year\n".encode('cp1252')
         self.assertEqual(np.parse_titles_csv(np.decode_csv_bytes(data))['X'][1], 'Año')
 
+    def test_decomposed_accents_normalized(self):
+        data = "Dataset Name (Auto),Spanish Title,English Title\nX,Ban\u0303o de Nin\u0303as,Bath\n".encode('utf-8')
+        self.assertEqual(np.parse_titles_csv(np.decode_csv_bytes(data))['X'][1], 'Baño de Niñas')
+
     def test_never_latin1_mojibake(self):
         self.assertNotIn('Ã', np.decode_csv_bytes(CSV_UTF8))
 

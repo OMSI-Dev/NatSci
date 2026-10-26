@@ -10,6 +10,7 @@ import re
 import io
 import csv
 import json
+import unicodedata
 from collections import deque, namedtuple
 import pygame
 from typing import Optional, List
@@ -777,8 +778,8 @@ def parse_titles_csv(text: str) -> dict:
     for row in csv.DictReader(io.StringIO(text)):
         key = (row.get(TITLE_COLUMN_KEY) or '').strip()
         if key:
-            titles[key] = ((row.get('English Title') or '').strip(),
-                           (row.get('Spanish Title') or '').strip())
+            titles[key] = (unicodedata.normalize('NFC', (row.get('English Title') or '').strip()),
+                           unicodedata.normalize('NFC', (row.get('Spanish Title') or '').strip()))
     return titles
 
 
